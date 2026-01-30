@@ -4,6 +4,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Drop tables if they exist (for development)
+DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS order_items CASCADE;
 DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS payments CASCADE;
@@ -133,6 +134,28 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product ON order_items(product_id);
 
+-- Audit Logs Table
+CREATE TABLE audit_logs (
+  id SERIAL PRIMARY KEY,
+  event_type VARCHAR(100) NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  user_email VARCHAR(255),
+  ip_address VARCHAR(45),
+  user_agent TEXT,
+  resource_type VARCHAR(100),
+  resource_id UUID,
+  details JSONB,
+  success BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for audit_logs table
+CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_email ON audit_logs(user_email);
+CREATE INDEX idx_audit_logs_event_type ON audit_logs(event_type);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX idx_audit_logs_success ON audit_logs(success);
+
 -- Trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -225,3 +248,4 @@ COMMENT ON TABLE products IS 'Stores product catalog with inventory management';
 COMMENT ON TABLE payments IS 'Stores payment transactions with UPI integration';
 COMMENT ON TABLE orders IS 'Stores orders with time-bound digital bills and QR codes';
 COMMENT ON TABLE order_items IS 'Stores individual items within each order';
+COMMENT ON TABLE audit_logs IS 'Stores security audit logs for authentication and authorization events';

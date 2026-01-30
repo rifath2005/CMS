@@ -6,6 +6,10 @@ import { pool, closePool } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
 import { initializeDatabase, checkDatabaseTables } from './database/init';
 import { createAuthRouter } from './routes/auth.routes';
+import { createInstitutionRouter } from './routes/institution.routes';
+import { createCanteenRouter } from './routes/canteen.routes';
+import { createProductRouter } from './routes/product.routes';
+import { apiRateLimiter } from './middleware/rateLimiter';
 
 const app: Application = express();
 
@@ -14,6 +18,9 @@ app.use(helmet()); // Security headers
 app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply rate limiting to all API routes
+app.use('/api', apiRateLimiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -33,12 +40,18 @@ app.get('/api/v1', (req, res) => {
       health: '/health',
       api: '/api/v1',
       auth: '/api/v1/auth',
+      institutions: '/api/v1/institutions',
+      canteens: '/api/v1/canteens',
+      products: '/api/v1/products',
     },
   });
 });
 
-// Mount auth routes
+// Mount routes
 app.use('/api/v1/auth', createAuthRouter(pool));
+app.use('/api/v1/institutions', createInstitutionRouter(pool));
+app.use('/api/v1/canteens', createCanteenRouter(pool));
+app.use('/api/v1/products', createProductRouter(pool));
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
