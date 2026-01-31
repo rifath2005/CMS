@@ -167,21 +167,21 @@ Tasks are split by **module/folder** to ensure team members work on different fi
 ### Tasks:
 
 **Task 18: Implement WebSocket Manager for Real-Time Updates**
-- [ ] 18.1: Set up WebSocket server
+- [x] 18.1: Set up WebSocket server
   - Files: `src/websocket/WebSocketServer.ts`, `src/websocket/ConnectionManager.ts`
-- [ ] 18.2: Implement order status broadcast
+- [x] 18.2: Implement order status broadcast
   - Files: `src/websocket/OrderBroadcast.ts`
-- [ ] 18.4: Implement stock change notifications
+- [x] 18.4: Implement stock change notifications
   - Files: `src/websocket/StockBroadcast.ts`
-- [ ] 18.6: Implement new order notifications
+- [x] 18.6: Implement new order notifications
   - Files: `src/websocket/VendorNotifications.ts`
-- [ ] 18.8: Implement bill timer updates
+- [x] 18.8: Implement bill timer updates
   - Files: `src/websocket/BillTimerBroadcast.ts`
 
 **Task 19: Implement Frontend - User Interface**
-- [ ] 19.1: Set up React project with TypeScript
+- [x] 19.1: Set up React project with TypeScript
   - Files: `client/package.json`, `client/tsconfig.json`, `client/src/App.tsx`
-- [ ] 19.2: Implement authentication pages
+- [x] 19.2: Implement authentication pages
   - Files: `client/src/pages/Login.tsx`, `client/src/pages/Register.tsx`
 - [ ] 19.3: Implement product browsing page
   - Files: `client/src/pages/Products.tsx`, `client/src/components/ProductCard.tsx`
