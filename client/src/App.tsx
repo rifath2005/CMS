@@ -4,7 +4,6 @@ import { WebSocketProvider } from './contexts/WebSocketContext'
 
 // Pages
 import Login from './pages/Login'
-import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import Cart from './pages/Cart'
@@ -28,10 +27,6 @@ function App() {
                     <Route
                         path="/login"
                         element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
-                    />
-                    <Route
-                        path="/register"
-                        element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />}
                     />
 
                     {/* Protected routes */}
