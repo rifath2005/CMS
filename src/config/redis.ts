@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const redisConfig = {
+// Configure Redis connection
+const redisConfig: any = {
   socket: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
-    tls: process.env.REDIS_TLS === 'true',
   },
   password: process.env.REDIS_PASSWORD || undefined,
 };

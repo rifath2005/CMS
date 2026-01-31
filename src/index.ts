@@ -121,33 +121,42 @@ const startServer = async () => {
     validateEnv();
     console.log('Environment variables validated');
 
-    // Connect to Redis
-    await connectRedis();
-    console.log('Redis connected');
+    // Try to connect to Redis (non-blocking)
+    try {
+      await connectRedis();
+      console.log('✓ Redis connected');
+    } catch (redisError) {
+      console.warn('⚠ Redis connection failed - continuing without cache:', redisError.message);
+    }
 
     // Test database connection
-    await pool.query('SELECT NOW()');
-    console.log('Database connected');
+    try {
+      await pool.query('SELECT NOW()');
+      console.log('✓ Database connected');
 
-    // Check if tables exist, if not initialize
-    const tablesExist = await checkDatabaseTables();
-    if (!tablesExist) {
-      console.log('Database tables not found, initializing...');
-      await initializeDatabase();
-    } else {
-      console.log('Database tables already exist');
+      // Check if tables exist, if not initialize
+      const tablesExist = await checkDatabaseTables();
+      if (!tablesExist) {
+        console.log('Database tables not found, initializing...');
+        await initializeDatabase();
+      } else {
+        console.log('✓ Database tables already exist');
+      }
+    } catch (dbError) {
+      console.error('✗ Database connection failed:', dbError.message);
+      console.log('⚠ Server will start but database operations will fail');
     }
 
     // Initialize WebSocket server
     wsServer = new WebSocketServer(httpServer);
-    console.log('WebSocket server initialized');
+    console.log('✓ WebSocket server initialized');
 
     // Start server
     httpServer.listen(config.port, () => {
-      console.log(`Server running on port ${config.port}`);
-      console.log(`Environment: ${config.nodeEnv}`);
-      console.log(`API Base URL: ${config.apiBaseUrl}`);
-      console.log(`WebSocket server ready`);
+      console.log(`\n🚀 Server running on port ${config.port}`);
+      console.log(`📍 Environment: ${config.nodeEnv}`);
+      console.log(`🌐 API Base URL: ${config.apiBaseUrl}`);
+      console.log(`🔌 WebSocket server ready\n`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

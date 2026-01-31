@@ -22,6 +22,12 @@ export const rateLimiter = (options: RateLimitOptions = {}) => {
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Check if Redis is connected
+      if (!redisClient.isOpen) {
+        console.warn('Rate limiter: Redis not connected, allowing request');
+        return next();
+      }
+
       // Get identifier (IP address or user ID if authenticated)
       const identifier = (req as any).user?.id || req.ip || req.connection.remoteAddress || 'unknown';
       const key = `rate_limit:${identifier}`;
@@ -81,7 +87,7 @@ export const rateLimiter = (options: RateLimitOptions = {}) => {
  */
 export const authRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5, // 5 attempts per 15 minutes
+  maxRequests: config.nodeEnv === 'development' ? 50 : 5, // 50 in dev, 5 in production
   message: 'Too many authentication attempts, please try again later',
   skipSuccessfulRequests: true,
 });
