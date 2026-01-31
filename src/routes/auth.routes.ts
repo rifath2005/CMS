@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
 import { AuthService } from '../services/auth/AuthService';
+import { AuditService } from '../services/audit/AuditService';
+import { authRateLimiter } from '../middleware/rateLimiter';
 import { UserRole } from '../types';
 import { ValidationError } from '../utils/errors';
 
@@ -13,6 +15,7 @@ import { ValidationError } from '../utils/errors';
 export const createAuthRouter = (pool: Pool): Router => {
   const router = Router();
   const authService = new AuthService(pool);
+  const auditService = new AuditService(pool);
 
   /**
    * POST /api/v1/auth/register
@@ -30,7 +33,7 @@ export const createAuthRouter = (pool: Pool): Router => {
    * 
    * Validates: Requirements 1.1, 1.2 (Institutional Email Validation)
    */
-  router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
+  router.post('/register', authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password, name } = req.body;
 
@@ -59,6 +62,15 @@ export const createAuthRouter = (pool: Pool): Router => {
         trimmedName,
         UserRole.USER
       );
+
+      // Log registration in audit
+      await auditService.logRegistration({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
 
       // Return user without sensitive data
       res.status(201).json({
@@ -135,7 +147,7 @@ export const createAuthRouter = (pool: Pool): Router => {
    * 
    * Validates: Requirements 1.3 (Authentication), 13.4 (Session Management)
    */
-  router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+  router.post('/login', authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
 
@@ -159,13 +171,31 @@ export const createAuthRouter = (pool: Pool): Router => {
       // Login user (creates session in Redis)
       const authToken = await authService.login(trimmedEmail, password);
 
+      // Log successful login
+      await auditService.logAuthAttempt({
+        email: trimmedEmail,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        success: true,
+        userId: authToken.user.id,
+      });
+
       res.status(200).json({
         success: true,
         data: authToken,
         timestamp: new Date(),
       });
     } catch (error: any) {
+      // Log failed login attempt
       if (error.message.includes('Invalid email or password')) {
+        await auditService.logAuthAttempt({
+          email: req.body.email,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          success: false,
+          reason: 'Invalid credentials',
+        });
+
         res.status(401).json({
           success: false,
           error: {
