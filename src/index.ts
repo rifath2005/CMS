@@ -7,7 +7,17 @@ import { pool, closePool } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
 import { initializeDatabase, checkDatabaseTables } from './database/init';
 import { createAuthRouter } from './routes/auth.routes';
+<<<<<<< HEAD
 import { WebSocketServer } from './websocket';
+=======
+import { createPaymentRoutes } from './routes/payment.routes';
+import { createCartRoutes } from './routes/cart.routes';
+import { createOrderRoutes } from './routes/order.routes';
+import { createBillRoutes } from './routes/bill.routes';
+import { createVendorRoutes } from './routes/vendor.routes';
+import { createOrderHistoryRoutes } from './routes/orderHistory.routes';
+import { createProfileRoutes } from './routes/profile.routes';
+>>>>>>> 9e0941a167c3afede125381072ab81ddce8a2b54
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -20,6 +30,9 @@ app.use(helmet()); // Security headers
 app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply rate limiting to all API routes
+app.use('/api', apiRateLimiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -39,6 +52,19 @@ app.get('/api/v1', (req, res) => {
       health: '/health',
       api: '/api/v1',
       auth: '/api/v1/auth',
+<<<<<<< HEAD
+      payments: '/api/v1/payments',
+      cart: '/api/v1/cart',
+      orders: '/api/v1/orders',
+      bills: '/api/v1/bills',
+      vendor: '/api/v1/vendor',
+      orderHistory: '/api/v1/order-history',
+      profile: '/api/v1/profile',
+=======
+      institutions: '/api/v1/institutions',
+      canteens: '/api/v1/canteens',
+      products: '/api/v1/products',
+>>>>>>> 020ba3cdb878a136d1edaf6429d2829ba9dec49b
     },
     websocket: {
       enabled: true,
@@ -47,8 +73,20 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
-// Mount auth routes
+// Mount routes
 app.use('/api/v1/auth', createAuthRouter(pool));
+app.use('/api/v1/institutions', createInstitutionRouter(pool));
+app.use('/api/v1/canteens', createCanteenRouter(pool));
+app.use('/api/v1/products', createProductRouter(pool));
+
+// Mount Member 2 routes (Tasks 8-17)
+app.use('/api/v1/payments', createPaymentRoutes(pool));
+app.use('/api/v1/cart', createCartRoutes(pool));
+app.use('/api/v1/orders', createOrderRoutes(pool));
+app.use('/api/v1/bills', createBillRoutes(pool));
+app.use('/api/v1/vendor', createVendorRoutes(pool));
+app.use('/api/v1/order-history', createOrderHistoryRoutes(pool));
+app.use('/api/v1/profile', createProfileRoutes(pool));
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
