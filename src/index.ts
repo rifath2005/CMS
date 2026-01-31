@@ -7,9 +7,9 @@ import { pool, closePool } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
 import { initializeDatabase, checkDatabaseTables } from './database/init';
 import { createAuthRouter } from './routes/auth.routes';
-<<<<<<< HEAD
-import { WebSocketServer } from './websocket';
-=======
+import { createInstitutionRouter } from './routes/institution.routes';
+import { createCanteenRouter } from './routes/canteen.routes';
+import { createProductRouter } from './routes/product.routes';
 import { createPaymentRoutes } from './routes/payment.routes';
 import { createCartRoutes } from './routes/cart.routes';
 import { createOrderRoutes } from './routes/order.routes';
@@ -17,7 +17,8 @@ import { createBillRoutes } from './routes/bill.routes';
 import { createVendorRoutes } from './routes/vendor.routes';
 import { createOrderHistoryRoutes } from './routes/orderHistory.routes';
 import { createProfileRoutes } from './routes/profile.routes';
->>>>>>> 9e0941a167c3afede125381072ab81ddce8a2b54
+import { WebSocketServer } from './websocket';
+import { apiRateLimiter } from './middleware/rateLimiter';
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -52,7 +53,9 @@ app.get('/api/v1', (req, res) => {
       health: '/health',
       api: '/api/v1',
       auth: '/api/v1/auth',
-<<<<<<< HEAD
+      institutions: '/api/v1/institutions',
+      canteens: '/api/v1/canteens',
+      products: '/api/v1/products',
       payments: '/api/v1/payments',
       cart: '/api/v1/cart',
       orders: '/api/v1/orders',
@@ -60,11 +63,6 @@ app.get('/api/v1', (req, res) => {
       vendor: '/api/v1/vendor',
       orderHistory: '/api/v1/order-history',
       profile: '/api/v1/profile',
-=======
-      institutions: '/api/v1/institutions',
-      canteens: '/api/v1/canteens',
-      products: '/api/v1/products',
->>>>>>> 020ba3cdb878a136d1edaf6429d2829ba9dec49b
     },
     websocket: {
       enabled: true,

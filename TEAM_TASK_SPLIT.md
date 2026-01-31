@@ -218,9 +218,9 @@ Tasks are split by **module/folder** to ensure team members work on different fi
   - Files: `vendor-panel/src/pages/Analytics.tsx`
 
 **Task 21: Implement Frontend - Admin Panels**
-- [ ] 21.1: Implement Main Admin panel
+- [x] 21.1: Implement Main Admin panel
   - Files: `admin-panel/src/pages/MainAdmin.tsx`, `admin-panel/src/pages/Institutions.tsx`
-- [ ] 21.2: Implement Institution Admin panel
+- [x] 21.2: Implement Institution Admin panel
   - Files: `admin-panel/src/pages/InstitutionAdmin.tsx`, `admin-panel/src/pages/Canteens.tsx`
 
 **Task 22: Final Integration and Testing**
@@ -300,18 +300,18 @@ git checkout -b feature/websocket-frontend
 - ⏳ Task 7: Run product tests
 
 ### Member 2 Progress: 0 / 25 tasks  
-### Member 3 Progress: 21 / 25 tasks ✅ (84% Complete)
+### Member 3 Progress: 23 / 25 tasks ✅ (92% Complete)
 **Completed:**
 - ✅ Task 18: WebSocket Manager (5 sub-tasks)
 - ✅ Task 19: User Interface (9 sub-tasks)
 - ✅ Task 20: Vendor Panel (7 sub-tasks)
+- ✅ Task 21: Admin Panels (2 sub-tasks)
 
 **Remaining:**
-- ⏳ Task 21: Admin Panels (2 sub-tasks)
 - ⏳ Task 22: Integration and Testing (3 sub-tasks)
 - ⏳ Task 23: Final verification
 
-**Total Progress: 38 / 63 tasks (60%)**
+**Total Progress: 40 / 63 tasks (63%)**
 
 ---
 
