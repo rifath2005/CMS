@@ -42,4 +42,13 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
-*.md
+
+# Documentation (keep only essential docs)
+*_COMPLETION*.md
+*_FIX*.md
+*_GUIDE*.md
+*_INSTRUCTIONS*.md
+*_STATUS*.md
+*_SUMMARY*.md
+TASK_*.md
+TASKS_*.md
