@@ -1,217 +1,293 @@
 # Canteen Management System
 
-A campus-scale digital platform designed to streamline canteen operations, reduce wait times, manage crowds, and ensure payment authenticity through a time-bound digital billing workflow.
+A campus-scale digital platform for canteen operations with time-bound digital billing, QR code-based delivery verification, and real-time order management.
 
 ## Features
 
-- **Role-Based Access Control**: Main Admin, Institution Admin, Vendor, and User roles
-- **Institutional Email Authentication**: Secure registration with institutional email validation
-- **Prepaid UPI Orders**: Payment verification before order creation
-- **Time-Bound Digital Bills**: 15-minute validity window with countdown timer
-- **QR Code Delivery Verification**: Vendors scan user's QR code to confirm delivery
-- **Real-Time Synchronization**: WebSocket-based updates across all interfaces
-- **Combined Item List**: Aggregated view for efficient vendor preparation
-- **Order History & Analytics**: Comprehensive tracking and reporting
+- 🔐 **Multi-role Authentication** - Support for Users, Vendors, Institution Admins, and Main Admin
+- 🏪 **Multi-vendor Support** - Multiple canteens per institution
+- 🛒 **Shopping Cart** - Add items from different vendors
+- 💳 **UPI Payment Integration** - Secure payment processing
+- ⏱️ **Time-bound Digital Bills** - 15-minute validity with countdown timer
+- 📱 **QR Code Delivery Verification** - Vendor scans user's QR code to confirm delivery
+- 🔔 **Real-time Updates** - WebSocket-based notifications
+- 📊 **Analytics Dashboard** - Sales reports and order tracking
+- 📦 **Inventory Management** - Stock tracking with low-stock alerts
 
-## Technology Stack
+## Tech Stack
 
-- **Backend**: Node.js, TypeScript, Express
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Testing**: Jest, fast-check (property-based testing)
-- **Real-Time**: Socket.io (planned)
+**Backend:**
+- Node.js + Express + TypeScript
+- PostgreSQL (Primary Database)
+- Redis (Caching & Sessions)
+- Socket.io (Real-time Communication)
+- JWT (Authentication)
+
+**Frontend:**
+- React + TypeScript
+- Vite (Build Tool)
+- Tailwind CSS (Styling)
+- Zustand (State Management)
+- Axios (API Client)
 
 ## Prerequisites
 
 - Node.js (v18 or higher)
 - PostgreSQL (v14 or higher)
-- Redis (v6 or higher)
+- Redis (v6 or higher) - Optional for caching
 - npm or yarn
 
 ## Installation
 
-1. Clone the repository:
+### 1. Clone the repository
+
 ```bash
 git clone <repository-url>
-cd canteen-management-system
+cd CMS
 ```
 
-2. Install dependencies:
+### 2. Install dependencies
+
 ```bash
+# Install backend dependencies
 npm install
+
+# Install frontend dependencies
+cd client
+npm install
+cd ..
 ```
 
-3. Set up environment variables:
+### 3. Configure environment variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+API_BASE_URL=http://localhost:3000
+
+# Database Configuration
+DB_HOST=your_db_host
+DB_PORT=5432
+DB_NAME=your_db_name
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_SSL=true
+
+# Redis Configuration (Optional)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_TLS=false
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES_IN=24h
+
+# Session Configuration
+SESSION_SECRET=your_session_secret_here
+SESSION_TIMEOUT=86400
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Bill Configuration
+BILL_VALIDITY_MINUTES=15
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3001
+```
+
+Create a `client/.env` file:
+
+```env
+VITE_API_URL=http://localhost:3000/api/v1
+VITE_WS_URL=http://localhost:3000
+```
+
+### 4. Initialize the database
+
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+# Reset database and create tables
+npm run db:reset
+
+# Create test users
+npm run create-users
 ```
-
-4. Start PostgreSQL and Redis services:
-```bash
-# PostgreSQL
-sudo service postgresql start
-
-# Redis
-sudo service redis-server start
-```
-
-5. Initialize the database:
-```bash
-npm run db:init
-```
-
-## Configuration
-
-Edit the `.env` file with your configuration:
-
-### Required Variables
-- `DB_PASSWORD`: PostgreSQL database password
-- `JWT_SECRET`: Secret key for JWT token generation
-- `SESSION_SECRET`: Secret key for session management
-
-### Optional Variables
-- `PORT`: Server port (default: 3000)
-- `DB_HOST`: Database host (default: localhost)
-- `DB_PORT`: Database port (default: 5432)
-- `REDIS_HOST`: Redis host (default: localhost)
-- `REDIS_PORT`: Redis port (default: 6379)
-
-## Database Schema
-
-The system uses the following tables:
-- `institutions`: Campus institutions
-- `users`: All system users with roles
-- `canteens`: Canteen information with vendor IDs
-- `products`: Product catalog with inventory
-- `payments`: Payment transactions
-- `orders`: Orders with time-bound bills and QR codes
-- `order_items`: Individual items within orders
 
 ## Running the Application
 
 ### Development Mode
+
 ```bash
+# Start backend server (runs on port 3000)
+npm run dev
+
+# In a new terminal, start frontend (runs on port 3001)
+cd client
 npm run dev
 ```
 
 ### Production Mode
+
 ```bash
+# Build backend
 npm run build
+
+# Build frontend
+cd client
+npm run build
+
+# Start backend
 npm start
 ```
 
-### Running Tests
-```bash
-# Run all tests
-npm test
+## Test Credentials
 
-# Run tests in watch mode
-npm run test:watch
+After running `npm run create-users`, use these credentials:
 
-# Run tests with coverage
-npm run test:coverage
-```
+### Regular User (Student)
+- **Email:** student1@test.edu
+- **Password:** password123
+- **Role:** USER
+
+### Vendor (Canteen Owner)
+- **Email:** vendor1@test.edu
+- **Password:** password123
+- **Role:** VENDOR
+
+### Institution Admin
+- **Email:** admin@test.edu
+- **Password:** password123
+- **Role:** INSTITUTION_ADMIN
 
 ## API Endpoints
 
-### Health Check
-- `GET /health` - Server health status
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/login` - User login
+- `GET /api/v1/auth/me` - Get current user
 
-### API Base
-- `GET /api/v1` - API information
+### Products
+- `GET /api/v1/products` - Get all products
+- `POST /api/v1/products` - Create product (Vendor only)
+- `PUT /api/v1/products/:id` - Update product
+- `DELETE /api/v1/products/:id` - Delete product
+
+### Cart
+- `GET /api/v1/cart` - Get user's cart
+- `POST /api/v1/cart/items` - Add item to cart
+- `PUT /api/v1/cart/items/:id` - Update cart item
+- `DELETE /api/v1/cart/items/:id` - Remove from cart
+
+### Orders
+- `POST /api/v1/orders` - Create order
+- `GET /api/v1/orders` - Get user's orders
+- `GET /api/v1/orders/:id` - Get order details
+- `PUT /api/v1/orders/:id/status` - Update order status
+
+### Payments
+- `POST /api/v1/payments/initiate` - Initiate payment
+- `POST /api/v1/payments/verify` - Verify payment
+- `GET /api/v1/payments/:id` - Get payment details
 
 ## Project Structure
 
 ```
-canteen-management-system/
-├── src/
-│   ├── config/          # Configuration files
-│   │   ├── database.ts  # PostgreSQL configuration
-│   │   ├── redis.ts     # Redis configuration
-│   │   └── env.ts       # Environment variables
-│   ├── database/        # Database schema and initialization
-│   │   ├── schema.sql   # Database schema
-│   │   └── init.ts      # Database initialization scripts
-│   ├── types/           # TypeScript type definitions
-│   │   └── index.ts     # Core type definitions
-│   ├── utils/           # Utility functions
-│   │   ├── errors.ts    # Custom error classes
-│   │   └── validators.ts # Validation functions
-│   └── index.ts         # Application entry point
-├── SD/                  # Specification documents
-│   ├── requirements.md  # Requirements document
-│   ├── design.md        # Design document
-│   └── tasks.md         # Implementation tasks
-├── .env.example         # Example environment variables
-├── package.json         # Project dependencies
-├── tsconfig.json        # TypeScript configuration
-├── jest.config.js       # Jest configuration
-└── README.md           # This file
+CMS/
+├── client/                 # Frontend React application
+│   ├── src/
+│   │   ├── components/    # Reusable components
+│   │   ├── pages/         # Page components
+│   │   ├── services/      # API services
+│   │   └── store/         # State management
+│   └── package.json
+├── src/                   # Backend source code
+│   ├── config/           # Configuration files
+│   ├── database/         # Database schema and migrations
+│   ├── middleware/       # Express middleware
+│   ├── models/           # Data models
+│   ├── routes/           # API routes
+│   ├── services/         # Business logic
+│   ├── types/            # TypeScript types
+│   ├── utils/            # Utility functions
+│   ├── websocket/        # WebSocket server
+│   └── index.ts          # Application entry point
+├── scripts/              # Utility scripts
+├── .env                  # Environment variables
+└── package.json
 ```
 
-## Testing Strategy
+## Available Scripts
 
-The project uses a dual testing approach:
+### Backend
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run db:reset` - Reset database and recreate tables
+- `npm run create-users` - Create test users
+- `npm test` - Run tests
+- `npm run lint` - Run ESLint
 
-### Unit Tests
-- Specific examples demonstrating correct behavior
-- Edge cases (empty carts, zero stock, boundary times)
-- Error conditions (invalid inputs, failed payments)
+### Frontend
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
 
-### Property-Based Tests
-- Universal properties that hold for all inputs
-- Comprehensive input coverage through randomization
-- Minimum 100 iterations per property test
-- Uses fast-check library
+## Key Features Explained
 
-## Development Workflow
+### Time-bound Digital Bills
+- Bills are valid for 15 minutes after generation
+- Real-time countdown timer displayed to users
+- Automatic expiration after timeout
 
-1. Read the requirements and design documents in the `SD/` folder
-2. Follow the implementation tasks in `SD/tasks.md`
-3. Write tests before implementing features (TDD)
-4. Run tests frequently to ensure correctness
-5. Use property-based tests to discover edge cases
+### QR Code Delivery Verification
+- Each order generates a unique QR code
+- Vendor scans the QR code on user's device
+- Prevents fraudulent delivery claims
+- Single-use QR codes (cannot be scanned twice)
 
-## Database Management
+### Real-time Updates
+- WebSocket connection for live order status updates
+- Instant notifications for vendors on new orders
+- Live stock updates across all clients
 
-### Initialize Database
+## Troubleshooting
+
+### Database Connection Issues
+- Ensure PostgreSQL is running
+- Check database credentials in `.env`
+- For cloud databases (Render, etc.), ensure `DB_SSL=true`
+
+### Redis Connection Issues
+- Redis is optional - the app will work without it
+- Rate limiting will be disabled if Redis is unavailable
+- Check Redis credentials and TLS settings
+
+### Port Already in Use
 ```bash
-npm run db:init
+# Kill process on port 3000 (backend)
+npx kill-port 3000
+
+# Kill process on port 3001 (frontend)
+npx kill-port 3001
 ```
 
-### Reset Database (Development Only)
-```bash
-npm run db:reset
-```
+## Contributing
 
-### Run Migrations
-```bash
-npm run db:migrate
-```
-
-## Security Considerations
-
-- All passwords are hashed using bcrypt
-- JWT tokens for authentication
-- HTTPS required in production
-- Rate limiting enabled
-- Input validation and sanitization
-- SQL injection prevention through parameterized queries
-- CORS configuration
-
-## Performance
-
-- Database connection pooling (max 20 connections)
-- Redis caching for frequently accessed data
-- Indexed database queries
-- Query timeout: 5 seconds
-- API timeout: 30 seconds
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details
 
 ## Support
 
-For issues and questions, please refer to the specification documents in the `SD/` folder or contact the development team.
+For issues and questions, please open an issue on GitHub.

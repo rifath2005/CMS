@@ -13,7 +13,8 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "db:init": "ts-node scripts/init-db.ts",
-    "db:reset": "ts-node scripts/reset-db.ts"
+    "db:reset": "ts-node scripts/reset-db.ts",
+    "create-users": "ts-node scripts/create-test-users.ts"
   },
   "keywords": [
     "canteen",
