@@ -6,6 +6,13 @@ import { pool, closePool } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
 import { initializeDatabase, checkDatabaseTables } from './database/init';
 import { createAuthRouter } from './routes/auth.routes';
+import { createPaymentRoutes } from './routes/payment.routes';
+import { createCartRoutes } from './routes/cart.routes';
+import { createOrderRoutes } from './routes/order.routes';
+import { createBillRoutes } from './routes/bill.routes';
+import { createVendorRoutes } from './routes/vendor.routes';
+import { createOrderHistoryRoutes } from './routes/orderHistory.routes';
+import { createProfileRoutes } from './routes/profile.routes';
 
 const app: Application = express();
 
@@ -33,12 +40,28 @@ app.get('/api/v1', (req, res) => {
       health: '/health',
       api: '/api/v1',
       auth: '/api/v1/auth',
+      payments: '/api/v1/payments',
+      cart: '/api/v1/cart',
+      orders: '/api/v1/orders',
+      bills: '/api/v1/bills',
+      vendor: '/api/v1/vendor',
+      orderHistory: '/api/v1/order-history',
+      profile: '/api/v1/profile',
     },
   });
 });
 
 // Mount auth routes
 app.use('/api/v1/auth', createAuthRouter(pool));
+
+// Mount Member 2 routes (Tasks 8-17)
+app.use('/api/v1/payments', createPaymentRoutes(pool));
+app.use('/api/v1/cart', createCartRoutes(pool));
+app.use('/api/v1/orders', createOrderRoutes(pool));
+app.use('/api/v1/bills', createBillRoutes(pool));
+app.use('/api/v1/vendor', createVendorRoutes(pool));
+app.use('/api/v1/order-history', createOrderHistoryRoutes(pool));
+app.use('/api/v1/profile', createProfileRoutes(pool));
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
