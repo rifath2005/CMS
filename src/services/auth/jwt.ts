@@ -16,6 +16,7 @@ export interface JWTPayload {
   email: string;
   role: UserRole;
   institutionId: string;
+  vendorId?: string; // For vendor users
 }
 
 /**

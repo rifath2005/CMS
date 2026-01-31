@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import { config, validateEnv } from './config/env';
@@ -6,8 +7,13 @@ import { pool, closePool } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
 import { initializeDatabase, checkDatabaseTables } from './database/init';
 import { createAuthRouter } from './routes/auth.routes';
+import { WebSocketServer } from './websocket';
 
 const app: Application = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket server
+let wsServer: WebSocketServer;
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -33,6 +39,10 @@ app.get('/api/v1', (req, res) => {
       health: '/health',
       api: '/api/v1',
       auth: '/api/v1/auth',
+    },
+    websocket: {
+      enabled: true,
+      endpoint: '/socket.io',
     },
   });
 });
@@ -92,11 +102,16 @@ const startServer = async () => {
       console.log('Database tables already exist');
     }
 
+    // Initialize WebSocket server
+    wsServer = new WebSocketServer(httpServer);
+    console.log('WebSocket server initialized');
+
     // Start server
-    app.listen(config.port, () => {
+    httpServer.listen(config.port, () => {
       console.log(`Server running on port ${config.port}`);
       console.log(`Environment: ${config.nodeEnv}`);
       console.log(`API Base URL: ${config.apiBaseUrl}`);
+      console.log(`WebSocket server ready`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -109,6 +124,11 @@ const gracefulShutdown = async () => {
   console.log('Shutting down gracefully...');
   
   try {
+    // Close WebSocket server
+    if (wsServer) {
+      await wsServer.close();
+    }
+    
     await closePool();
     await closeRedis();
     console.log('All connections closed');
@@ -125,4 +145,6 @@ process.on('SIGINT', gracefulShutdown);
 // Start the server
 startServer();
 
+// Export for testing
+export { app, httpServer, wsServer };
 export default app;
