@@ -25,23 +25,30 @@ export const KPICard: React.FC<KPICardProps> = ({
     return (
         <div
             className={clsx(
-                'rounded-lg border border-gray-200 p-3 transition-shadow duration-base',
-                'hover:shadow-lg',
+                'rounded-lg border border-gray-200 p-3',
+                'transition-all duration-base hover-elevate',
+                'hover:shadow-lg hover:border-primary-200',
+                'focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2',
                 bgColor
             )}
             data-testid="kpi-card"
+            tabIndex={0}
+            role="article"
+            aria-label={`${title}: ${value}`}
         >
             <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">{title}</p>
-                    <p className="mt-1 text-3xl font-bold text-gray-900" data-testid="kpi-value">
+                    <p className="text-sm font-medium text-gray-600 transition-colors duration-base">
+                        {title}
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-gray-900 transition-all duration-base" data-testid="kpi-value">
                         {value}
                     </p>
                     {trend && (
-                        <div className="mt-1 flex items-center gap-1">
+                        <div className="mt-1 flex items-center gap-1 transition-all duration-base">
                             <span
                                 className={clsx(
-                                    'text-xs font-medium',
+                                    'text-xs font-medium transition-colors duration-base',
                                     trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
                                 )}
                             >
@@ -54,7 +61,8 @@ export const KPICard: React.FC<KPICardProps> = ({
                 <div
                     className={clsx(
                         'flex h-12 w-12 items-center justify-center rounded-lg',
-                        'bg-primary-50',
+                        'bg-primary-50 transition-all duration-base',
+                        'group-hover:scale-110',
                         iconColor
                     )}
                 >

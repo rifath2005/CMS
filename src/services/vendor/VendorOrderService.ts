@@ -6,6 +6,7 @@ export interface CombinedItem {
   productName: string;
   totalQuantity: number;
   imageUrl?: string;
+  category?: string;
 }
 
 export interface OrderDetail {
@@ -50,13 +51,15 @@ export class VendorOrderService {
         oi.product_id as "productId",
         oi.product_name as "productName",
         SUM(oi.quantity) as "totalQuantity",
-        oi.image_url as "imageUrl"
+        oi.image_url as "imageUrl",
+        p.category as "category"
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
+      LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.vendor_id = $1 
         AND o.status NOT IN ('DELIVERED', 'EXPIRED')
-      GROUP BY oi.product_id, oi.product_name, oi.image_url
-      ORDER BY oi.product_name
+      GROUP BY oi.product_id, oi.product_name, oi.image_url, p.category
+      ORDER BY p.category NULLS LAST, oi.product_name
     `;
 
     const result = await this.pool.query(query, [vendorId]);
@@ -65,7 +68,8 @@ export class VendorOrderService {
       productId: row.productId,
       productName: row.productName,
       totalQuantity: parseInt(row.totalQuantity),
-      imageUrl: row.imageUrl
+      imageUrl: row.imageUrl,
+      category: row.category
     }));
   }
 

@@ -43,7 +43,7 @@ export class ProductModel {
     const availability = stockQuantity > 0 ? isAvailable : false;
 
     const query = `
-      INSERT INTO products (canteen_id, name, description, price, category, image_url, stock_quantity, is_available)
+      INSERT INTO products (id, name, description, price, category, image_url, stock_quantity, is_available)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
@@ -83,7 +83,7 @@ export class ProductModel {
    * Find all products for a canteen
    */
   async findByCanteen(canteenId: number): Promise<Product[]> {
-    const query = 'SELECT * FROM products WHERE canteen_id = $1 ORDER BY name';
+    const query = 'SELECT * FROM products WHERE id = $1 ORDER BY name';
     const result: QueryResult<Product> = await this.pool.query(query, [canteenId]);
     return result.rows;
   }
@@ -94,7 +94,7 @@ export class ProductModel {
   async findAvailableByCanteen(canteenId: number): Promise<Product[]> {
     const query = `
       SELECT * FROM products 
-      WHERE canteen_id = $1 AND is_available = true AND stock_quantity > 0
+      WHERE id = $1 AND is_available = true AND stock_quantity > 0
       ORDER BY name
     `;
     const result: QueryResult<Product> = await this.pool.query(query, [canteenId]);
@@ -107,7 +107,7 @@ export class ProductModel {
   async findByInstitution(institutionId: number): Promise<Product[]> {
     const query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.canteen_id = c.id
+      INNER JOIN canteens c ON p.id = c.id
       WHERE c.institution_id = $1 AND c.is_approved = true AND c.is_active = true
       ORDER BY c.name, p.name
     `;
@@ -121,7 +121,7 @@ export class ProductModel {
   async findAvailableByInstitution(institutionId: number): Promise<Product[]> {
     const query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.canteen_id = c.id
+      INNER JOIN canteens c ON p.id = c.id
       WHERE c.institution_id = $1 
         AND c.is_approved = true 
         AND c.is_active = true
@@ -300,7 +300,7 @@ export class ProductModel {
   async getLowStockProducts(canteenId: number, threshold: number = 10): Promise<Product[]> {
     const query = `
       SELECT * FROM products 
-      WHERE canteen_id = $1 AND stock_quantity <= $2 AND stock_quantity > 0
+      WHERE id = $1 AND stock_quantity <= $2 AND stock_quantity > 0
       ORDER BY stock_quantity ASC
     `;
     const result: QueryResult<Product> = await this.pool.query(query, [canteenId, threshold]);
@@ -322,7 +322,7 @@ export class ProductModel {
   async search(institutionId: number, searchTerm: string, category?: ProductCategory): Promise<Product[]> {
     let query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.canteen_id = c.id
+      INNER JOIN canteens c ON p.id = c.id
       WHERE c.institution_id = $1 
         AND c.is_approved = true 
         AND c.is_active = true

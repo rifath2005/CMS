@@ -20,7 +20,10 @@ const Checkout = () => {
     const [error, setError] = useState<string | null>(null)
     const [orderId, setOrderId] = useState<string | null>(null)
 
-    const totalAmount = getTotalAmount()
+    const subtotal = getTotalAmount()
+    const taxRate = 0.05 // 5% tax
+    const taxes = subtotal * taxRate
+    const totalAmount = subtotal + taxes
 
     useEffect(() => {
         // Redirect if cart is empty
@@ -34,19 +37,23 @@ const Checkout = () => {
         setError(null)
 
         try {
+            if (!user?.id) {
+                throw new Error('User not authenticated')
+            }
+
             // Initiate payment
-            const paymentIntent = await paymentService.initiatePayment(totalAmount)
-            setPaymentId(paymentIntent.paymentId)
+            const paymentIntent = await paymentService.initiatePayment(user.id, totalAmount)
+            setPaymentId(paymentIntent.payment.id)
             setPaymentStatus(PaymentStatus.INITIATED)
 
             // Simulate UPI payment flow (in real app, this would open UPI app)
             // For demo purposes, we'll simulate payment verification
             setTimeout(() => {
-                handleVerifyPayment(paymentIntent.paymentId)
+                handleVerifyPayment(paymentIntent.payment.id)
             }, 2000)
 
         } catch (err: any) {
-            setError(err.response?.data?.error?.message || 'Failed to initiate payment')
+            setError(err.response?.data?.error?.message || err.message || 'Failed to initiate payment')
             setIsProcessing(false)
         }
     }
@@ -87,38 +94,56 @@ const Checkout = () => {
             case PaymentStatus.INITIATED:
             case PaymentStatus.PENDING:
                 return (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                        <Clock className="w-12 h-12 text-blue-600 mx-auto mb-3 animate-pulse" />
-                        <h3 className="text-lg font-semibold text-blue-900 mb-2">Processing Payment</h3>
-                        <p className="text-blue-700">Please wait while we verify your payment...</p>
-                        <LoadingSpinner className="mx-auto mt-4" />
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="relative">
+                                <Clock className="w-16 h-16 text-blue-600 animate-pulse" />
+                                <div className="absolute inset-0 w-16 h-16 border-4 border-blue-300 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-blue-900 mb-2">Processing Payment</h3>
+                        <p className="text-blue-700 mb-4">Please wait while we verify your payment...</p>
+                        <div className="flex justify-center">
+                            <LoadingSpinner />
+                        </div>
                     </div>
                 )
 
             case PaymentStatus.SUCCESS:
                 return (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-                        <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold text-green-900 mb-2">Payment Successful!</h3>
-                        <p className="text-green-700">Creating your order and generating digital bill...</p>
-                        <LoadingSpinner className="mx-auto mt-4" />
+                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="bg-green-100 rounded-full p-4">
+                                <CheckCircle className="w-16 h-16 text-green-600" />
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-green-900 mb-2">Payment Successful!</h3>
+                        <p className="text-green-700 mb-4">Creating your order and generating digital bill...</p>
+                        <div className="flex justify-center">
+                            <LoadingSpinner />
+                        </div>
                     </div>
                 )
 
             case PaymentStatus.FAILED:
             case PaymentStatus.CANCELLED:
                 return (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                        <XCircle className="w-12 h-12 text-red-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold text-red-900 mb-2">Payment Failed</h3>
-                        <p className="text-red-700 mb-4">Your payment could not be processed.</p>
+                    <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="bg-red-100 rounded-full p-4">
+                                <XCircle className="w-16 h-16 text-red-600" />
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-red-900 mb-2">Payment Failed</h3>
+                        <p className="text-red-700 mb-6">Your payment could not be processed. Please try again.</p>
                         <button
                             onClick={() => {
                                 setPaymentId(null)
                                 setPaymentStatus(null)
                                 setError(null)
+                                setIsProcessing(false)
                             }}
-                            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                            className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium min-h-[44px] min-w-[44px]"
                         >
                             Try Again
                         </button>
@@ -135,8 +160,17 @@ const Checkout = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-6xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Checkout</h1>
+
+            {/* Loading Overlay - Prevents interaction during payment processing */}
+            {isProcessing && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                        {renderPaymentStatus()}
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div className="mb-6">
@@ -144,37 +178,43 @@ const Checkout = () => {
                 </div>
             )}
 
-            {paymentStatus ? (
-                renderPaymentStatus()
-            ) : (
-                <>
-                    {/* Order Summary */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-
-                        <div className="space-y-3 mb-4">
-                            {items.map((item) => (
-                                <div key={item.productId} className="flex justify-between text-gray-700">
-                                    <span>
-                                        {item.productName} × {item.quantity}
-                                    </span>
-                                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="border-t pt-3 flex justify-between text-lg font-bold">
-                            <span>Total Amount</span>
-                            <span className="text-primary-600">₹{totalAmount.toFixed(2)}</span>
-                        </div>
-                    </div>
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-6">
                     {/* User Details */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6">
                         <h2 className="text-xl font-bold mb-4">Delivery Details</h2>
                         <div className="space-y-2 text-gray-700">
                             <p><span className="font-medium">Name:</span> {user?.name}</p>
                             <p><span className="font-medium">Email:</span> {user?.email}</p>
+                        </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h2 className="text-xl font-bold mb-4">Order Items</h2>
+                        <div className="space-y-3">
+                            {items.map((item) => (
+                                <div key={item.productId} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                                    <div className="flex items-center space-x-3">
+                                        <img
+                                            src={item.imageUrl || '/placeholder-product.png'}
+                                            alt={item.productName}
+                                            className="w-12 h-12 object-cover rounded"
+                                            onError={(e) => {
+                                                e.currentTarget.src = '/placeholder-product.png'
+                                            }}
+                                        />
+                                        <div>
+                                            <p className="font-medium text-gray-900">{item.productName}</p>
+                                            <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                                        </div>
+                                    </div>
+                                    <span className="font-semibold text-gray-900">
+                                        ₹{(item.price * item.quantity).toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -195,7 +235,7 @@ const Checkout = () => {
                         <button
                             onClick={handleInitiatePayment}
                             disabled={isProcessing}
-                            className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[44px]"
                         >
                             {isProcessing ? (
                                 <>
@@ -212,13 +252,44 @@ const Checkout = () => {
                         <button
                             onClick={() => navigate('/cart')}
                             disabled={isProcessing}
-                            className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+                            className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                         >
                             Back to Cart
                         </button>
                     </div>
-                </>
-            )}
+                </div>
+
+                {/* Sticky Order Summary */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg shadow-sm p-6 sticky top-20">
+                        <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+
+                        <div className="space-y-3 mb-6">
+                            <div className="flex justify-between text-gray-600">
+                                <span>Subtotal</span>
+                                <span>₹{subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600">
+                                <span>Taxes (5%)</span>
+                                <span>₹{taxes.toFixed(2)}</span>
+                            </div>
+                            <div className="border-t pt-3 flex justify-between text-lg font-bold">
+                                <span>Total</span>
+                                <span className="text-primary-600">₹{totalAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600 mb-2">Payment Details:</p>
+                            <ul className="text-sm text-gray-700 space-y-1">
+                                <li>• Secure UPI payment</li>
+                                <li>• Instant confirmation</li>
+                                <li>• Digital bill generation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

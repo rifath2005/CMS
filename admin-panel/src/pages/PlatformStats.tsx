@@ -3,6 +3,7 @@ import { institutionService } from '../services/institutionService'
 import { PlatformStats } from '../types'
 import { Building2, Users, ShoppingBag, TrendingUp } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import ErrorAlert from '../components/ErrorAlert'
 import { KPICard } from '../components/shared'
 
@@ -27,7 +28,21 @@ export default function PlatformStatsPage() {
         }
     }
 
-    if (loading) return <LoadingSpinner />
+    if (loading) {
+        return (
+            <div className="max-h-[200vh]">
+                <div className="skeleton-title mb-3" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                    <LoadingSkeleton variant="kpi" count={4} />
+                </div>
+                <div className="skeleton-card mb-3" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="skeleton-card" />
+                    <div className="skeleton-card" />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="max-h-[200vh]">
@@ -85,7 +100,7 @@ export default function PlatformStatsPage() {
                     </div>
 
                     {/* Platform Overview Section */}
-                    <div className="bg-white rounded-lg shadow p-3 mb-3">
+                    <div className="bg-white rounded-lg shadow p-3 mb-3 transition-all duration-base hover:shadow-md">
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">Platform Overview</h2>
                         <p className="text-gray-600">
                             The platform is currently serving {stats.totalInstitutions} institutions with{' '}
@@ -97,7 +112,7 @@ export default function PlatformStatsPage() {
 
                     {/* Additional Stats Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="bg-white rounded-lg shadow p-3">
+                        <div className="bg-white rounded-lg shadow p-3 transition-all duration-base hover:shadow-md">
                             <div className="flex items-center gap-2 mb-2">
                                 <Users className="h-5 w-5 text-blue-600" />
                                 <h3 className="text-lg font-semibold text-gray-900">User Metrics</h3>
@@ -109,7 +124,7 @@ export default function PlatformStatsPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-lg shadow p-3">
+                        <div className="bg-white rounded-lg shadow p-3 transition-all duration-base hover:shadow-md">
                             <div className="flex items-center gap-2 mb-2">
                                 <TrendingUp className="h-5 w-5 text-green-600" />
                                 <h3 className="text-lg font-semibold text-gray-900">Revenue Metrics</h3>

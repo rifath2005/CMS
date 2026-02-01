@@ -67,6 +67,7 @@ export const StatusChip: React.FC<StatusChipProps> = ({
         <span
             className={clsx(
                 'inline-flex items-center gap-1 rounded-full border font-medium',
+                'transition-all duration-base status-transition',
                 config.bg,
                 config.text,
                 config.border,
@@ -77,7 +78,10 @@ export const StatusChip: React.FC<StatusChipProps> = ({
             data-status={status}
         >
             {showIcon && (
-                <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
+                <span
+                    className="h-2 w-2 rounded-full bg-current animate-pulse"
+                    aria-hidden="true"
+                />
             )}
             {config.label}
         </span>

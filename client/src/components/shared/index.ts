@@ -13,3 +13,6 @@ export type { StepDrawerProps, StepConfig } from './StepDrawer';
 
 export { CountdownTimer } from './CountdownTimer';
 export type { CountdownTimerProps, CountdownSize } from './CountdownTimer';
+
+export { OrderStatusTimeline } from './OrderStatusTimeline';
+export type { OrderStatusTimelineProps } from './OrderStatusTimeline';

@@ -109,8 +109,9 @@ export interface Payment {
 
 export interface UserStats {
   totalOrders: number
-  totalSpending: number
-  activeOrders: number
+  totalSpent: number
+  averageOrderValue: number
+  activeOrdersCount: number
 }
 
 export interface ApiError {

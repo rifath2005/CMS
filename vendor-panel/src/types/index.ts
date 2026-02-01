@@ -70,6 +70,7 @@ export interface CombinedItem {
   productName: string
   totalQuantity: number
   imageUrl: string
+  category?: string
 }
 
 export interface SalesReport {

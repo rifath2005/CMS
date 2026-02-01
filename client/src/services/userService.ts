@@ -2,18 +2,18 @@ import api from './api'
 import { User, UserStats } from '../types'
 
 export const userService = {
-  async getProfile(): Promise<User> {
-    const response = await api.get<User>('/users/profile')
-    return response.data
+  async getProfile(userId: string): Promise<User> {
+    const response = await api.get<{ success: boolean; data: User }>(`/profile/${userId}`)
+    return response.data.data
   },
 
-  async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await api.put<User>('/users/profile', data)
-    return response.data
+  async updateProfile(userId: string, data: Partial<User>): Promise<User> {
+    const response = await api.put<{ success: boolean; data: User }>(`/profile/${userId}`, data)
+    return response.data.data
   },
 
-  async getUserStats(): Promise<UserStats> {
-    const response = await api.get<UserStats>('/users/stats')
-    return response.data
+  async getUserStats(userId: string): Promise<UserStats> {
+    const response = await api.get<{ success: boolean; data: UserStats }>(`/profile/${userId}/statistics`)
+    return response.data.data
   },
 }

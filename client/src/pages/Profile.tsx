@@ -21,9 +21,15 @@ const Profile = () => {
     }, [])
 
     const fetchProfile = async () => {
+        if (!authUser?.id) {
+            setError('User not authenticated')
+            setIsLoading(false)
+            return
+        }
+
         try {
             setIsLoading(true)
-            const profileData = await userService.getProfile()
+            const profileData = await userService.getProfile(authUser.id)
             setProfile(profileData)
             setName(profileData.name)
         } catch (err: any) {
@@ -43,9 +49,14 @@ const Profile = () => {
             return
         }
 
+        if (!authUser?.id) {
+            setError('User not authenticated')
+            return
+        }
+
         try {
             setIsSaving(true)
-            const updatedProfile = await userService.updateProfile({ name: name.trim() })
+            const updatedProfile = await userService.updateProfile(authUser.id, { name: name.trim() })
             setProfile(updatedProfile)
             updateUser(updatedProfile)
             setSuccessMessage('Profile updated successfully!')

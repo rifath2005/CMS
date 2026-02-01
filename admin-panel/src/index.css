@@ -29,3 +29,63 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+@layer base {
+  /* Enhanced focus indicators for keyboard navigation */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  /* Smooth transitions for interactive elements */
+  button, a, input, select, textarea {
+    @apply transition-all duration-base;
+  }
+}
+
+@layer components {
+  /* Loading skeleton animations */
+  .skeleton {
+    @apply bg-gray-200 animate-pulse rounded;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 w-full;
+  }
+
+  .skeleton-title {
+    @apply skeleton h-6 w-3/4;
+  }
+
+  .skeleton-avatar {
+    @apply skeleton h-12 w-12 rounded-full;
+  }
+
+  .skeleton-card {
+    @apply skeleton h-32 w-full;
+  }
+
+  /* Status change animations */
+  @keyframes statusFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .status-transition {
+    animation: statusFadeIn 200ms ease-out;
+  }
+
+  /* Smooth hover elevation */
+  .hover-elevate {
+    @apply transition-all duration-base;
+  }
+
+  .hover-elevate:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+}

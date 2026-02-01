@@ -6,7 +6,7 @@ import { useWebSocket } from '../contexts/WebSocketContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorAlert from '../components/ErrorAlert'
 import QRCode from '../components/QRCode'
-import Timer from '../components/Timer'
+import { CountdownTimer } from '../components/shared/CountdownTimer'
 import { CheckCircle, Package, User, Calendar, Receipt } from 'lucide-react'
 
 const DigitalBill = () => {
@@ -17,6 +17,7 @@ const DigitalBill = () => {
     const [bill, setBill] = useState<DigitalBillType | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isExpired, setIsExpired] = useState(false)
 
     useEffect(() => {
         if (!orderId) {
@@ -58,6 +59,7 @@ const DigitalBill = () => {
     }
 
     const handleExpire = () => {
+        setIsExpired(true)
         if (bill) {
             setBill({ ...bill, isValid: false })
         }
@@ -121,26 +123,52 @@ const DigitalBill = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto px-4">
             <h1 className="text-3xl font-bold mb-6 text-center">Digital Bill</h1>
 
-            {/* Timer */}
-            <div className="mb-6">
-                <Timer expiresAt={bill.expiresAt} onExpire={handleExpire} />
+            {/* Status Badge - Large and Centered */}
+            <div className="mb-6 text-center">
+                <span
+                    className={`inline-block px-6 py-3 rounded-full text-lg font-bold ${isExpired || !bill.isValid
+                            ? 'bg-red-100 text-red-800 border-2 border-red-300'
+                            : 'bg-green-100 text-green-800 border-2 border-green-300'
+                        }`}
+                >
+                    {isExpired || !bill.isValid ? 'Expired' : 'Valid'}
+                </span>
             </div>
 
-            {/* QR Code */}
-            {bill.isValid && (
-                <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+            {/* QR Code - Occupying at least 40% of viewport height */}
+            {!isExpired && bill.isValid && (
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <h2 className="text-xl font-bold text-center mb-4">Show this QR Code to Vendor</h2>
-                    <div className="bg-gray-50 rounded-lg p-6">
-                        <QRCode value={bill.qrCode} size={280} />
+                    <div className="bg-gray-50 rounded-lg p-6 flex items-center justify-center" style={{ minHeight: '40vh' }}>
+                        <QRCode value={bill.qrCode} size={Math.min(window.innerWidth * 0.7, 400)} />
                     </div>
                     <p className="text-center text-sm text-gray-600 mt-4">
                         The vendor will scan this code to confirm delivery
                     </p>
                 </div>
             )}
+
+            {/* Expired State */}
+            {(isExpired || !bill.isValid) && (
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-8 text-center mb-6">
+                    <div className="text-6xl mb-4">⏰</div>
+                    <h2 className="text-2xl font-bold text-red-900 mb-2">Bill Expired</h2>
+                    <p className="text-red-700">This bill has expired and can no longer be used for delivery.</p>
+                    <p className="text-red-600 text-sm mt-2">Please contact support if you need assistance.</p>
+                </div>
+            )}
+
+            {/* Countdown Timer - Large and Centered (minimum 2rem font size) */}
+            <div className="mb-6">
+                <CountdownTimer
+                    expiresAt={new Date(bill.expiresAt)}
+                    onExpire={handleExpire}
+                    size="lg"
+                />
+            </div>
 
             {/* Bill Details */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -207,7 +235,7 @@ const DigitalBill = () => {
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-blue-900 mb-2">Instructions</h3>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                     <li>Show this QR code to the vendor when collecting your order</li>
@@ -217,9 +245,14 @@ const DigitalBill = () => {
                 </ul>
             </div>
 
+            {/* Action Button - Disabled when expired */}
             <button
                 onClick={() => navigate('/dashboard')}
-                className="mt-6 w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                disabled={isExpired || !bill.isValid}
+                className={`w-full py-3 rounded-lg transition-colors font-medium ${isExpired || !bill.isValid
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
             >
                 Back to Dashboard
             </button>

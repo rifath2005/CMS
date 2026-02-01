@@ -3,6 +3,7 @@ import { institutionService, CreateInstitutionData, AssignAdminData } from '../s
 import { Institution } from '../types'
 import { Plus, Edit, Users, Trash2 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import ErrorAlert from '../components/ErrorAlert'
 import { DataTable, ColumnDef, StatusChip, StepDrawer, StepConfig } from '../components/shared'
 
@@ -121,7 +122,7 @@ export default function Institutions() {
                             e.stopPropagation()
                             // Edit functionality placeholder
                         }}
-                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-all duration-base min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
                         aria-label="Edit institution"
                     >
                         <Edit className="h-4 w-4" />
@@ -132,7 +133,7 @@ export default function Institutions() {
                             setSelectedInstitution(row)
                             setShowAssignAdminModal(true)
                         }}
-                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-green-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-green-600 transition-all duration-base min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1"
                         aria-label="Assign admin"
                     >
                         <Users className="h-4 w-4" />
@@ -142,7 +143,7 @@ export default function Institutions() {
                             e.stopPropagation()
                             // Deactivate functionality placeholder
                         }}
-                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-all duration-base min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
                         aria-label="Deactivate institution"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -277,7 +278,19 @@ export default function Institutions() {
         },
     ]
 
-    if (loading) return <LoadingSpinner />
+    if (loading) {
+        return (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <div className="skeleton-title" />
+                    <div className="skeleton h-11 w-48 rounded-md" />
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                    <LoadingSkeleton variant="table" />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div>
@@ -285,7 +298,7 @@ export default function Institutions() {
                 <h1 className="text-3xl font-bold text-gray-900">Institutions</h1>
                 <button
                     onClick={() => setShowCreateDrawer(true)}
-                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 min-h-[44px]"
+                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all duration-base hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-h-[44px]"
                 >
                     <Plus className="h-5 w-5" />
                     <span>Create Institution</span>
@@ -294,12 +307,12 @@ export default function Institutions() {
 
             {error && <ErrorAlert message={error} onClose={() => setError('')} />}
 
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg shadow transition-all duration-base hover:shadow-md">
                 <DataTable
                     columns={columns}
                     data={institutions}
                     stickyHeader={true}
-                    zebraStriping={false}
+                    zebraStriping={true}
                     hoverActions={true}
                 />
             </div>

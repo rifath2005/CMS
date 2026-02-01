@@ -4,14 +4,17 @@ import { Order, OrderStatus } from '../types'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorAlert from '../components/ErrorAlert'
-import { Clock, CheckCircle, Package, User, Calendar, ShoppingBag } from 'lucide-react'
+import { StatusChip } from '../components/shared'
+import { Clock, User, Calendar, ShoppingBag, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 
 const ActiveOrders = () => {
     const { socket } = useWebSocket()
     const [orders, setOrders] = useState<Order[]>([])
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [previousStatuses, setPreviousStatuses] = useState<Record<string, OrderStatus>>({})
 
     useEffect(() => {
         fetchOrders()
@@ -40,7 +43,34 @@ const ActiveOrders = () => {
         try {
             setIsLoading(true)
             const data = await orderService.getActiveOrders()
-            setOrders(data)
+
+            // Sort orders with oldest first (by createdAt)
+            const sortedOrders = [...data].sort((a, b) =>
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+
+            // Track status changes for animations
+            const newStatuses: Record<string, OrderStatus> = {}
+            sortedOrders.forEach(order => {
+                newStatuses[order.id] = order.status
+            })
+            setPreviousStatuses(newStatuses)
+
+            setOrders(sortedOrders)
+
+            // Auto-select first order if none selected
+            if (!selectedOrder && sortedOrders.length > 0) {
+                setSelectedOrder(sortedOrders[0])
+            } else if (selectedOrder) {
+                // Update selected order if it still exists
+                const updatedSelected = sortedOrders.find(o => o.id === selectedOrder.id)
+                if (updatedSelected) {
+                    setSelectedOrder(updatedSelected)
+                } else {
+                    // Selected order no longer active, select first one
+                    setSelectedOrder(sortedOrders[0] || null)
+                }
+            }
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load orders')
         } finally {
@@ -51,26 +81,13 @@ const ActiveOrders = () => {
     const getStatusColor = (status: OrderStatus) => {
         switch (status) {
             case OrderStatus.READY:
-                return 'bg-green-100 text-green-800 border-green-300'
+                return 'ready'
             case OrderStatus.PREPARING:
-                return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                return 'preparing'
             case OrderStatus.PENDING:
-                return 'bg-blue-100 text-blue-800 border-blue-300'
+                return 'pending'
             default:
-                return 'bg-gray-100 text-gray-800 border-gray-300'
-        }
-    }
-
-    const getStatusIcon = (status: OrderStatus) => {
-        switch (status) {
-            case OrderStatus.READY:
-                return <CheckCircle className="w-5 h-5" />
-            case OrderStatus.PREPARING:
-                return <Clock className="w-5 h-5" />
-            case OrderStatus.PENDING:
-                return <Package className="w-5 h-5" />
-            default:
-                return <Package className="w-5 h-5" />
+                return 'inactive'
         }
     }
 
@@ -92,7 +109,8 @@ const ActiveOrders = () => {
     }
 
     return (
-        <div>
+        <div className="h-full flex flex-col">
+            {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Active Orders</h1>
@@ -102,7 +120,7 @@ const ActiveOrders = () => {
                 </div>
                 <button
                     onClick={fetchOrders}
-                    className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                    className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors min-h-[44px] min-w-[44px]"
                 >
                     Refresh
                 </button>
@@ -121,92 +139,181 @@ const ActiveOrders = () => {
                     <p className="text-gray-500">New orders will appear here automatically</p>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {orders.map((order) => (
-                        <div
-                            key={order.id}
-                            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
-                        >
-                            {/* Order Header */}
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <div className="flex items-center space-x-3 mb-2">
-                                        <h3 className="text-lg font-semibold">
-                                            Order #{order.id.slice(0, 8)}
-                                        </h3>
-                                        <span
+                <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
+                    {/* Left Panel - Active Orders List (40% on desktop, full width on mobile) */}
+                    <div className="w-full lg:w-2/5 flex flex-col">
+                        <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                            <div className="p-4 border-b bg-gray-50">
+                                <h2 className="font-semibold text-lg">Orders Queue</h2>
+                                <p className="text-sm text-gray-600">Oldest orders first</p>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {orders.map((order) => {
+                                    const isSelected = selectedOrder?.id === order.id
+                                    const hasStatusChanged = previousStatuses[order.id] !== order.status
+
+                                    return (
+                                        <button
+                                            key={order.id}
+                                            onClick={() => setSelectedOrder(order)}
                                             className={clsx(
-                                                'px-3 py-1 rounded-full text-sm font-medium border flex items-center space-x-1',
-                                                getStatusColor(order.status)
+                                                'w-full text-left p-4 border-b transition-all duration-200 min-h-[44px]',
+                                                'hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset',
+                                                isSelected && 'bg-primary-50 border-l-4 border-l-primary-600',
+                                                !isSelected && 'border-l-4 border-l-transparent',
+                                                hasStatusChanged && 'animate-pulse'
                                             )}
                                         >
-                                            {getStatusIcon(order.status)}
-                                            <span>{order.status}</span>
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600 space-x-4">
-                                        <div className="flex items-center">
-                                            <User className="w-4 h-4 mr-1" />
-                                            {order.userName}
-                                        </div>
-                                        <div className="flex items-center">
-                                            <Calendar className="w-4 h-4 mr-1" />
-                                            {new Date(order.createdAt).toLocaleTimeString()}
-                                        </div>
-                                        <div className="flex items-center">
-                                            <Clock className="w-4 h-4 mr-1" />
-                                            Expires: {getRemainingTime(order.billExpiresAt)}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-2xl font-bold text-primary-600">
-                                        ₹{order.totalAmount.toFixed(2)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Order Items */}
-                            <div className="border-t pt-4">
-                                <h4 className="font-semibold mb-3">Items:</h4>
-                                <div className="space-y-2">
-                                    {order.items.map((item, index) => (
-                                        <div key={index} className="flex items-center space-x-3">
-                                            <img
-                                                src={item.imageUrl || '/placeholder-product.png'}
-                                                alt={item.productName}
-                                                className="w-12 h-12 object-cover rounded"
-                                                onError={(e) => {
-                                                    e.currentTarget.src = '/placeholder-product.png'
-                                                }}
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-medium">{item.productName}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    Quantity: {item.quantity}
-                                                </p>
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <User className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                                                        <span className="font-semibold text-gray-900 truncate">
+                                                            {order.userName}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                                                        <span>
+                                                            {new Date(order.createdAt).toLocaleTimeString([], {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <ChevronRight className={clsx(
+                                                    'w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200',
+                                                    isSelected && 'text-primary-600 transform translate-x-1'
+                                                )} />
                                             </div>
-                                            <p className="font-medium">
-                                                ₹{(item.price * item.quantity).toFixed(2)}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Order Age Indicator */}
-                            <div className="mt-4 pt-4 border-t">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-600">
-                                        Ordered {Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)} minutes ago
-                                    </span>
-                                    <span className="text-gray-600">
-                                        Payment ID: {order.paymentId.slice(0, 8)}...
-                                    </span>
-                                </div>
+                                            <div className="flex items-center justify-between">
+                                                <StatusChip
+                                                    status={getStatusColor(order.status) as any}
+                                                    size="sm"
+                                                    showIcon
+                                                />
+                                                <span className="text-sm font-semibold text-gray-900">
+                                                    ₹{order.totalAmount.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    )
+                                })}
                             </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Right Panel - Order Details (60% on desktop, full width on mobile) */}
+                    <div className="w-full lg:w-3/5 flex flex-col">
+                        {selectedOrder ? (
+                            <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                                {/* Order Header */}
+                                <div className="p-4 sm:p-6 border-b bg-gray-50">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 truncate">
+                                                Order #{selectedOrder.id.slice(0, 8)}
+                                            </h2>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                                                <div className="flex items-center gap-1">
+                                                    <User className="w-4 h-4 flex-shrink-0" />
+                                                    <span className="font-medium truncate">{selectedOrder.userName}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                                                    <span>
+                                                        {new Date(selectedOrder.createdAt).toLocaleString([], {
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-left sm:text-right flex-shrink-0">
+                                            <StatusChip
+                                                status={getStatusColor(selectedOrder.status) as any}
+                                                size="lg"
+                                                showIcon
+                                            />
+                                            <p className="text-2xl sm:text-3xl font-bold text-primary-600 mt-2">
+                                                ₹{selectedOrder.totalAmount.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Order Age and Expiry */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm bg-white rounded-lg p-3">
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                                            <span className="text-gray-600">
+                                                Ordered {Math.floor((Date.now() - new Date(selectedOrder.createdAt).getTime()) / 60000)} min ago
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                            <span className="text-amber-600 font-medium">
+                                                Expires: {getRemainingTime(selectedOrder.billExpiresAt)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Order Items */}
+                                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                                    <h3 className="font-semibold text-lg mb-4">Order Items</h3>
+                                    <div className="space-y-3">
+                                        {selectedOrder.items.map((item, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                            >
+                                                <img
+                                                    src={item.imageUrl || '/placeholder-product.png'}
+                                                    alt={item.productName}
+                                                    className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg flex-shrink-0"
+                                                    onError={(e) => {
+                                                        e.currentTarget.src = '/placeholder-product.png'
+                                                    }}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-900 truncate text-sm sm:text-base">
+                                                        {item.productName}
+                                                    </p>
+                                                    <p className="text-xs sm:text-sm text-gray-600">
+                                                        ₹{item.price.toFixed(2)} × {item.quantity}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    <p className="text-base sm:text-lg font-bold text-gray-900">
+                                                        ₹{(item.price * item.quantity).toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Order Footer */}
+                                <div className="p-4 sm:p-6 border-t bg-gray-50">
+                                    <div className="text-xs sm:text-sm text-gray-600">
+                                        <span className="font-medium">Payment ID:</span>{' '}
+                                        <span className="font-mono break-all">{selectedOrder.paymentId.slice(0, 16)}...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-lg shadow-sm p-12 text-center h-full flex items-center justify-center">
+                                <div>
+                                    <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-500">Select an order to view details</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

@@ -21,9 +21,10 @@ const Login = () => {
             const authData = await authService.login(email, password)
             setAuth(authData)
             navigate('/dashboard')
-        } catch (err) {
-            const error = err as { response?: { data?: { error?: { message?: string } } } }
-            setError(error.response?.data?.error?.message || 'Login failed. Please check your credentials.')
+        } catch (err: any) {
+            console.error('Login error:', err);
+            const errorMessage = err.response?.data?.error?.message || err.message || 'Login failed. Please check your credentials.';
+            setError(errorMessage);
         } finally {
             setLoading(false)
         }

@@ -4,13 +4,14 @@ import { orderService } from '../services/orderService'
 import { userService } from '../services/userService'
 import { Order, UserStats } from '../types'
 import { useWebSocket } from '../contexts/WebSocketContext'
+import { useAuthStore } from '../store/authStore'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorAlert from '../components/ErrorAlert'
+import { OrderStatusTimeline } from '../components/shared'
 import {
     ShoppingBag,
     TrendingUp,
     Clock,
-    CheckCircle,
     Package,
     ArrowRight,
     Receipt
@@ -19,6 +20,7 @@ import {
 const Dashboard = () => {
     const navigate = useNavigate()
     const { socket } = useWebSocket()
+    const { user } = useAuthStore()
 
     const [activeOrders, setActiveOrders] = useState<Order[]>([])
     const [stats, setStats] = useState<UserStats | null>(null)
@@ -32,23 +34,34 @@ const Dashboard = () => {
     useEffect(() => {
         if (!socket) return
 
-        // Listen for order status updates
-        socket.on('orderStatusUpdate', (data: any) => {
-            // Refresh active orders when status changes
-            fetchActiveOrders()
-        })
+        // Listen for order status updates with real-time refresh
+        const handleOrderUpdate = (data: any) => {
+            console.log('Order status update received:', data)
+            // Update the specific order in the list
+            setActiveOrders((prevOrders) =>
+                prevOrders.map((order) =>
+                    order.id === data.orderId ? { ...order, status: data.status } : order
+                )
+            )
+            // Also refresh stats
+            fetchStats()
+        }
+
+        socket.on('order:status-update', handleOrderUpdate)
 
         return () => {
-            socket.off('orderStatusUpdate')
+            socket.off('order:status-update', handleOrderUpdate)
         }
     }, [socket])
 
     const fetchDashboardData = async () => {
+        if (!user?.id) return
+
         try {
             setIsLoading(true)
             const [ordersData, statsData] = await Promise.all([
-                orderService.getActiveOrders(),
-                userService.getUserStats(),
+                orderService.getActiveOrders(user.id),
+                userService.getUserStats(user.id),
             ])
             setActiveOrders(ordersData)
             setStats(statsData)
@@ -60,37 +73,24 @@ const Dashboard = () => {
     }
 
     const fetchActiveOrders = async () => {
+        if (!user?.id) return
+
         try {
-            const ordersData = await orderService.getActiveOrders()
+            const ordersData = await orderService.getActiveOrders(user.id)
             setActiveOrders(ordersData)
         } catch (err: any) {
             console.error('Failed to refresh active orders:', err)
         }
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'READY':
-                return 'bg-green-100 text-green-800 border-green-300'
-            case 'PREPARING':
-                return 'bg-yellow-100 text-yellow-800 border-yellow-300'
-            case 'PENDING':
-                return 'bg-blue-100 text-blue-800 border-blue-300'
-            default:
-                return 'bg-gray-100 text-gray-800 border-gray-300'
-        }
-    }
+    const fetchStats = async () => {
+        if (!user?.id) return
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'READY':
-                return <CheckCircle className="w-5 h-5" />
-            case 'PREPARING':
-                return <Clock className="w-5 h-5" />
-            case 'PENDING':
-                return <Package className="w-5 h-5" />
-            default:
-                return <Package className="w-5 h-5" />
+        try {
+            const statsData = await userService.getUserStats(user.id)
+            setStats(statsData)
+        } catch (err: any) {
+            console.error('Failed to refresh stats:', err)
         }
     }
 
@@ -129,7 +129,7 @@ const Dashboard = () => {
                             <h3 className="text-sm font-medium text-gray-600">Total Spending</h3>
                             <TrendingUp className="w-8 h-8 text-green-600" />
                         </div>
-                        <p className="text-3xl font-bold text-gray-900">₹{stats.totalSpending.toFixed(2)}</p>
+                        <p className="text-3xl font-bold text-gray-900">₹{stats.totalSpent.toFixed(2)}</p>
                         <p className="text-sm text-gray-500 mt-1">All time</p>
                     </div>
 
@@ -138,7 +138,7 @@ const Dashboard = () => {
                             <h3 className="text-sm font-medium text-gray-600">Active Orders</h3>
                             <Clock className="w-8 h-8 text-yellow-600" />
                         </div>
-                        <p className="text-3xl font-bold text-gray-900">{stats.activeOrders}</p>
+                        <p className="text-3xl font-bold text-gray-900">{stats.activeOrdersCount}</p>
                         <p className="text-sm text-gray-500 mt-1">In progress</p>
                     </div>
                 </div>
@@ -171,66 +171,68 @@ const Dashboard = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {activeOrders.map((order) => (
                             <div
                                 key={order.id}
-                                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                             >
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 className="font-semibold text-lg mb-1">
-                                            Order #{order.id.slice(0, 8)}
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            Vendor: {order.vendorId} • {new Date(order.createdAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-sm font-medium border flex items-center space-x-1 ${getStatusColor(
-                                                order.status
-                                            )}`}
-                                        >
-                                            {getStatusIcon(order.status)}
-                                            <span>{order.status}</span>
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 mb-3">
-                                    {order.items.map((item, index) => (
-                                        <div key={index} className="flex items-center space-x-3">
-                                            <img
-                                                src={item.imageUrl || '/placeholder-product.png'}
-                                                alt={item.productName}
-                                                className="w-10 h-10 object-cover rounded"
-                                                onError={(e) => {
-                                                    e.currentTarget.src = '/placeholder-product.png'
-                                                }}
-                                            />
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium">{item.productName}</p>
-                                                <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                <div className="flex flex-col lg:flex-row lg:space-x-6">
+                                    {/* Order Details */}
+                                    <div className="flex-1 mb-6 lg:mb-0">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="font-semibold text-lg mb-1">
+                                                    Order #{order.id.slice(0, 8)}
+                                                </h3>
+                                                <p className="text-sm text-gray-500">
+                                                    Vendor: {order.vendorId} • {new Date(order.createdAt).toLocaleString()}
+                                                </p>
                                             </div>
-                                            <p className="text-sm font-medium">
-                                                ₹{(item.price * item.quantity).toFixed(2)}
-                                            </p>
                                         </div>
-                                    ))}
-                                </div>
 
-                                <div className="flex justify-between items-center pt-3 border-t">
-                                    <p className="font-bold text-lg">
-                                        Total: <span className="text-primary-600">₹{order.totalAmount.toFixed(2)}</span>
-                                    </p>
-                                    <button
-                                        onClick={() => navigate(`/bill/${order.id}`)}
-                                        className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center"
-                                    >
-                                        <Receipt className="w-4 h-4 mr-1" />
-                                        View Bill
-                                    </button>
+                                        {/* Order Items */}
+                                        <div className="space-y-2 mb-4">
+                                            {order.items.map((item, index) => (
+                                                <div key={index} className="flex items-center space-x-3">
+                                                    <img
+                                                        src={item.imageUrl || '/placeholder-product.png'}
+                                                        alt={item.productName}
+                                                        className="w-10 h-10 object-cover rounded"
+                                                        onError={(e) => {
+                                                            e.currentTarget.src = '/placeholder-product.png'
+                                                        }}
+                                                    />
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium">{item.productName}</p>
+                                                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                                    </div>
+                                                    <p className="text-sm font-medium">
+                                                        ₹{(item.price * item.quantity).toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-4 border-t">
+                                            <p className="font-bold text-lg">
+                                                Total: <span className="text-primary-600">₹{order.totalAmount.toFixed(2)}</span>
+                                            </p>
+                                            <button
+                                                onClick={() => navigate(`/bill/${order.id}`)}
+                                                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center min-h-[44px]"
+                                            >
+                                                <Receipt className="w-4 h-4 mr-1" />
+                                                View Bill
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Status Timeline */}
+                                    <div className="lg:w-64 border-t lg:border-t-0 lg:border-l pt-6 lg:pt-0 lg:pl-6">
+                                        <h4 className="font-semibold text-sm text-gray-700 mb-4">Order Status</h4>
+                                        <OrderStatusTimeline currentStatus={order.status} size="sm" />
+                                    </div>
                                 </div>
                             </div>
                         ))}

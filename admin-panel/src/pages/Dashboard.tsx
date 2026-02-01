@@ -94,10 +94,19 @@ export default function Dashboard() {
     const handleApprove = async (vendorId: string) => {
         try {
             setActionLoading(vendorId)
+
+            // Optimistic update - instant visual feedback without page reload
+            setVendors(prev => prev.map(vendor =>
+                vendor.vendorId === vendorId
+                    ? { ...vendor, approvalState: 'active' as const }
+                    : vendor
+            ))
+
             await canteenService.approveVendor(vendorId)
-            await loadDashboardData()
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to approve vendor')
+            // Revert on error
+            loadDashboardData()
         } finally {
             setActionLoading(null)
         }
@@ -108,10 +117,19 @@ export default function Dashboard() {
 
         try {
             setActionLoading(vendorId)
+
+            // Optimistic update - instant visual feedback without page reload
+            setVendors(prev => prev.map(vendor =>
+                vendor.vendorId === vendorId
+                    ? { ...vendor, approvalState: 'inactive' as const }
+                    : vendor
+            ))
+
             await canteenService.deactivateVendor(vendorId)
-            await loadDashboardData()
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to deactivate vendor')
+            // Revert on error
+            loadDashboardData()
         } finally {
             setActionLoading(null)
         }
@@ -120,10 +138,19 @@ export default function Dashboard() {
     const handleActivate = async (vendorId: string) => {
         try {
             setActionLoading(vendorId)
+
+            // Optimistic update - instant visual feedback without page reload
+            setVendors(prev => prev.map(vendor =>
+                vendor.vendorId === vendorId
+                    ? { ...vendor, approvalState: 'active' as const }
+                    : vendor
+            ))
+
             await canteenService.activateVendor(vendorId)
-            await loadDashboardData()
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to activate vendor')
+            // Revert on error
+            loadDashboardData()
         } finally {
             setActionLoading(null)
         }

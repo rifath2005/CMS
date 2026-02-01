@@ -126,7 +126,8 @@ const startServer = async () => {
       await connectRedis();
       console.log('✓ Redis connected');
     } catch (redisError) {
-      console.warn('⚠ Redis connection failed - continuing without cache:', redisError.message);
+      const errorMessage = redisError instanceof Error ? redisError.message : String(redisError);
+      console.warn('⚠ Redis connection failed - continuing without cache:', errorMessage);
     }
 
     // Test database connection
@@ -143,7 +144,8 @@ const startServer = async () => {
         console.log('✓ Database tables already exist');
       }
     } catch (dbError) {
-      console.error('✗ Database connection failed:', dbError.message);
+      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+      console.error('✗ Database connection failed:', errorMessage);
       console.log('⚠ Server will start but database operations will fail');
     }
 

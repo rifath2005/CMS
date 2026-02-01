@@ -3,20 +3,20 @@ import { AuthToken, User } from '../types'
 
 export const authService = {
   async register(email: string, password: string, name: string): Promise<AuthToken> {
-    const response = await api.post<AuthToken>('/auth/register', {
+    const response = await api.post<{ success: boolean; data: AuthToken }>('/auth/register', {
       email,
       password,
       name,
     })
-    return response.data
+    return response.data.data
   },
 
   async login(email: string, password: string): Promise<AuthToken> {
-    const response = await api.post<AuthToken>('/auth/login', {
+    const response = await api.post<{ success: boolean; data: AuthToken }>('/auth/login', {
       email,
       password,
     })
-    return response.data
+    return response.data.data
   },
 
   async logout(): Promise<void> {
