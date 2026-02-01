@@ -1,4 +1,3 @@
 // Shared component exports
-// Components will be added as they are implemented
-
-export {};
+export { KPICard } from './KPICard';
+export type { KPICardProps } from './KPICard';
