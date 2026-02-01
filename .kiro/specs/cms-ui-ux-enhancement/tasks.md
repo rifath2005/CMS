@@ -90,18 +90,27 @@
   - Test responsive grid layout at different breakpoints
   - _Requirements: 2.1, 2.2_
 
-- [ ] 4. Refactor Super Admin institution management
+- [x] 4. Refactor Super Admin institution management
+
+
+
+
+
   - Update Institutions page to use DataTable component with sticky headers
   - Implement status chips for institution status display (active, inactive, pending)
   - Add hover-revealed action buttons to table rows
   - Convert CreateInstitutionModal to StepDrawer with three steps: Basic Info, Contact & Domain, Admin Assignment
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [ ] 4.1 Write property test for modal nesting prevention
+- [x] 4.1 Write property test for modal nesting prevention
+
+
   - **Property 7: Modal nesting prevention**
   - **Validates: Requirements 3.6, 8.5**
 
-- [ ] 4.2 Write unit tests for institution table
+- [x] 4.2 Write unit tests for institution table
+
+
   - Test sticky header behavior during scroll
   - Test status chip color mapping
   - Test hover action reveal
