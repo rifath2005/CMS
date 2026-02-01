@@ -5,6 +5,7 @@ import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
 import Institutions from './pages/Institutions'
 import PlatformStats from './pages/PlatformStats'
+import Dashboard from './pages/Dashboard'
 import Canteens from './pages/Canteens'
 import Vendors from './pages/Vendors'
 
@@ -32,6 +33,7 @@ function App() {
                         <Route path="/platform-stats" element={<PlatformStats />} />
 
                         {/* Institution Admin routes */}
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/canteens" element={<Canteens />} />
                         <Route path="/vendors" element={<Vendors />} />
                     </Route>
@@ -45,7 +47,7 @@ function App() {
                             isMainAdmin() ? (
                                 <Navigate to="/institutions" />
                             ) : isInstitutionAdmin() ? (
-                                <Navigate to="/canteens" />
+                                <Navigate to="/dashboard" />
                             ) : (
                                 <Navigate to="/login" />
                             )

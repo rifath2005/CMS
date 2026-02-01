@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { Building2, Users, LogOut, BarChart3 } from 'lucide-react'
+import { Building2, Users, LogOut, BarChart3, LayoutDashboard } from 'lucide-react'
 
 export default function Layout() {
     const { user, logout, isMainAdmin } = useAuthStore()
@@ -60,6 +60,13 @@ export default function Layout() {
                             </>
                         ) : (
                             <>
+                                <Link
+                                    to="/dashboard"
+                                    className="flex items-center space-x-2 px-3 py-4 text-sm font-medium text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600"
+                                >
+                                    <LayoutDashboard className="h-4 w-4" />
+                                    <span>Dashboard</span>
+                                </Link>
                                 <Link
                                     to="/canteens"
                                     className="flex items-center space-x-2 px-3 py-4 text-sm font-medium text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600"
