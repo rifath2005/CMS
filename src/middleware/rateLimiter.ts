@@ -87,7 +87,7 @@ export const rateLimiter = (options: RateLimitOptions = {}) => {
  */
 export const authRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: config.nodeEnv === 'development' ? 50 : 5, // 50 in dev, 5 in production
+  maxRequests: config.nodeEnv === 'development' ? 1000 : 5, // 1000 in dev (effectively disabled), 5 in production
   message: 'Too many authentication attempts, please try again later',
   skipSuccessfulRequests: true,
 });
@@ -97,7 +97,7 @@ export const authRateLimiter = rateLimiter({
  */
 export const apiRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 100, // 100 requests per 15 minutes
+  maxRequests: config.nodeEnv === 'development' ? 10000 : 100, // 10000 in dev (effectively disabled), 100 in production
   message: 'Too many requests, please try again later',
 });
 
