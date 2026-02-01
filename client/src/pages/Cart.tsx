@@ -75,7 +75,7 @@ const Cart = () => {
                             {/* Product Details */}
                             <div className="flex-1">
                                 <h3 className="font-semibold text-gray-900">{item.productName}</h3>
-                                <p className="text-primary-600 font-medium">₹{item.price.toFixed(2)}</p>
+                                <p className="text-primary-600 font-medium">₹{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)}</p>
                             </div>
 
                             {/* Quantity Controls */}

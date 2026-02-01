@@ -1,12 +1,23 @@
 /**
  * Format currency amount
+ * Handles both number and string types from database
  */
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number | string): string => {
+  const numAmount = typeof amount === 'number' ? amount : parseFloat(amount);
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-  }).format(amount)
+  }).format(numAmount)
 }
+
+/**
+ * Format price to display with 2 decimal places
+ * Handles both number and string types from database
+ */
+export const formatPrice = (price: number | string): string => {
+  const numPrice = typeof price === 'number' ? price : parseFloat(price);
+  return numPrice.toFixed(2);
+};
 
 /**
  * Format date and time

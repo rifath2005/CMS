@@ -216,7 +216,7 @@ const Dashboard = () => {
 
                                         <div className="flex justify-between items-center pt-4 border-t">
                                             <p className="font-bold text-lg">
-                                                Total: <span className="text-primary-600">₹{order.totalAmount.toFixed(2)}</span>
+                                                Total: <span className="text-primary-600">₹{typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : parseFloat(order.totalAmount).toFixed(2)}</span>
                                             </p>
                                             <button
                                                 onClick={() => navigate(`/bill/${order.id}`)}

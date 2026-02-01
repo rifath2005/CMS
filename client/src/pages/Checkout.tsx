@@ -244,7 +244,7 @@ const Checkout = () => {
                                 </>
                             ) : (
                                 <>
-                                    Pay ₹{totalAmount.toFixed(2)}
+                                    Pay ₹{typeof totalAmount === 'number' ? totalAmount.toFixed(2) : parseFloat(totalAmount).toFixed(2)}
                                 </>
                             )}
                         </button>
@@ -275,7 +275,7 @@ const Checkout = () => {
                             </div>
                             <div className="border-t pt-3 flex justify-between text-lg font-bold">
                                 <span>Total</span>
-                                <span className="text-primary-600">₹{totalAmount.toFixed(2)}</span>
+                                <span className="text-primary-600">₹{typeof totalAmount === 'number' ? totalAmount.toFixed(2) : parseFloat(totalAmount).toFixed(2)}</span>
                             </div>
                         </div>
 

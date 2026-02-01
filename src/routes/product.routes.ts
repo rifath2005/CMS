@@ -4,7 +4,6 @@ import { ProductService } from '../services/product/ProductService';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireVendor } from '../middleware/rbac.middleware';
 import { ValidationError, NotFoundError } from '../utils/errors';
-import { ProductCategory } from '../types';
 
 export const createProductRouter = (pool: Pool): Router => {
   const router = Router();
@@ -13,14 +12,14 @@ export const createProductRouter = (pool: Pool): Router => {
   // POST /api/v1/products - Create product (Vendor only)
   router.post('/', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const { canteenId, name, description, price, category, imageUrl, stockQuantity } = req.body;
+      const { vendorId, name, description, price, category, imageUrl, stockQuantity } = req.body;
 
-      if (!canteenId || !name || !price || !category || stockQuantity === undefined) {
-        throw new ValidationError('Canteen ID, name, price, category, and stock quantity are required');
+      if (!vendorId || !name || !price || stockQuantity === undefined) {
+        throw new ValidationError('Vendor ID, name, price, and stock quantity are required');
       }
 
       const product = await productService.createProduct({
-        canteenId,
+        vendorId,
         name,
         description,
         price,
@@ -48,11 +47,7 @@ export const createProductRouter = (pool: Pool): Router => {
   // GET /api/v1/products/:id - Get product by ID
   router.get('/:id', authenticate, async (req: Request, res: Response) => {
     try {
-      const productId = parseInt(req.params.id);
-
-      if (isNaN(productId)) {
-        throw new ValidationError('Invalid product ID');
-      }
+      const productId = req.params.id;
 
       const product = await productService.getProductById(productId);
 
@@ -75,17 +70,13 @@ export const createProductRouter = (pool: Pool): Router => {
     }
   });
 
-  // GET /api/v1/products/canteen/:canteenId - Get products by canteen
-  router.get('/canteen/:canteenId', authenticate, async (req: Request, res: Response) => {
+  // GET /api/v1/products/vendor/:vendorId - Get products by vendor
+  router.get('/vendor/:vendorId', authenticate, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.canteenId);
+      const vendorId = req.params.vendorId;
       const availableOnly = req.query.availableOnly === 'true';
 
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
-
-      const products = await productService.getProductsByCanteen(canteenId, availableOnly);
+      const products = await productService.getProductsByVendor(vendorId, availableOnly);
 
       res.json({
         success: true,
@@ -106,12 +97,8 @@ export const createProductRouter = (pool: Pool): Router => {
   // GET /api/v1/products/institution/:institutionId - Get products by institution
   router.get('/institution/:institutionId', authenticate, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.institutionId);
+      const institutionId = req.params.institutionId;
       const availableOnly = req.query.availableOnly !== 'false'; // Default to true
-
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
 
       const products = await productService.getProductsByInstitution(institutionId, availableOnly);
 
@@ -134,11 +121,7 @@ export const createProductRouter = (pool: Pool): Router => {
   // PUT /api/v1/products/:id - Update product (Vendor only)
   router.put('/:id', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const productId = parseInt(req.params.id);
-
-      if (isNaN(productId)) {
-        throw new ValidationError('Invalid product ID');
-      }
+      const productId = req.params.id;
 
       const { name, description, price, category, imageUrl, stockQuantity, isAvailable } = req.body;
 
@@ -171,12 +154,8 @@ export const createProductRouter = (pool: Pool): Router => {
   // PATCH /api/v1/products/:id/stock - Update stock quantity (Vendor only)
   router.patch('/:id/stock', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const productId = parseInt(req.params.id);
+      const productId = req.params.id;
       const { quantity } = req.body;
-
-      if (isNaN(productId)) {
-        throw new ValidationError('Invalid product ID');
-      }
 
       if (quantity === undefined || quantity < 0) {
         throw new ValidationError('Valid quantity is required');
@@ -200,17 +179,13 @@ export const createProductRouter = (pool: Pool): Router => {
     }
   });
 
-  // GET /api/v1/products/canteen/:canteenId/low-stock - Get low stock products (Vendor only)
-  router.get('/canteen/:canteenId/low-stock', authenticate, requireVendor, async (req: Request, res: Response) => {
+  // GET /api/v1/products/vendor/:vendorId/low-stock - Get low stock products (Vendor only)
+  router.get('/vendor/:vendorId/low-stock', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.canteenId);
+      const vendorId = req.params.vendorId;
       const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 10;
 
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
-
-      const products = await productService.getLowStockProducts(canteenId, threshold);
+      const products = await productService.getLowStockProducts(vendorId, threshold);
 
       res.json({
         success: true,
@@ -268,9 +243,9 @@ export const createProductRouter = (pool: Pool): Router => {
       }
 
       const products = await productService.searchProducts(
-        parseInt(institutionId as string),
+        institutionId as string,
         q as string,
-        category as ProductCategory
+        category as string
       );
 
       res.json({
@@ -292,11 +267,7 @@ export const createProductRouter = (pool: Pool): Router => {
   // DELETE /api/v1/products/:id - Delete product (Vendor only)
   router.delete('/:id', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const productId = parseInt(req.params.id);
-
-      if (isNaN(productId)) {
-        throw new ValidationError('Invalid product ID');
-      }
+      const productId = req.params.id;
 
       const deleted = await productService.deleteProduct(productId);
 

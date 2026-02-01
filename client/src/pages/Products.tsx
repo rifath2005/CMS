@@ -219,7 +219,7 @@ const Products = () => {
                                     <div className="flex items-center justify-between mb-3">
                                         <span className={`text-2xl font-bold transition-colors duration-base ${outOfStock ? 'text-gray-400' : 'text-blue-600'
                                             }`}>
-                                            ₹{product.price.toFixed(2)}
+                                            ₹{typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(product.price).toFixed(2)}
                                         </span>
                                         <span className="text-sm text-gray-500">
                                             Stock: {product.stockQuantity}

@@ -271,7 +271,7 @@ const OrderHistory = () => {
                                 </div>
                                 <div className="text-left sm:text-right">
                                     <p className="text-2xl font-bold text-primary-600">
-                                        ₹{order.totalAmount.toFixed(2)}
+                                        ₹{typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : parseFloat(order.totalAmount).toFixed(2)}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-1">
                                         {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
@@ -294,7 +294,7 @@ const OrderHistory = () => {
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-gray-900 truncate">{item.productName}</p>
-                                                <p className="text-sm text-gray-500">Quantity: {item.quantity} × ₹{item.price.toFixed(2)}</p>
+                                                <p className="text-sm text-gray-500">Quantity: {item.quantity} × ₹{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)}</p>
                                             </div>
                                             <p className="font-semibold text-gray-900 whitespace-nowrap">
                                                 ₹{(item.price * item.quantity).toFixed(2)}

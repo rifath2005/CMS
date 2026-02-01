@@ -14,11 +14,11 @@ export class ProductService {
    * Create a new product
    */
   async createProduct(productData: {
-    canteenId: number;
+    vendorId: string;
     name: string;
     description?: string;
     price: number;
-    category: ProductCategory;
+    category?: string;
     imageUrl?: string;
     stockQuantity: number;
   }): Promise<Product> {
@@ -31,10 +31,6 @@ export class ProductService {
       throw new ValidationError('Valid price is required');
     }
 
-    if (!productData.category) {
-      throw new ValidationError('Product category is required');
-    }
-
     if (productData.stockQuantity === undefined || productData.stockQuantity < 0) {
       throw new ValidationError('Valid stock quantity is required');
     }
@@ -45,24 +41,24 @@ export class ProductService {
   /**
    * Get product by ID
    */
-  async getProductById(id: number): Promise<Product | null> {
+  async getProductById(id: string): Promise<Product | null> {
     return await this.productModel.findById(id);
   }
 
   /**
-   * Get all products for a canteen
+   * Get all products for a vendor
    */
-  async getProductsByCanteen(canteenId: number, availableOnly: boolean = false): Promise<Product[]> {
+  async getProductsByVendor(vendorId: string, availableOnly: boolean = false): Promise<Product[]> {
     if (availableOnly) {
-      return await this.productModel.findAvailableByCanteen(canteenId);
+      return await this.productModel.findAvailableByVendor(vendorId);
     }
-    return await this.productModel.findByCanteen(canteenId);
+    return await this.productModel.findByVendor(vendorId);
   }
 
   /**
    * Get products by institution (for user browsing)
    */
-  async getProductsByInstitution(institutionId: number, availableOnly: boolean = true): Promise<Product[]> {
+  async getProductsByInstitution(institutionId: string, availableOnly: boolean = true): Promise<Product[]> {
     if (availableOnly) {
       return await this.productModel.findAvailableByInstitution(institutionId);
     }
@@ -73,12 +69,12 @@ export class ProductService {
    * Update product
    */
   async updateProduct(
-    id: number,
+    id: string,
     updates: {
       name?: string;
       description?: string;
       price?: number;
-      category?: ProductCategory;
+      category?: string;
       imageUrl?: string;
       stockQuantity?: number;
       isAvailable?: boolean;
@@ -90,35 +86,35 @@ export class ProductService {
   /**
    * Update stock quantity
    */
-  async updateStock(id: number, quantity: number): Promise<Product> {
+  async updateStock(id: string, quantity: number): Promise<Product> {
     return await this.productModel.updateStock(id, quantity);
   }
 
   /**
    * Decrease stock (for order placement)
    */
-  async decreaseStock(id: number, quantity: number): Promise<Product> {
+  async decreaseStock(id: string, quantity: number): Promise<Product> {
     return await this.productModel.decreaseStock(id, quantity);
   }
 
   /**
    * Check if product is available for ordering
    */
-  async isAvailableForOrder(id: number, quantity: number): Promise<boolean> {
+  async isAvailableForOrder(id: string, quantity: number): Promise<boolean> {
     return await this.productModel.isAvailableForOrder(id, quantity);
   }
 
   /**
    * Get low stock products
    */
-  async getLowStockProducts(canteenId: number, threshold: number = 10): Promise<Product[]> {
-    return await this.productModel.getLowStockProducts(canteenId, threshold);
+  async getLowStockProducts(vendorId: string, threshold: number = 10): Promise<Product[]> {
+    return await this.productModel.getLowStockProducts(vendorId, threshold);
   }
 
   /**
    * Delete product
    */
-  async deleteProduct(id: number): Promise<boolean> {
+  async deleteProduct(id: string): Promise<boolean> {
     return await this.productModel.delete(id);
   }
 
@@ -126,9 +122,9 @@ export class ProductService {
    * Search products
    */
   async searchProducts(
-    institutionId: number,
+    institutionId: string,
     searchTerm: string,
-    category?: ProductCategory
+    category?: string
   ): Promise<Product[]> {
     if (!searchTerm || searchTerm.trim().length === 0) {
       throw new ValidationError('Search term is required');
@@ -139,7 +135,7 @@ export class ProductService {
   /**
    * Validate cart items before order placement
    */
-  async validateCartItems(items: Array<{ productId: number; quantity: number }>): Promise<{
+  async validateCartItems(items: Array<{ productId: string; quantity: number }>): Promise<{
     valid: boolean;
     errors: string[];
   }> {
@@ -153,14 +149,14 @@ export class ProductService {
         continue;
       }
 
-      if (!product.is_available) {
+      if (!product.isAvailable) {
         errors.push(`Product "${product.name}" is not available`);
         continue;
       }
 
-      if (product.stock_quantity < item.quantity) {
+      if (product.stockQuantity < item.quantity) {
         errors.push(
-          `Insufficient stock for "${product.name}". Available: ${product.stock_quantity}, Requested: ${item.quantity}`
+          `Insufficient stock for "${product.name}". Available: ${product.stockQuantity}, Requested: ${item.quantity}`
         );
         continue;
       }

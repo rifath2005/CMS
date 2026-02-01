@@ -1,25 +1,41 @@
 import { Pool, QueryResult } from 'pg';
-import { Product, ProductCategory } from '../types';
+import { Product } from '../types';
 import { NotFoundError, ValidationError } from '../utils/errors';
 
 export class ProductModel {
   constructor(private pool: Pool) {}
 
   /**
+   * Transform database row to Product object with proper types
+   */
+  private transformProduct(row: any): Product {
+    return {
+      ...row,
+      price: parseFloat(row.price),
+      stockQuantity: parseInt(row.stock_quantity || row.stockQuantity),
+      isAvailable: row.is_available ?? row.isAvailable,
+      vendorId: row.vendor_id || row.vendorId,
+      imageUrl: row.image_url || row.imageUrl,
+      createdAt: row.created_at || row.createdAt,
+      updatedAt: row.updated_at || row.updatedAt,
+    };
+  }
+
+  /**
    * Create a new product
    */
   async create(productData: {
-    canteenId: number;
+    vendorId: string;
     name: string;
     description?: string;
     price: number;
-    category: ProductCategory;
+    category?: string;
     imageUrl?: string;
     stockQuantity: number;
     isAvailable?: boolean;
   }): Promise<Product> {
     const {
-      canteenId,
+      vendorId,
       name,
       description,
       price,
@@ -43,28 +59,28 @@ export class ProductModel {
     const availability = stockQuantity > 0 ? isAvailable : false;
 
     const query = `
-      INSERT INTO products (id, name, description, price, category, image_url, stock_quantity, is_available)
+      INSERT INTO products (vendor_id, name, description, price, category, image_url, stock_quantity, is_available)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
 
     const values = [
-      canteenId,
+      vendorId,
       name,
       description || null,
       price,
-      category,
+      category || null,
       imageUrl || null,
       stockQuantity,
       availability,
     ];
 
     try {
-      const result: QueryResult<Product> = await this.pool.query(query, values);
-      return result.rows[0];
+      const result: QueryResult = await this.pool.query(query, values);
+      return this.transformProduct(result.rows[0]);
     } catch (error: any) {
       if (error.code === '23503') {
-        throw new ValidationError('Canteen does not exist');
+        throw new ValidationError('Vendor does not exist');
       }
       throw error;
     }
@@ -73,55 +89,55 @@ export class ProductModel {
   /**
    * Find product by ID
    */
-  async findById(id: number): Promise<Product | null> {
+  async findById(id: string): Promise<Product | null> {
     const query = 'SELECT * FROM products WHERE id = $1';
-    const result: QueryResult<Product> = await this.pool.query(query, [id]);
-    return result.rows[0] || null;
+    const result: QueryResult = await this.pool.query(query, [id]);
+    return result.rows[0] ? this.transformProduct(result.rows[0]) : null;
   }
 
   /**
-   * Find all products for a canteen
+   * Find all products for a vendor
    */
-  async findByCanteen(canteenId: number): Promise<Product[]> {
-    const query = 'SELECT * FROM products WHERE id = $1 ORDER BY name';
-    const result: QueryResult<Product> = await this.pool.query(query, [canteenId]);
-    return result.rows;
+  async findByVendor(vendorId: string): Promise<Product[]> {
+    const query = 'SELECT * FROM products WHERE vendor_id = $1 ORDER BY name';
+    const result: QueryResult = await this.pool.query(query, [vendorId]);
+    return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
-   * Find available products for a canteen
+   * Find available products for a vendor
    */
-  async findAvailableByCanteen(canteenId: number): Promise<Product[]> {
+  async findAvailableByVendor(vendorId: string): Promise<Product[]> {
     const query = `
       SELECT * FROM products 
-      WHERE id = $1 AND is_available = true AND stock_quantity > 0
+      WHERE vendor_id = $1 AND is_available = true AND stock_quantity > 0
       ORDER BY name
     `;
-    const result: QueryResult<Product> = await this.pool.query(query, [canteenId]);
-    return result.rows;
+    const result: QueryResult = await this.pool.query(query, [vendorId]);
+    return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
    * Find products by institution (across all canteens)
    */
-  async findByInstitution(institutionId: number): Promise<Product[]> {
+  async findByInstitution(institutionId: string): Promise<Product[]> {
     const query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.id = c.id
+      INNER JOIN canteens c ON p.vendor_id = c.vendor_id
       WHERE c.institution_id = $1 AND c.is_approved = true AND c.is_active = true
       ORDER BY c.name, p.name
     `;
-    const result: QueryResult<Product> = await this.pool.query(query, [institutionId]);
-    return result.rows;
+    const result: QueryResult = await this.pool.query(query, [institutionId]);
+    return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
    * Find available products by institution
    */
-  async findAvailableByInstitution(institutionId: number): Promise<Product[]> {
+  async findAvailableByInstitution(institutionId: string): Promise<Product[]> {
     const query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.id = c.id
+      INNER JOIN canteens c ON p.vendor_id = c.vendor_id
       WHERE c.institution_id = $1 
         AND c.is_approved = true 
         AND c.is_active = true
@@ -129,20 +145,20 @@ export class ProductModel {
         AND p.stock_quantity > 0
       ORDER BY c.name, p.name
     `;
-    const result: QueryResult<Product> = await this.pool.query(query, [institutionId]);
-    return result.rows;
+    const result: QueryResult = await this.pool.query(query, [institutionId]);
+    return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
    * Update product
    */
   async update(
-    id: number,
+    id: string,
     updates: {
       name?: string;
       description?: string;
       price?: number;
-      category?: ProductCategory;
+      category?: string;
       imageUrl?: string;
       stockQuantity?: number;
       isAvailable?: boolean;
@@ -201,7 +217,7 @@ export class ProductModel {
 
     if (updates.isAvailable !== undefined) {
       // Only allow setting to true if stock > 0
-      if (updates.isAvailable && product.stock_quantity === 0) {
+      if (updates.isAvailable && product.stockQuantity === 0) {
         throw new ValidationError('Cannot set product as available when stock is 0');
       }
       fields.push(`is_available = $${paramCount++}`);
@@ -222,14 +238,14 @@ export class ProductModel {
       RETURNING *
     `;
 
-    const result: QueryResult<Product> = await this.pool.query(query, values);
-    return result.rows[0];
+    const result: QueryResult = await this.pool.query(query, values);
+    return this.transformProduct(result.rows[0]);
   }
 
   /**
    * Update stock quantity
    */
-  async updateStock(id: number, quantity: number): Promise<Product> {
+  async updateStock(id: string, quantity: number): Promise<Product> {
     if (quantity < 0) {
       throw new ValidationError('Stock quantity cannot be negative');
     }
@@ -243,19 +259,19 @@ export class ProductModel {
       RETURNING *
     `;
 
-    const result: QueryResult<Product> = await this.pool.query(query, [quantity, id]);
+    const result: QueryResult = await this.pool.query(query, [quantity, id]);
 
     if (result.rows.length === 0) {
       throw new NotFoundError('Product not found');
     }
 
-    return result.rows[0];
+    return this.transformProduct(result.rows[0]);
   }
 
   /**
    * Decrease stock quantity (for order placement)
    */
-  async decreaseStock(id: number, quantity: number): Promise<Product> {
+  async decreaseStock(id: string, quantity: number): Promise<Product> {
     if (quantity <= 0) {
       throw new ValidationError('Quantity must be greater than 0');
     }
@@ -269,7 +285,7 @@ export class ProductModel {
       RETURNING *
     `;
 
-    const result: QueryResult<Product> = await this.pool.query(query, [quantity, id]);
+    const result: QueryResult = await this.pool.query(query, [quantity, id]);
 
     if (result.rows.length === 0) {
       const product = await this.findById(id);
@@ -279,13 +295,13 @@ export class ProductModel {
       throw new ValidationError('Insufficient stock');
     }
 
-    return result.rows[0];
+    return this.transformProduct(result.rows[0]);
   }
 
   /**
    * Check if product is available for ordering
    */
-  async isAvailableForOrder(id: number, quantity: number): Promise<boolean> {
+  async isAvailableForOrder(id: string, quantity: number): Promise<boolean> {
     const query = `
       SELECT id FROM products 
       WHERE id = $1 AND is_available = true AND stock_quantity >= $2
@@ -295,22 +311,22 @@ export class ProductModel {
   }
 
   /**
-   * Get low stock products for a canteen
+   * Get low stock products for a vendor
    */
-  async getLowStockProducts(canteenId: number, threshold: number = 10): Promise<Product[]> {
+  async getLowStockProducts(vendorId: string, threshold: number = 10): Promise<Product[]> {
     const query = `
       SELECT * FROM products 
-      WHERE id = $1 AND stock_quantity <= $2 AND stock_quantity > 0
+      WHERE vendor_id = $1 AND stock_quantity <= $2 AND stock_quantity > 0
       ORDER BY stock_quantity ASC
     `;
-    const result: QueryResult<Product> = await this.pool.query(query, [canteenId, threshold]);
-    return result.rows;
+    const result: QueryResult = await this.pool.query(query, [vendorId, threshold]);
+    return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
    * Delete product
    */
-  async delete(id: number): Promise<boolean> {
+  async delete(id: string): Promise<boolean> {
     const query = 'DELETE FROM products WHERE id = $1';
     const result = await this.pool.query(query, [id]);
     return result.rowCount !== null && result.rowCount > 0;
@@ -319,10 +335,10 @@ export class ProductModel {
   /**
    * Search products by name or category
    */
-  async search(institutionId: number, searchTerm: string, category?: ProductCategory): Promise<Product[]> {
+  async search(institutionId: string, searchTerm: string, category?: string): Promise<Product[]> {
     let query = `
       SELECT p.* FROM products p
-      INNER JOIN canteens c ON p.id = c.id
+      INNER JOIN canteens c ON p.vendor_id = c.vendor_id
       WHERE c.institution_id = $1 
         AND c.is_approved = true 
         AND c.is_active = true
@@ -340,7 +356,7 @@ export class ProductModel {
 
     query += ` ORDER BY p.name`;
 
-    const result: QueryResult<Product> = await this.pool.query(query, values);
-    return result.rows;
+    const result: QueryResult = await this.pool.query(query, values);
+    return result.rows.map(row => this.transformProduct(row));
   }
 }

@@ -107,7 +107,7 @@ const DigitalBill = () => {
                         ))}
                         <div className="border-t pt-3 flex justify-between text-lg font-bold">
                             <span>Total</span>
-                            <span className="text-primary-600">₹{bill.totalAmount.toFixed(2)}</span>
+                            <span className="text-primary-600">₹{typeof bill.totalAmount === 'number' ? bill.totalAmount.toFixed(2) : parseFloat(bill.totalAmount).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -229,7 +229,7 @@ const DigitalBill = () => {
 
                     <div className="border-t mt-4 pt-4 flex justify-between text-lg font-bold">
                         <span>Total Amount</span>
-                        <span className="text-primary-600">₹{bill.totalAmount.toFixed(2)}</span>
+                        <span className="text-primary-600">₹{typeof bill.totalAmount === 'number' ? bill.totalAmount.toFixed(2) : parseFloat(bill.totalAmount).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
