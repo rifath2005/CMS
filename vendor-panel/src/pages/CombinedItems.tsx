@@ -49,9 +49,11 @@ const CombinedItems = () => {
                 setIsLoading(true)
             }
             const data = await orderService.getCombinedItemList()
-            setItems(data)
+            setItems(Array.isArray(data) ? data : [])
+            setError(null)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load combined items')
+            setItems([])
         } finally {
             if (showLoading) {
                 setIsLoading(false)

@@ -3,11 +3,11 @@ import { AuthToken } from '../types'
 
 export const authService = {
   async login(email: string, password: string): Promise<AuthToken> {
-    const response = await api.post<AuthToken>('/auth/login', {
+    const response = await api.post<{ success: boolean; data: AuthToken }>('/auth/login', {
       email,
       password,
     })
-    return response.data
+    return response.data.data
   },
 
   async logout(): Promise<void> {
