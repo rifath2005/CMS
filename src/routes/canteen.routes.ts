@@ -12,11 +12,7 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // GET /api/v1/canteens/:id - Get canteen by ID
   router.get('/:id', authenticate, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       const canteen = await institutionService.getCanteenById(canteenId);
 
@@ -72,21 +68,13 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // PUT /api/v1/canteens/:id - Update canteen
   router.put('/:id', authenticate, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       const { name, description, location, contactPhone, ownerName, ownerEmail } = req.body;
 
       const canteen = await institutionService.updateCanteen(canteenId, {
         name,
-        description,
         location,
-        contactPhone,
-        ownerName,
-        ownerEmail,
       });
 
       res.json({
@@ -108,11 +96,7 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // POST /api/v1/canteens/:id/approve - Approve vendor (Institution Admin only)
   router.post('/:id/approve', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       const canteen = await institutionService.approveVendor(canteenId);
 
@@ -135,11 +119,7 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // POST /api/v1/canteens/:id/deactivate - Deactivate vendor (Institution Admin only)
   router.post('/:id/deactivate', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       const canteen = await institutionService.deactivateVendor(canteenId);
 
@@ -162,11 +142,7 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // POST /api/v1/canteens/:id/activate - Activate vendor
   router.post('/:id/activate', authenticate, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       const canteen = await institutionService.activateVendor(canteenId);
 
@@ -189,11 +165,7 @@ export const createCanteenRouter = (pool: Pool): Router => {
   // DELETE /api/v1/canteens/:id - Delete canteen
   router.delete('/:id', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
     try {
-      const canteenId = parseInt(req.params.id);
-      
-      if (isNaN(canteenId)) {
-        throw new ValidationError('Invalid canteen ID');
-      }
+      const canteenId = req.params.id;
 
       await institutionService.deleteCanteen(canteenId);
 

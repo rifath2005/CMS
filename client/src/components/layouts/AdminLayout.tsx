@@ -35,23 +35,26 @@ const AdminLayout = () => {
         <div className="min-h-screen bg-gray-50">
             {/* Top Navigation Bar */}
             <nav className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
+                <div className="max-w-full px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-14">
+                        {/* Left: CMS Title */}
                         <div className="flex items-center">
-                            <h1 className="text-xl font-bold">CMS - Institution Admin</h1>
+                            <h1 className="text-lg font-bold">CMS - Institution Admin</h1>
                         </div>
 
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:flex items-center space-x-4">
-                            <span className="text-sm">
-                                {user?.name} ({user?.email})
-                            </span>
+                        {/* Right: User Info and Logout */}
+                        <div className="hidden md:flex items-center space-x-3">
+                            <div className="text-right">
+                                <span className="text-sm font-medium">
+                                    {user?.name} ({user?.email})
+                                </span>
+                            </div>
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-400 transition-colors"
+                                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
                             >
                                 <LogOut className="w-4 h-4" />
-                                <span>Logout</span>
+                                <span className="text-sm font-medium">Logout</span>
                             </button>
                         </div>
 
@@ -61,7 +64,7 @@ const AdminLayout = () => {
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 className="p-2 rounded-lg hover:bg-blue-500"
                             >
-                                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                             </button>
                         </div>
                     </div>
@@ -71,6 +74,13 @@ const AdminLayout = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden border-t border-blue-500">
                         <div className="px-2 pt-2 pb-3 space-y-1">
+                            {/* User Info - Mobile */}
+                            <div className="px-3 py-2 mb-2 bg-blue-500/30 rounded-lg">
+                                <p className="text-sm font-medium">{user?.name}</p>
+                                <p className="text-xs text-blue-100">{user?.email}</p>
+                            </div>
+
+                            {/* Navigation Links */}
                             {navigation.map((item) => {
                                 const Icon = item.icon
                                 return (
@@ -86,12 +96,14 @@ const AdminLayout = () => {
                                     </Link>
                                 )
                             })}
+
+                            {/* Logout Button - Mobile */}
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-500 w-full text-left"
+                                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-500 w-full text-left mt-2 border-t border-blue-500 pt-3"
                             >
                                 <LogOut className="w-5 h-5" />
-                                <span>Logout</span>
+                                <span className="font-medium">Logout</span>
                             </button>
                         </div>
                     </div>
@@ -100,7 +112,7 @@ const AdminLayout = () => {
 
             <div className="flex">
                 {/* Sidebar - Desktop */}
-                <aside className="hidden md:block w-64 bg-white shadow-lg min-h-[calc(100vh-4rem)]">
+                <aside className="hidden md:block w-64 bg-white shadow-lg min-h-[calc(100vh-3.5rem)]">
                     <nav className="p-4 space-y-2">
                         {navigation.map((item) => {
                             const Icon = item.icon
@@ -122,10 +134,8 @@ const AdminLayout = () => {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 p-6">
-                    <div className="max-w-7xl mx-auto">
-                        <Outlet />
-                    </div>
+                <main className="flex-1">
+                    <Outlet />
                 </main>
             </div>
         </div>

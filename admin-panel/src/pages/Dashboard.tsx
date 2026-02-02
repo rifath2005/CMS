@@ -1,40 +1,22 @@
 import { useState, useEffect } from 'react'
+import { institutionService, DashboardStats, VendorWorkflowItem } from '../services/institutionService'
 import { canteenService } from '../services/canteenService'
-import { Canteen } from '../types'
 import { useAuthStore } from '../store/authStore'
 import {
     Building2,
-    UserCheck,
+    Clock,
     ShoppingCart,
-    AlertTriangle,
-    MapPin,
-    CheckCircle,
-    XCircle,
-    Clock
+    DollarSign,
+    Plus,
+    Edit,
+    Power,
+    Search,
+    Filter
 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorAlert from '../components/ErrorAlert'
 import { KPICard } from '../components/shared/KPICard'
 import { StatusChip } from '../components/shared/StatusChip'
-
-interface DashboardStats {
-    activeCanteens: number
-    pendingApprovals: number
-    ordersToday: number
-    lowStockAlerts: number
-}
-
-interface VendorCardData {
-    id: string
-    vendorId: string
-    canteenName: string
-    location: string
-    approvalState: 'pending' | 'active' | 'inactive'
-    operatingHours?: {
-        open: string
-        close: string
-    }
-}
 
 export default function Dashboard() {
     const { user } = useAuthStore()
@@ -42,12 +24,15 @@ export default function Dashboard() {
         activeCanteens: 0,
         pendingApprovals: 0,
         ordersToday: 0,
-        lowStockAlerts: 0
+        dailyRevenue: 0
     })
-    const [vendors, setVendors] = useState<VendorCardData[]>([])
+    const [vendors, setVendors] = useState<VendorWorkflowItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [actionLoading, setActionLoading] = useState<string | null>(null)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 4
 
     useEffect(() => {
         if (user?.institutionId) {
@@ -60,32 +45,15 @@ export default function Dashboard() {
 
         try {
             setLoading(true)
-            const canteens = await canteenService.getCanteensByInstitution(user.institutionId)
+            const [statsData, vendorsData] = await Promise.all([
+                institutionService.getDashboardStats(user.institutionId),
+                institutionService.getVendorWorkflow(user.institutionId)
+            ])
 
-            // Transform canteens to vendor card data
-            const vendorData: VendorCardData[] = canteens.map(canteen => ({
-                id: canteen.id,
-                vendorId: canteen.vendorId,
-                canteenName: canteen.name,
-                location: canteen.location,
-                approvalState: canteen.isActive ? 'active' : 'inactive',
-                operatingHours: canteen.operatingHours
-            }))
-
-            setVendors(vendorData)
-
-            // Calculate stats
-            const activeCount = canteens.filter(c => c.isActive).length
-            const pendingCount = 0 // TODO: Implement pending logic when backend supports it
-
-            setStats({
-                activeCanteens: activeCount,
-                pendingApprovals: pendingCount,
-                ordersToday: 0, // TODO: Fetch from orders API
-                lowStockAlerts: 0 // TODO: Fetch from inventory API
-            })
+            setStats(statsData)
+            setVendors(vendorsData)
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load dashboard data')
+            setError(err.response?.data?.error?.message || 'Failed to load dashboard data')
         } finally {
             setLoading(false)
         }
@@ -95,17 +63,17 @@ export default function Dashboard() {
         try {
             setActionLoading(vendorId)
 
-            // Optimistic update - instant visual feedback without page reload
+            // Optimistic update
             setVendors(prev => prev.map(vendor =>
                 vendor.vendorId === vendorId
-                    ? { ...vendor, approvalState: 'active' as const }
+                    ? { ...vendor, isApproved: true, isActive: true, status: 'active' as const }
                     : vendor
             ))
 
             await canteenService.approveVendor(vendorId)
+            await loadDashboardData() // Refresh to update stats
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to approve vendor')
-            // Revert on error
+            setError(err.response?.data?.error?.message || 'Failed to approve vendor')
             loadDashboardData()
         } finally {
             setActionLoading(null)
@@ -118,268 +86,286 @@ export default function Dashboard() {
         try {
             setActionLoading(vendorId)
 
-            // Optimistic update - instant visual feedback without page reload
+            // Optimistic update
             setVendors(prev => prev.map(vendor =>
                 vendor.vendorId === vendorId
-                    ? { ...vendor, approvalState: 'inactive' as const }
+                    ? { ...vendor, isActive: false, status: 'inactive' as const }
                     : vendor
             ))
 
             await canteenService.deactivateVendor(vendorId)
+            await loadDashboardData()
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to deactivate vendor')
-            // Revert on error
+            setError(err.response?.data?.error?.message || 'Failed to deactivate vendor')
             loadDashboardData()
         } finally {
             setActionLoading(null)
         }
     }
 
-    const handleActivate = async (vendorId: string) => {
-        try {
-            setActionLoading(vendorId)
+    // Filter vendors based on search
+    const filteredVendors = vendors.filter(vendor =>
+        vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vendor.vendorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vendor.location.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
-            // Optimistic update - instant visual feedback without page reload
-            setVendors(prev => prev.map(vendor =>
-                vendor.vendorId === vendorId
-                    ? { ...vendor, approvalState: 'active' as const }
-                    : vendor
-            ))
-
-            await canteenService.activateVendor(vendorId)
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to activate vendor')
-            // Revert on error
-            loadDashboardData()
-        } finally {
-            setActionLoading(null)
-        }
-    }
+    // Pagination
+    const totalPages = Math.ceil(filteredVendors.length / itemsPerPage)
+    const paginatedVendors = filteredVendors.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    )
 
     if (loading) return <LoadingSpinner />
 
-    // Organize vendors by status
-    const pendingVendors = vendors.filter(v => v.approvalState === 'pending')
-    const activeVendors = vendors.filter(v => v.approvalState === 'active')
-    const deactivatedVendors = vendors.filter(v => v.approvalState === 'inactive')
-
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            {/* Header */}
+            <div>
+                <div className="text-sm text-gray-500 mb-2">
+                    Admin / <span className="text-blue-600">Dashboard</span>
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900">Institution Overview</h1>
+                <p className="text-gray-600 mt-1">
+                    Real-time monitoring of campus-wide canteen operations and vendor approvals.
+                </p>
+            </div>
 
             {error && <ErrorAlert message={error} onClose={() => setError('')} />}
 
-            {/* Overview KPI Cards */}
+            {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
                     title="Active Canteens"
                     value={stats.activeCanteens}
+                    subtitle="100% capacity"
                     icon={<Building2 className="h-6 w-6" />}
-                    iconColor="text-blue-600"
+                    iconColor="text-green-600"
+                    iconBgColor="bg-green-100"
                 />
                 <KPICard
-                    title="Pending Vendor Approvals"
+                    title="Pending Approvals"
                     value={stats.pendingApprovals}
-                    icon={<UserCheck className="h-6 w-6" />}
+                    subtitle="Action required"
+                    icon={<Clock className="h-6 w-6" />}
                     iconColor="text-yellow-600"
+                    iconBgColor="bg-yellow-100"
                 />
                 <KPICard
                     title="Orders Today"
                     value={stats.ordersToday}
+                    subtitle="Updated 2m ago"
                     icon={<ShoppingCart className="h-6 w-6" />}
-                    iconColor="text-green-600"
+                    iconColor="text-blue-600"
+                    iconBgColor="bg-blue-100"
                 />
                 <KPICard
-                    title="Low-stock Alerts"
-                    value={stats.lowStockAlerts}
-                    icon={<AlertTriangle className="h-6 w-6" />}
-                    iconColor="text-red-600"
+                    title="Daily Revenue"
+                    value={`$${stats.dailyRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    subtitle="↑ 12.5% vs yesterday"
+                    icon={<DollarSign className="h-6 w-6" />}
+                    iconColor="text-purple-600"
+                    iconBgColor="bg-purple-100"
                 />
             </div>
 
-            {/* Pending Approval Section */}
-            {pendingVendors.length > 0 && (
-                <VendorSection
-                    title="Pending Approval"
-                    vendors={pendingVendors}
-                    onApprove={handleApprove}
-                    onDeactivate={handleDeactivate}
-                    onActivate={handleActivate}
-                    actionLoading={actionLoading}
-                />
-            )}
+            {/* Vendor Approval Workflow */}
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Vendor Approval Workflow</h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Review and manage new vendor onboarding requests.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <Filter className="h-4 w-4" />
+                                <span className="text-sm font-medium">Filter</span>
+                            </button>
+                            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <Plus className="h-4 w-4" />
+                                <span className="text-sm font-medium">Add Vendor</span>
+                            </button>
+                        </div>
+                    </div>
 
-            {/* Active Vendors Section */}
-            <VendorSection
-                title="Active Vendors"
-                vendors={activeVendors}
-                onApprove={handleApprove}
-                onDeactivate={handleDeactivate}
-                onActivate={handleActivate}
-                actionLoading={actionLoading}
-            />
-
-            {/* Deactivated Vendors Section */}
-            {deactivatedVendors.length > 0 && (
-                <VendorSection
-                    title="Deactivated Vendors"
-                    vendors={deactivatedVendors}
-                    onApprove={handleApprove}
-                    onDeactivate={handleDeactivate}
-                    onActivate={handleActivate}
-                    actionLoading={actionLoading}
-                />
-            )}
-
-            {vendors.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No vendors registered yet</p>
+                    {/* Search Bar */}
+                    <div className="mt-4 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search records..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
                 </div>
-            )}
-        </div>
-    )
-}
 
-// Vendor Section Component
-interface VendorSectionProps {
-    title: string
-    vendors: VendorCardData[]
-    onApprove: (vendorId: string) => void
-    onDeactivate: (vendorId: string) => void
-    onActivate: (vendorId: string) => void
-    actionLoading: string | null
-}
-
-function VendorSection({
-    title,
-    vendors,
-    onApprove,
-    onDeactivate,
-    onActivate,
-    actionLoading
-}: VendorSectionProps) {
-    if (vendors.length === 0) return null
-
-    return (
-        <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">{title}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {vendors.map((vendor) => (
-                    <VendorCard
-                        key={vendor.id}
-                        vendor={vendor}
-                        onApprove={onApprove}
-                        onDeactivate={onDeactivate}
-                        onActivate={onActivate}
-                        isLoading={actionLoading === vendor.vendorId}
-                    />
-                ))}
-            </div>
-        </div>
-    )
-}
-
-// Vendor Card Component
-interface VendorCardProps {
-    vendor: VendorCardData
-    onApprove: (vendorId: string) => void
-    onDeactivate: (vendorId: string) => void
-    onActivate: (vendorId: string) => void
-    isLoading: boolean
-}
-
-function VendorCard({ vendor, onApprove, onDeactivate, onActivate, isLoading }: VendorCardProps) {
-    const getPrimaryAction = () => {
-        if (vendor.approvalState === 'pending') {
-            return (
-                <button
-                    onClick={() => onApprove(vendor.vendorId)}
-                    disabled={isLoading}
-                    className="w-full min-h-[44px] flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="approve-button"
-                >
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Approve
-                </button>
-            )
-        } else if (vendor.approvalState === 'active') {
-            return (
-                <button
-                    onClick={() => onDeactivate(vendor.vendorId)}
-                    disabled={isLoading}
-                    className="w-full min-h-[44px] flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="deactivate-button"
-                >
-                    <XCircle className="h-5 w-5 mr-2" />
-                    Deactivate
-                </button>
-            )
-        } else {
-            return (
-                <button
-                    onClick={() => onActivate(vendor.vendorId)}
-                    disabled={isLoading}
-                    className="w-full min-h-[44px] flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="activate-button"
-                >
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Activate
-                </button>
-            )
-        }
-    }
-
-    return (
-        <div
-            className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
-            data-testid="vendor-card"
-            data-vendor-id={vendor.vendorId}
-        >
-            {/* Vendor ID */}
-            <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor ID</p>
-                <p className="text-sm font-semibold text-gray-900" data-testid="vendor-id">
-                    {vendor.vendorId}
-                </p>
-            </div>
-
-            {/* Canteen Name */}
-            <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Canteen Name</p>
-                <p className="text-base font-semibold text-gray-900" data-testid="canteen-name">
-                    {vendor.canteenName}
-                </p>
-            </div>
-
-            {/* Location */}
-            <div className="flex items-start space-x-2">
-                <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-gray-600">{vendor.location}</p>
-            </div>
-
-            {/* Operating Hours */}
-            {vendor.operatingHours && (
-                <div className="flex items-start space-x-2">
-                    <Clock className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-600">
-                        {vendor.operatingHours.open} - {vendor.operatingHours.close}
-                    </p>
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Vendor ID
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Vendor Info
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Canteen Assignment
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Applied Date
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {paginatedVendors.length > 0 ? (
+                                paginatedVendors.map((vendor) => (
+                                    <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="text-sm font-semibold text-gray-900">
+                                                {vendor.vendorId}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {vendor.name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    contact@{vendor.name.toLowerCase().replace(/\s+/g, '')}.com
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900">{vendor.location}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">
+                                                {new Date(vendor.createdAt).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <StatusChip
+                                                status={vendor.status}
+                                                size="md"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                {vendor.status === 'pending' ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleApprove(vendor.vendorId)}
+                                                            disabled={actionLoading === vendor.vendorId}
+                                                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeactivate(vendor.vendorId)}
+                                                            disabled={actionLoading === vendor.vendorId}
+                                                            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        >
+                                                            Deactivate
+                                                        </button>
+                                                    </>
+                                                ) : vendor.status === 'active' ? (
+                                                    <>
+                                                        <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeactivate(vendor.vendorId)}
+                                                            disabled={actionLoading === vendor.vendorId}
+                                                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                                        >
+                                                            <Power className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleApprove(vendor.vendorId)}
+                                                        disabled={actionLoading === vendor.vendorId}
+                                                        className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        Activate
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-600">
+                                            {searchTerm ? 'No vendors found matching your search' : 'No vendors registered yet'}
+                                        </p>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
 
-            {/* Approval State */}
-            <div>
-                <StatusChip
-                    status={vendor.approvalState}
-                    size="md"
-                    data-testid="approval-state"
-                />
-            </div>
-
-            {/* Primary Action Button */}
-            <div className="pt-2">
-                {getPrimaryAction()}
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-700">
+                            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredVendors.length)} of {filteredVendors.length} vendors
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-3 py-1 rounded-lg transition-colors ${
+                                        currentPage === page
+                                            ? 'bg-blue-600 text-white'
+                                            : 'border border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

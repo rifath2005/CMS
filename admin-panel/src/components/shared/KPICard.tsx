@@ -4,6 +4,7 @@ import clsx from 'clsx';
 export interface KPICardProps {
     title: string;
     value: string | number;
+    subtitle?: string;
     icon: React.ReactNode;
     trend?: {
         value: number;
@@ -12,15 +13,18 @@ export interface KPICardProps {
     };
     bgColor?: string;
     iconColor?: string;
+    iconBgColor?: string;
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
     title,
     value,
+    subtitle,
     icon,
     trend,
     bgColor = 'bg-white',
     iconColor = 'text-primary-600',
+    iconBgColor = 'bg-blue-50',
 }) => {
     return (
         <div
@@ -44,6 +48,9 @@ export const KPICard: React.FC<KPICardProps> = ({
                     <p className="mt-1 text-3xl font-bold text-gray-900 transition-all duration-base" data-testid="kpi-value">
                         {value}
                     </p>
+                    {subtitle && (
+                        <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+                    )}
                     {trend && (
                         <div className="mt-1 flex items-center gap-1 transition-all duration-base">
                             <span
@@ -61,7 +68,8 @@ export const KPICard: React.FC<KPICardProps> = ({
                 <div
                     className={clsx(
                         'flex h-12 w-12 items-center justify-center rounded-lg',
-                        'bg-blue-50 transition-all duration-base',
+                        iconBgColor,
+                        'transition-all duration-base',
                         'group-hover:scale-110',
                         iconColor
                     )}

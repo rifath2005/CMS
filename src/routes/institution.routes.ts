@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { InstitutionService } from '../services/institution/InstitutionService';
+import { InstitutionStatsService } from '../services/institution/InstitutionStatsService';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireMainAdmin, requireInstitutionAdmin } from '../middleware/rbac.middleware';
 import { ValidationError, NotFoundError } from '../utils/errors';
@@ -8,6 +9,7 @@ import { ValidationError, NotFoundError } from '../utils/errors';
 export const createInstitutionRouter = (pool: Pool): Router => {
   const router = Router();
   const institutionService = new InstitutionService(pool);
+  const statsService = new InstitutionStatsService(pool);
 
   // POST /api/v1/institutions - Create institution (Main Admin only)
   router.post('/', authenticate, requireMainAdmin, async (req: Request, res: Response) => {
@@ -18,13 +20,12 @@ export const createInstitutionRouter = (pool: Pool): Router => {
         throw new ValidationError('Name, domain, and contact email are required');
       }
 
-      const institution = await institutionService.createInstitution({
+      const institution = await institutionService.createInstitution(
         name,
         domain,
-        address,
         contactEmail,
-        contactPhone,
-      });
+        contactPhone
+      );
 
       res.status(201).json({
         success: true,
@@ -66,11 +67,7 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // GET /api/v1/institutions/:id - Get institution by ID
   router.get('/:id', authenticate, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const institution = await institutionService.getInstitutionById(institutionId);
 
@@ -96,21 +93,14 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // PUT /api/v1/institutions/:id - Update institution
   router.put('/:id', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const { name, domain, address, contactEmail, contactPhone, isActive } = req.body;
 
       const institution = await institutionService.updateInstitution(institutionId, {
         name,
-        domain,
-        address,
         contactEmail,
         contactPhone,
-        isActive,
       });
 
       res.json({
@@ -132,11 +122,7 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // DELETE /api/v1/institutions/:id - Delete institution (Main Admin only)
   router.delete('/:id', authenticate, requireMainAdmin, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       await institutionService.deleteInstitution(institutionId);
 
@@ -158,11 +144,7 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // POST /api/v1/institutions/:id/assign-admin - Assign Institution Admin (Main Admin only)
   router.post('/:id/assign-admin', authenticate, requireMainAdmin, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const { userId } = req.body;
 
@@ -202,11 +184,7 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // POST /api/v1/institutions/:id/canteens - Register canteen
   router.post('/:id/canteens', authenticate, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const { name, description, location, contactPhone, ownerName, ownerEmail } = req.body;
 
@@ -214,15 +192,11 @@ export const createInstitutionRouter = (pool: Pool): Router => {
         throw new ValidationError('Name, location, contact phone, owner name, and owner email are required');
       }
 
-      const canteen = await institutionService.registerCanteen({
+      const canteen = await institutionService.registerCanteen(
         institutionId,
         name,
-        description,
-        location,
-        contactPhone,
-        ownerName,
-        ownerEmail,
-      });
+        location
+      );
 
       res.status(201).json({
         success: true,
@@ -243,11 +217,7 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // GET /api/v1/institutions/:id/canteens - Get canteens for institution
   router.get('/:id/canteens', authenticate, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const activeOnly = req.query.activeOnly === 'true';
 
@@ -274,17 +244,58 @@ export const createInstitutionRouter = (pool: Pool): Router => {
   // GET /api/v1/institutions/:id/stats - Get platform stats (Main Admin only)
   router.get('/:id/stats', authenticate, requireMainAdmin, async (req: Request, res: Response) => {
     try {
-      const institutionId = parseInt(req.params.id);
-      
-      if (isNaN(institutionId)) {
-        throw new ValidationError('Invalid institution ID');
-      }
+      const institutionId = req.params.id;
 
       const stats = await institutionService.getPlatformStats(institutionId);
 
       res.json({
         success: true,
         data: stats,
+      });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'INTERNAL_ERROR',
+          message: error.message,
+        },
+      });
+    }
+  });
+
+  // GET /api/v1/institutions/:id/dashboard-stats - Get dashboard stats (Institution Admin)
+  router.get('/:id/dashboard-stats', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
+    try {
+      const institutionId = req.params.id;
+
+      const stats = await statsService.getDashboardStats(institutionId);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'INTERNAL_ERROR',
+          message: error.message,
+        },
+      });
+    }
+  });
+
+  // GET /api/v1/institutions/:id/vendor-workflow - Get vendor approval workflow (Institution Admin)
+  router.get('/:id/vendor-workflow', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
+    try {
+      const institutionId = req.params.id;
+
+      const vendors = await statsService.getVendorApprovalWorkflow(institutionId);
+
+      res.json({
+        success: true,
+        data: vendors,
+        count: vendors.length,
       });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
