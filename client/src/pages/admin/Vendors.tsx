@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { canteenService, Canteen } from '../../services/canteenService'
 import { useAuthStore } from '../../store/authStore'
 import { Building2, MapPin, UserCheck, UserX, Search } from 'lucide-react'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import { StatusChip } from '../../components/shared/StatusChip'
+import DashboardSkeleton from '../../components/DashboardSkeleton'
+import { cache } from '../../utils/cache'
 
 const Vendors = () => {
     const { user } = useAuthStore()
@@ -25,11 +26,34 @@ const Vendors = () => {
         if (!user?.institutionId) return
 
         try {
+            // Check cache first
+            const cacheKey = `vendors-${user.institutionId}`
+            const cachedData = cache.get<Canteen[]>(cacheKey)
+            
+            if (cachedData) {
+                setVendors(cachedData)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshVendors(cacheKey)
+                return
+            }
+
             setLoading(true)
-            const data = await canteenService.getCanteensByInstitution(user.institutionId)
-            setVendors(data)
+            await loadFreshVendors(cacheKey)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load vendors')
+            setLoading(false)
+        }
+    }
+
+    const loadFreshVendors = async (cacheKey: string) => {
+        if (!user?.institutionId) return
+
+        try {
+            const data = await canteenService.getCanteensByInstitution(user.institutionId)
+            setVendors(data)
+            // Cache for 30 seconds
+            cache.set(cacheKey, data, 30000)
         } finally {
             setLoading(false)
         }
@@ -39,6 +63,9 @@ const Vendors = () => {
         try {
             setActionLoading(vendorId)
             await canteenService.approveVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('vendors')
+            cache.invalidatePattern('dashboard')
             await loadVendors()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to approve vendor')
@@ -53,6 +80,9 @@ const Vendors = () => {
         try {
             setActionLoading(vendorId)
             await canteenService.deactivateVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('vendors')
+            cache.invalidatePattern('dashboard')
             await loadVendors()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to deactivate vendor')
@@ -65,6 +95,9 @@ const Vendors = () => {
         try {
             setActionLoading(vendorId)
             await canteenService.activateVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('vendors')
+            cache.invalidatePattern('dashboard')
             await loadVendors()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to activate vendor')
@@ -89,7 +122,7 @@ const Vendors = () => {
         return matchesSearch && matchesFilter
     })
 
-    if (loading) return <LoadingSpinner />
+    if (loading) return <DashboardSkeleton />
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -235,62 +268,59 @@ const Vendors = () => {
                             {filteredVendors.map((vendor) => (
                                 <div
                                     key={vendor.id}
-                                    className="bg-white rounded-lg border border-gray-200 p-3"
+                                    className="bg-white rounded-lg border border-gray-200 p-2.5"
                                 >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="p-1.5 bg-blue-100 rounded-lg flex-shrink-0">
-                                                <Building2 className="h-5 w-5 text-blue-600" />
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <div className="p-1 bg-blue-100 rounded-md flex-shrink-0">
+                                                <Building2 className="h-4 w-4 text-blue-600" />
                                             </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-semibold text-sm text-gray-900 truncate">
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="font-semibold text-xs text-gray-900 truncate">
                                                     {vendor.name}
                                                 </h3>
-                                                <p className="text-xs text-gray-500 truncate">
+                                                <p className="text-[10px] text-gray-500 truncate">
                                                     ID: {vendor.vendorId}
                                                 </p>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                        <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                        <p className="text-xs text-gray-600 break-words">{vendor.location}</p>
-                                    </div>
-
-                                    <div className="mb-2">
                                         <StatusChip
                                             status={vendor.isApproved ? (vendor.isActive ? 'active' : 'inactive') : 'pending'}
                                             size="sm"
                                         />
                                     </div>
 
-                                    <div className="flex gap-2 pt-2 border-t border-gray-200">
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                        <p className="text-[10px] text-gray-600 truncate">{vendor.location}</p>
+                                    </div>
+
+                                    <div className="flex gap-1.5 pt-2 border-t border-gray-200">
                                         {!vendor.isApproved ? (
                                             <button
                                                 onClick={() => handleApprove(vendor.vendorId)}
                                                 disabled={actionLoading === vendor.vendorId}
-                                                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
                                             >
-                                                <UserCheck className="h-3.5 w-3.5" />
+                                                <UserCheck className="h-3 w-3" />
                                                 Approve
                                             </button>
                                         ) : vendor.isActive ? (
                                             <button
                                                 onClick={() => handleDeactivate(vendor.vendorId)}
                                                 disabled={actionLoading === vendor.vendorId}
-                                                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 border border-red-300 text-red-700 text-xs font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 text-xs font-medium rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
                                             >
-                                                <UserX className="h-3.5 w-3.5" />
+                                                <UserX className="h-3 w-3" />
                                                 Deactivate
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleActivate(vendor.vendorId)}
                                                 disabled={actionLoading === vendor.vendorId}
-                                                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                                             >
-                                                <UserCheck className="h-3.5 w-3.5" />
+                                                <UserCheck className="h-3 w-3" />
                                                 Activate
                                             </button>
                                         )}

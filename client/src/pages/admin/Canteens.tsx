@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { canteenService, Canteen } from '../../services/canteenService'
 import { useAuthStore } from '../../store/authStore'
 import { Building2, MapPin, Clock, Plus, Edit, CheckCircle, XCircle } from 'lucide-react'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import { StatusChip } from '../../components/shared/StatusChip'
 import AddVendorModal, { VendorFormData } from '../../components/AddVendorModal'
+import EditVendorModal, { VendorData, VendorEditData } from '../../components/EditVendorModal'
+import DashboardSkeleton from '../../components/DashboardSkeleton'
+import { cache } from '../../utils/cache'
 
 const Canteens = () => {
     const { user } = useAuthStore()
@@ -14,6 +16,8 @@ const Canteens = () => {
     const [error, setError] = useState('')
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [selectedCanteen, setSelectedCanteen] = useState<VendorData | null>(null)
 
     useEffect(() => {
         if (user?.institutionId) {
@@ -25,11 +29,34 @@ const Canteens = () => {
         if (!user?.institutionId) return
 
         try {
+            // Check cache first
+            const cacheKey = `canteens-${user.institutionId}`
+            const cachedData = cache.get<Canteen[]>(cacheKey)
+            
+            if (cachedData) {
+                setCanteens(cachedData)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshCanteens(cacheKey)
+                return
+            }
+
             setLoading(true)
-            const data = await canteenService.getCanteensByInstitution(user.institutionId)
-            setCanteens(data)
+            await loadFreshCanteens(cacheKey)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load canteens')
+            setLoading(false)
+        }
+    }
+
+    const loadFreshCanteens = async (cacheKey: string) => {
+        if (!user?.institutionId) return
+
+        try {
+            const data = await canteenService.getCanteensByInstitution(user.institutionId)
+            setCanteens(data)
+            // Cache for 30 seconds
+            cache.set(cacheKey, data, 30000)
         } finally {
             setLoading(false)
         }
@@ -39,13 +66,38 @@ const Canteens = () => {
         if (!user?.institutionId) return
 
         await canteenService.createCanteen(user.institutionId, data)
+        // Invalidate cache
+        cache.invalidatePattern('canteens')
+        cache.invalidatePattern('dashboard')
         await loadCanteens() // Refresh data
+    }
+
+    const handleEditCanteen = async (canteenId: string, data: VendorEditData) => {
+        await canteenService.updateCanteen(canteenId, data)
+        // Invalidate cache
+        cache.invalidatePattern('canteens')
+        cache.invalidatePattern('dashboard')
+        await loadCanteens() // Refresh data
+    }
+
+    const openEditModal = (canteen: Canteen) => {
+        setSelectedCanteen({
+            id: canteen.id,
+            vendorId: canteen.vendorId,
+            name: canteen.name,
+            location: canteen.location,
+            operatingHours: canteen.operatingHours
+        })
+        setIsEditModalOpen(true)
     }
 
     const handleApprove = async (vendorId: string) => {
         try {
             setActionLoading(vendorId)
             await canteenService.approveVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('canteens')
+            cache.invalidatePattern('dashboard')
             await loadCanteens()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to approve canteen')
@@ -60,6 +112,9 @@ const Canteens = () => {
         try {
             setActionLoading(vendorId)
             await canteenService.deactivateVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('canteens')
+            cache.invalidatePattern('dashboard')
             await loadCanteens()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to deactivate canteen')
@@ -72,6 +127,9 @@ const Canteens = () => {
         try {
             setActionLoading(vendorId)
             await canteenService.activateVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('canteens')
+            cache.invalidatePattern('dashboard')
             await loadCanteens()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to activate canteen')
@@ -80,7 +138,7 @@ const Canteens = () => {
         }
     }
 
-    if (loading) return <LoadingSpinner />
+    if (loading) return <DashboardSkeleton />
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -113,45 +171,22 @@ const Canteens = () => {
                         {canteens.map((canteen) => (
                             <div
                                 key={canteen.id}
-                                className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 hover:shadow-lg transition-shadow"
+                                className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-lg transition-shadow"
                             >
-                                {/* Canteen Header */}
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                                            <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-                                                {canteen.name}
-                                            </h3>
-                                            <p className="text-xs text-gray-500 truncate">
-                                                ID: {canteen.vendorId}
-                                            </p>
-                                        </div>
+                                {/* Canteen Header - Compact Mobile */}
+                                <div className="flex items-center gap-2 mb-2.5">
+                                    <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
+                                        <Building2 className="h-4 w-4 text-blue-600" />
                                     </div>
-                                </div>
-
-                                {/* Canteen Details */}
-                                <div className="space-y-2 mb-3">
-                                    {/* Location */}
-                                    <div className="flex items-start gap-2">
-                                        <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                        <p className="text-xs sm:text-sm text-gray-600 break-words">{canteen.location}</p>
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="font-semibold text-sm text-gray-900 truncate">
+                                            {canteen.name}
+                                        </h3>
+                                        <p className="text-[10px] text-gray-500 truncate">
+                                            ID: {canteen.vendorId}
+                                        </p>
                                     </div>
-
-                                    {/* Operating Hours */}
-                                    {canteen.operatingHours && (
-                                        <div className="flex items-start gap-2">
-                                            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                            <p className="text-xs sm:text-sm text-gray-600">
-                                                {canteen.operatingHours.open} - {canteen.operatingHours.close}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Status */}
-                                    <div className="pt-1">
+                                    <div className="flex-shrink-0">
                                         <StatusChip
                                             status={canteen.isApproved ? (canteen.isActive ? 'active' : 'inactive') : 'pending'}
                                             size="sm"
@@ -159,29 +194,51 @@ const Canteens = () => {
                                     </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+                                {/* Canteen Details - Compact */}
+                                <div className="space-y-1.5 mb-2.5 text-xs">
+                                    {/* Location */}
+                                    <div className="flex items-start gap-1.5">
+                                        <MapPin className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <p className="text-gray-600 break-words line-clamp-1">{canteen.location}</p>
+                                    </div>
+
+                                    {/* Operating Hours */}
+                                    {canteen.operatingHours && (
+                                        <div className="flex items-start gap-1.5">
+                                            <Clock className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                                            <p className="text-gray-600">
+                                                {canteen.operatingHours.open} - {canteen.operatingHours.close}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions - Compact */}
+                                <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-gray-200">
                                     {!canteen.isApproved ? (
                                         <button
                                             onClick={() => handleApprove(canteen.vendorId)}
                                             disabled={actionLoading === canteen.vendorId}
-                                            className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                            className="flex-1 min-w-[90px] flex items-center justify-center gap-1 px-2 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
                                         >
-                                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            <CheckCircle className="h-3 w-3" />
                                             Approve
                                         </button>
                                     ) : canteen.isActive ? (
                                         <>
-                                            <button className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]">
-                                                <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            <button 
+                                                onClick={() => openEditModal(canteen)}
+                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1 px-2 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Edit className="h-3 w-3" />
                                                 Edit
                                             </button>
                                             <button
                                                 onClick={() => handleDeactivate(canteen.vendorId)}
                                                 disabled={actionLoading === canteen.vendorId}
-                                                className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 border border-red-300 text-red-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 text-xs font-medium rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
                                             >
-                                                <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                <XCircle className="h-3 w-3" />
                                                 Deactivate
                                             </button>
                                         </>
@@ -189,9 +246,9 @@ const Canteens = () => {
                                         <button
                                             onClick={() => handleActivate(canteen.vendorId)}
                                             disabled={actionLoading === canteen.vendorId}
-                                            className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                                         >
-                                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            <CheckCircle className="h-3 w-3" />
                                             Activate
                                         </button>
                                     )}
@@ -221,6 +278,17 @@ const Canteens = () => {
                     isOpen={isAddModalOpen}
                     onClose={() => setIsAddModalOpen(false)}
                     onSubmit={handleAddCanteen}
+                />
+
+                {/* Edit Canteen Modal */}
+                <EditVendorModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false)
+                        setSelectedCanteen(null)
+                    }}
+                    onSubmit={handleEditCanteen}
+                    vendor={selectedCanteen}
                 />
             </div>
         </div>

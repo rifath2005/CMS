@@ -11,9 +11,10 @@ import {
     Calendar,
     BarChart3
 } from 'lucide-react'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import { KPICard } from '../../components/shared/KPICard'
+import DashboardSkeleton from '../../components/DashboardSkeleton'
+import { cache } from '../../utils/cache'
 
 const InstitutionStats = () => {
     const { user } = useAuthStore()
@@ -37,63 +38,90 @@ const InstitutionStats = () => {
         if (!user?.institutionId) return
 
         try {
+            // Check cache first
+            const cacheKey = `stats-${user.institutionId}-${timeRange}`
+            const cachedData = cache.get<DashboardStats>(cacheKey)
+            
+            if (cachedData) {
+                setStats(cachedData)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshStats(cacheKey)
+                return
+            }
+
             setLoading(true)
-            const data = await institutionService.getDashboardStats(user.institutionId)
-            setStats(data)
+            await loadFreshStats(cacheKey)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load statistics')
+            setLoading(false)
+        }
+    }
+
+    const loadFreshStats = async (cacheKey: string) => {
+        if (!user?.institutionId) return
+
+        try {
+            const data = await institutionService.getDashboardStats(user.institutionId)
+            setStats(data)
+            // Cache for 30 seconds
+            cache.set(cacheKey, data, 30000)
         } finally {
             setLoading(false)
         }
     }
 
-    if (loading) return <LoadingSpinner />
+    if (loading) return <DashboardSkeleton />
 
     return (
-        <div className="space-y-6 p-4 sm:p-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Institution Statistics</h1>
-                    <p className="text-sm sm:text-base text-gray-600 mt-1">
-                        Analytics and insights for your institution
-                    </p>
-                </div>
+        <div className="min-h-screen bg-gray-50">
+            <div className="w-full px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 space-y-3 sm:space-y-4 lg:space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <div className="text-xs sm:text-sm text-gray-500 mb-1">
+                            Admin / <span className="text-blue-600">Statistics</span>
+                        </div>
+                        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Institution Statistics</h1>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                            Analytics and insights for your institution
+                        </p>
+                    </div>
 
-                {/* Time Range Selector */}
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
-                    <button
-                        onClick={() => setTimeRange('today')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            timeRange === 'today'
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        Today
-                    </button>
-                    <button
-                        onClick={() => setTimeRange('week')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            timeRange === 'week'
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        Week
-                    </button>
-                    <button
-                        onClick={() => setTimeRange('month')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            timeRange === 'month'
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        Month
-                    </button>
+                    {/* Time Range Selector */}
+                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+                        <button
+                            onClick={() => setTimeRange('today')}
+                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                                timeRange === 'today'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            Today
+                        </button>
+                        <button
+                            onClick={() => setTimeRange('week')}
+                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                                timeRange === 'week'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            Week
+                        </button>
+                        <button
+                            onClick={() => setTimeRange('month')}
+                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                                timeRange === 'month'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            Month
+                        </button>
+                    </div>
                 </div>
-            </div>
 
             {error && <ErrorAlert message={error} onClose={() => setError('')} />}
 
@@ -133,10 +161,10 @@ const InstitutionStats = () => {
                 />
             </div>
 
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Revenue Trend */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                {/* Performance Metrics */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                    {/* Revenue Trend */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 lg:p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Revenue Trend</h3>
                         <TrendingUp className="h-5 w-5 text-green-600" />
@@ -159,8 +187,8 @@ const InstitutionStats = () => {
                     </div>
                 </div>
 
-                {/* Order Volume */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                    {/* Order Volume */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 lg:p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Order Volume</h3>
                         <ShoppingCart className="h-5 w-5 text-blue-600" />
@@ -184,8 +212,8 @@ const InstitutionStats = () => {
                 </div>
             </div>
 
-            {/* Canteen Performance */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                {/* Canteen Performance */}
+                <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Canteen Performance</h3>
                     <BarChart3 className="h-5 w-5 text-gray-400" />
@@ -233,9 +261,9 @@ const InstitutionStats = () => {
                 </div>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 lg:p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-purple-100 rounded-lg">
                             <Users className="h-5 w-5 text-purple-600" />
@@ -257,15 +285,16 @@ const InstitutionStats = () => {
                     <p className="text-sm text-gray-600 mt-1">Lunch rush time</p>
                 </div>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
+                    <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 lg:p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <TrendingUp className="h-5 w-5 text-green-600" />
+                            </div>
+                            <h4 className="font-medium text-gray-900">Growth Rate</h4>
                         </div>
-                        <h4 className="font-medium text-gray-900">Growth Rate</h4>
+                        <p className="text-2xl font-bold text-gray-900">+12.5%</p>
+                        <p className="text-sm text-gray-600 mt-1">Month over month</p>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">+12.5%</p>
-                    <p className="text-sm text-gray-600 mt-1">Month over month</p>
                 </div>
             </div>
         </div>

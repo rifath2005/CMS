@@ -106,7 +106,7 @@ const SuperAdminDashboard = () => {
                                 ₹{(stats?.totalRevenue || 0).toLocaleString()}
                             </p>
                         </div>
-                        <div className="bg-yellow-100 p-3 rounded-lg">
+                        <div className="bg-yellow-500 p-3 rounded-lg">
                             <TrendingUp className="w-8 h-8 text-yellow-600" />
                         </div>
                     </div>

@@ -12,12 +12,13 @@ import {
     Power,
     Search
 } from 'lucide-react'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import { KPICard } from '../../components/shared/KPICard'
 import { StatusChip } from '../../components/shared/StatusChip'
 import AddVendorModal, { VendorFormData } from '../../components/AddVendorModal'
 import EditVendorModal, { VendorData, VendorEditData } from '../../components/EditVendorModal'
+import DashboardSkeleton from '../../components/DashboardSkeleton'
+import { cache } from '../../utils/cache'
 
 const AdminDashboard = () => {
     const { user } = useAuthStore()
@@ -48,7 +49,31 @@ const AdminDashboard = () => {
         if (!user?.institutionId) return
 
         try {
+            // Check cache first
+            const cacheKey = `dashboard-${user.institutionId}`
+            const cachedData = cache.get<{ stats: DashboardStats; vendors: VendorWorkflowItem[] }>(cacheKey)
+            
+            if (cachedData) {
+                setStats(cachedData.stats)
+                setVendors(cachedData.vendors)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshData(cacheKey)
+                return
+            }
+
             setLoading(true)
+            await loadFreshData(cacheKey)
+        } catch (err: any) {
+            setError(err.response?.data?.error?.message || 'Failed to load dashboard data')
+            setLoading(false)
+        }
+    }
+
+    const loadFreshData = async (cacheKey: string) => {
+        if (!user?.institutionId) return
+
+        try {
             // Load both in parallel for faster loading
             const [statsData, vendorsData] = await Promise.all([
                 institutionService.getDashboardStats(user.institutionId),
@@ -57,8 +82,9 @@ const AdminDashboard = () => {
 
             setStats(statsData)
             setVendors(vendorsData)
-        } catch (err: any) {
-            setError(err.response?.data?.error?.message || 'Failed to load dashboard data')
+            
+            // Cache for 30 seconds
+            cache.set(cacheKey, { stats: statsData, vendors: vendorsData }, 30000)
         } finally {
             setLoading(false)
         }
@@ -68,11 +94,15 @@ const AdminDashboard = () => {
         if (!user?.institutionId) return
 
         await canteenService.createCanteen(user.institutionId, data)
+        // Invalidate cache
+        cache.invalidatePattern('dashboard')
         await loadDashboardData() // Refresh data
     }
 
     const handleEditVendor = async (canteenId: string, data: VendorEditData) => {
         await canteenService.updateCanteen(canteenId, data)
+        // Invalidate cache
+        cache.invalidatePattern('dashboard')
         await loadDashboardData() // Refresh data
     }
 
@@ -99,6 +129,8 @@ const AdminDashboard = () => {
             ))
 
             await canteenService.approveVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('dashboard')
             await loadDashboardData() // Refresh to update stats
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to approve vendor')
@@ -122,6 +154,8 @@ const AdminDashboard = () => {
             ))
 
             await canteenService.deactivateVendor(vendorId)
+            // Invalidate cache
+            cache.invalidatePattern('dashboard')
             await loadDashboardData()
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to deactivate vendor')
@@ -145,7 +179,7 @@ const AdminDashboard = () => {
         currentPage * itemsPerPage
     )
 
-    if (loading) return <LoadingSpinner />
+    if (loading) return <DashboardSkeleton />
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -368,22 +402,27 @@ const AdminDashboard = () => {
                     <div className="lg:hidden divide-y divide-gray-200">
                         {paginatedVendors.length > 0 ? (
                             paginatedVendors.map((vendor) => (
-                                <div key={vendor.id} className="p-3 hover:bg-gray-50 transition-colors">
+                                <div key={vendor.id} className="p-2.5 hover:bg-gray-50 transition-colors">
                                     <div className="space-y-2">
-                                        {/* Vendor Header */}
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-semibold text-sm text-gray-900 truncate">{vendor.name}</h3>
-                                                <p className="text-xs text-gray-500">ID: {vendor.vendorId}</p>
+                                        {/* Vendor Header - Compact */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                                                <div className="p-1 bg-blue-100 rounded-md flex-shrink-0">
+                                                    <Building2 className="h-4 w-4 text-blue-600" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-semibold text-xs text-gray-900 truncate">{vendor.name}</h3>
+                                                    <p className="text-[10px] text-gray-500 truncate">ID: {vendor.vendorId}</p>
+                                                </div>
                                             </div>
                                             <StatusChip status={vendor.status} size="sm" />
                                         </div>
 
-                                        {/* Vendor Details */}
-                                        <div className="space-y-1 text-xs">
+                                        {/* Vendor Details - Compact */}
+                                        <div className="space-y-1 text-[10px]">
                                             <div className="flex items-start gap-1">
                                                 <span className="text-gray-500 shrink-0">Location:</span>
-                                                <span className="text-gray-900">{vendor.location}</span>
+                                                <span className="text-gray-900 truncate">{vendor.location}</span>
                                             </div>
                                             <div className="flex items-start gap-1">
                                                 <span className="text-gray-500 shrink-0">Applied:</span>
@@ -397,21 +436,21 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* Actions */}
-                                        <div className="flex gap-2 pt-2">
+                                        {/* Actions - Compact */}
+                                        <div className="flex gap-1.5 pt-2">
                                             {vendor.status === 'pending' ? (
                                                 <>
                                                     <button
                                                         onClick={() => handleApprove(vendor.vendorId)}
                                                         disabled={actionLoading === vendor.vendorId}
-                                                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                        className="flex-1 px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                                                     >
                                                         Approve
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeactivate(vendor.vendorId)}
                                                         disabled={actionLoading === vendor.vendorId}
-                                                        className="flex-1 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                        className="flex-1 px-2 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
                                                     >
                                                         Reject
                                                     </button>
@@ -420,17 +459,17 @@ const AdminDashboard = () => {
                                                 <>
                                                     <button 
                                                         onClick={() => openEditModal(vendor)}
-                                                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors min-h-[40px] flex items-center justify-center gap-1.5"
+                                                        className="flex-1 px-2 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
                                                     >
-                                                        <Edit className="h-3.5 w-3.5" />
+                                                        <Edit className="h-3 w-3" />
                                                         Edit
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeactivate(vendor.vendorId)}
                                                         disabled={actionLoading === vendor.vendorId}
-                                                        className="flex-1 px-3 py-2 border border-red-300 text-red-700 text-xs font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors min-h-[40px] flex items-center justify-center gap-1.5"
+                                                        className="flex-1 px-2 py-1.5 border border-red-300 text-red-700 text-xs font-medium rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
                                                     >
-                                                        <Power className="h-3.5 w-3.5" />
+                                                        <Power className="h-3 w-3" />
                                                         Deactivate
                                                     </button>
                                                 </>
@@ -438,7 +477,7 @@ const AdminDashboard = () => {
                                                 <button
                                                     onClick={() => handleApprove(vendor.vendorId)}
                                                     disabled={actionLoading === vendor.vendorId}
-                                                    className="w-full px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[40px]"
+                                                    className="w-full px-2 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
                                                 >
                                                     Activate
                                                 </button>
