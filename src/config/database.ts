@@ -27,7 +27,7 @@ const poolConfig: PoolConfig = {
   ssl: getSSLConfig(),
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 5000, // Return error after 5 seconds if connection could not be established
+  connectionTimeoutMillis: 30000, // Increased to 30 seconds for Render.com (free tier can be slow to wake up)
   // Additional settings for better reliability
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,

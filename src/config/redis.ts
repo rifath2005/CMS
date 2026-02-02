@@ -8,6 +8,18 @@ const redisConfig: any = {
   socket: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
+    tls: process.env.REDIS_TLS === 'true' ? {
+      rejectUnauthorized: false, // Required for Redis Cloud
+    } : undefined,
+    reconnectStrategy: (retries: number) => {
+      // Stop retrying after 3 attempts
+      if (retries > 3) {
+        console.log('Redis: Max reconnection attempts reached, giving up');
+        return false;
+      }
+      // Wait 1 second between retries
+      return 1000;
+    },
   },
   password: process.env.REDIS_PASSWORD || undefined,
 };
@@ -31,7 +43,8 @@ export const connectRedis = async () => {
   try {
     await redisClient.connect();
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Failed to connect to Redis:', errorMessage);
     throw error;
   }
 };
@@ -116,6 +129,12 @@ export const redisHelpers = {
 
 // Graceful shutdown
 export const closeRedis = async () => {
-  await redisClient.quit();
-  console.log('Redis connection closed');
+  try {
+    if (redisClient.isOpen) {
+      await redisClient.quit();
+      console.log('✓ Redis connection closed');
+    }
+  } catch (error) {
+    console.log('Redis was not connected, skipping close');
+  }
 };
