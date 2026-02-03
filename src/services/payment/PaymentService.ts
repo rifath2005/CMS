@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { PaymentModel, Payment, PaymentStatus } from '../../models/Payment';
 import { UpiGateway, UpiPaymentIntent, UpiWebhookPayload } from './UpiGateway';
+import { WalletService } from '../wallet/WalletService';
 
 export interface PaymentIntent {
   payment: Payment;
@@ -20,10 +21,70 @@ export interface Refund {
 export class PaymentService {
   private paymentModel: PaymentModel;
   private upiGateway: UpiGateway;
+  private walletService: WalletService;
+  private pool: Pool;
 
   constructor(pool: Pool) {
+    this.pool = pool;
     this.paymentModel = new PaymentModel(pool);
     this.upiGateway = new UpiGateway();
+    this.walletService = new WalletService(pool);
+  }
+
+  /**
+   * Process wallet payment (NEW - replaces UPI for USER role)
+   */
+  async processWalletPayment(
+    userId: string,
+    amount: number
+  ): Promise<Payment> {
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // Create payment record with INITIATED status
+      const paymentResult = await client.query(
+        `INSERT INTO payments (user_id, amount, status, created_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+         RETURNING *`,
+        [userId, amount, PaymentStatus.INITIATED]
+      );
+
+      const payment = this.paymentModel.mapRow(paymentResult.rows[0]);
+
+      // Deduct from wallet (this will throw if insufficient balance)
+      const walletResult = await this.walletService.deductFromWallet(
+        userId,
+        amount,
+        client
+      );
+
+      // Update payment to SUCCESS
+      const updatedPaymentResult = await client.query(
+        `UPDATE payments 
+         SET status = $1, completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2
+         RETURNING *`,
+        [PaymentStatus.SUCCESS, payment.id]
+      );
+
+      await client.query('COMMIT');
+
+      return this.paymentModel.mapRow(updatedPaymentResult.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get wallet balance
+   */
+  async getWalletBalance(userId: string): Promise<number> {
+    return this.walletService.getWalletBalance(userId);
   }
 
   /**

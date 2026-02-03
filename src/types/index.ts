@@ -12,6 +12,7 @@ export interface User {
   name: string;
   role: UserRole;
   institutionId: string;
+  walletBalance?: number;
   createdAt: Date;
   updatedAt: Date;
 }

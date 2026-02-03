@@ -36,8 +36,12 @@ export class OrderHistoryService {
   /**
    * Get order history for user
    * Sorted by date (most recent first)
+   * Shows only DELIVERED and EXPIRED orders
    */
   async getUserOrderHistory(userId: string, filter?: OrderHistoryFilter): Promise<OrderHistoryEntry[]> {
+    // First, update expired orders
+    await this.updateExpiredOrders();
+
     let query = `
       SELECT 
         o.id as "orderId",
@@ -46,10 +50,11 @@ export class OrderHistoryService {
         o.vendor_id as "vendorId",
         c.name as "vendorName",
         o.status,
-        o.delivered_at as "deliveredAt"
+        o.delivered_at as "deliveredAt",
+        o.bill_expires_at as "billExpiresAt"
       FROM orders o
       JOIN canteens c ON o.vendor_id = c.vendor_id
-      WHERE o.user_id = $1 AND o.status = 'DELIVERED'
+      WHERE o.user_id = $1 AND o.status IN ('DELIVERED', 'EXPIRED')
     `;
 
     const params: any[] = [userId];
@@ -57,13 +62,13 @@ export class OrderHistoryService {
 
     // Apply filters
     if (filter?.startDate) {
-      query += ` AND o.delivered_at >= $${paramCount}`;
+      query += ` AND o.created_at >= $${paramCount}`;
       params.push(filter.startDate);
       paramCount++;
     }
 
     if (filter?.endDate) {
-      query += ` AND o.delivered_at <= $${paramCount}`;
+      query += ` AND o.created_at <= $${paramCount}`;
       params.push(filter.endDate);
       paramCount++;
     }
@@ -74,7 +79,13 @@ export class OrderHistoryService {
       paramCount++;
     }
 
-    query += ` ORDER BY o.delivered_at DESC`;
+    if (filter?.status) {
+      query += ` AND o.status = $${paramCount}`;
+      params.push(filter.status);
+      paramCount++;
+    }
+
+    query += ` ORDER BY o.created_at DESC`;
 
     const ordersResult = await this.pool.query(query, params);
 
@@ -107,6 +118,19 @@ export class OrderHistoryService {
     }
 
     return history;
+  }
+
+  /**
+   * Update orders that have expired (bill_expires_at < now)
+   * Automatically marks PENDING, PREPARING, and READY orders as EXPIRED
+   */
+  private async updateExpiredOrders(): Promise<void> {
+    await this.pool.query(`
+      UPDATE orders 
+      SET status = 'EXPIRED' 
+      WHERE status IN ('PENDING', 'PREPARING', 'READY') 
+        AND bill_expires_at < CURRENT_TIMESTAMP
+    `);
   }
 
   /**
@@ -154,13 +178,16 @@ export class OrderHistoryService {
     averageOrderValue: number;
     mostOrderedVendor?: string;
   }> {
+    // Update expired orders first
+    await this.updateExpiredOrders();
+
     const query = `
       SELECT 
         COUNT(*) as "totalOrders",
         SUM(total_amount) as "totalSpent",
         AVG(total_amount) as "averageOrderValue"
       FROM orders
-      WHERE user_id = $1 AND status = 'DELIVERED'
+      WHERE user_id = $1 AND status IN ('DELIVERED', 'EXPIRED')
     `;
 
     const result = await this.pool.query(query, [userId]);
@@ -170,7 +197,7 @@ export class OrderHistoryService {
     const vendorQuery = `
       SELECT vendor_id, COUNT(*) as order_count
       FROM orders
-      WHERE user_id = $1 AND status = 'DELIVERED'
+      WHERE user_id = $1 AND status IN ('DELIVERED', 'EXPIRED')
       GROUP BY vendor_id
       ORDER BY order_count DESC
       LIMIT 1

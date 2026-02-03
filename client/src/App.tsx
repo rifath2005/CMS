@@ -22,7 +22,6 @@ import SystemSettings from './pages/super-admin/Settings'
 // Institution Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
 import Canteens from './pages/admin/Canteens'
-import Vendors from './pages/admin/Vendors'
 import InstitutionStats from './pages/admin/Stats'
 
 // Vendor Pages
@@ -34,13 +33,13 @@ import QRScanner from './pages/vendor/QRScanner'
 import VendorAnalytics from './pages/vendor/Analytics'
 
 // User Pages
-import UserDashboard from './pages/user/Dashboard'
-import Products from './pages/user/Products'
+import UserCanteens from './pages/user/Canteens'
 import Cart from './pages/user/Cart'
 import Checkout from './pages/user/Checkout'
 import DigitalBill from './pages/user/DigitalBill'
 import OrderHistory from './pages/user/OrderHistory'
 import Profile from './pages/user/Profile'
+import WalletTest from './pages/user/WalletTest'
 
 // Protected Route Component
 import ProtectedRoute from './components/ProtectedRoute'
@@ -92,7 +91,6 @@ function App() {
                         <Route element={<AdminLayout />}>
                             <Route path="/admin/dashboard" element={<AdminDashboard />} />
                             <Route path="/admin/canteens" element={<Canteens />} />
-                            <Route path="/admin/vendors" element={<Vendors />} />
                             <Route path="/admin/stats" element={<InstitutionStats />} />
                         </Route>
                     </Route>
@@ -112,13 +110,13 @@ function App() {
                     {/* User Routes */}
                     <Route element={<ProtectedRoute allowedRoles={[UserRole.USER]} />}>
                         <Route element={<UserLayout />}>
-                            <Route path="/dashboard" element={<UserDashboard />} />
-                            <Route path="/products" element={<Products />} />
+                            <Route path="/dashboard" element={<UserCanteens />} />
                             <Route path="/cart" element={<Cart />} />
                             <Route path="/checkout" element={<Checkout />} />
                             <Route path="/bill/:orderId" element={<DigitalBill />} />
                             <Route path="/orders" element={<OrderHistory />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/wallet-test" element={<WalletTest />} />
                         </Route>
                     </Route>
 
