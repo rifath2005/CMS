@@ -6,6 +6,7 @@ import { PaymentService } from '../payment/PaymentService';
 import { PaymentStatus } from '../../models/Payment';
 import { CartService, CartItem } from '../cart/CartService';
 import { OrderCalculation } from './OrderCalculation';
+import { WalletOrderService } from './WalletOrderService';
 
 export interface CreateOrderRequest {
   userId: string;
@@ -22,12 +23,14 @@ export class OrderService {
   private paymentService: PaymentService;
   private cartService: CartService;
   private orderCalculation: OrderCalculation;
+  private walletOrderService: WalletOrderService;
 
   constructor(pool: Pool) {
     this.orderModel = new OrderModel(pool);
     this.paymentService = new PaymentService(pool);
     this.cartService = new CartService(pool);
     this.orderCalculation = new OrderCalculation(pool);
+    this.walletOrderService = new WalletOrderService(pool);
   }
 
   /**
@@ -323,5 +326,37 @@ export class OrderService {
   async getUserOrderHistory(userId: string): Promise<Order[]> {
     const allOrders = await this.orderModel.findByUserId(userId);
     return allOrders.filter(order => order.status === OrderStatus.DELIVERED);
+  }
+
+  /**
+   * Create order with wallet payment (integrated flow)
+   * This method handles the complete wallet payment + order creation flow
+   */
+  async createOrderWithWallet(userId: string): Promise<any> {
+    // Get user's cart
+    const cart = await this.cartService.getCart(userId);
+
+    if (cart.items.length === 0) {
+      throw new Error('Cart is empty');
+    }
+
+    if (!cart.vendorId) {
+      throw new Error('Cart must have a vendor');
+    }
+
+    // Calculate total
+    const calculation = await this.orderCalculation.calculateTotal(cart.items);
+
+    // Process wallet payment and create order atomically
+    const result = await this.walletOrderService.processWalletPayment(
+      userId,
+      cart.items,
+      calculation.total
+    );
+
+    // Clear cart after successful order creation
+    await this.cartService.clearCart(userId);
+
+    return result;
   }
 }

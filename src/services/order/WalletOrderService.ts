@@ -2,6 +2,14 @@ import { Pool } from 'pg';
 import { WalletService } from '../wallet/WalletService';
 import { ValidationError } from '../../utils/errors';
 
+// Import WebSocket server for real-time notifications
+let wsServer: any = null;
+
+// Function to set WebSocket server instance
+export function setWebSocketServer(server: any) {
+  wsServer = server;
+}
+
 export interface WalletPaymentResult {
   success: boolean;
   orderId: string;
@@ -119,6 +127,29 @@ export class WalletOrderService {
       );
 
       await client.query('COMMIT');
+
+      // 8. EMIT SOCKET EVENT ONLY AFTER SUCCESSFUL DB COMMIT
+      if (wsServer) {
+        // Get canteen ID for the vendor
+        const canteenResult = await this.pool.query(
+          'SELECT id FROM canteens WHERE vendor_id = $1 LIMIT 1',
+          [vendorId]
+        );
+        
+        if (canteenResult.rows.length > 0) {
+          const canteenId = canteenResult.rows[0].id;
+          
+          // Emit new order event to canteen room ONLY
+          wsServer.notifyNewOrder(canteenId, {
+            orderId,
+            userId,
+            totalAmount,
+            items: cartItems,
+            status: 'PENDING',
+            billExpiresAt: billExpiresAt.toISOString(),
+          });
+        }
+      }
 
       return {
         success: true,

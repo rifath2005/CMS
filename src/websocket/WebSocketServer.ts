@@ -8,7 +8,7 @@ export interface AuthenticatedSocket extends Socket {
   userId?: string;
   role?: UserRole;
   institutionId?: string;
-  vendorId?: string;
+  canteenId?: string;
 }
 
 export class WebSocketServer {
@@ -37,25 +37,26 @@ export class WebSocketServer {
   private setupMiddleware(): void {
     this.io.use(async (socket: AuthenticatedSocket, next) => {
       try {
-        const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+        // Get token from socket handshake auth
+        const token = socket.handshake.auth.token;
 
         if (!token) {
           return next(new Error('Authentication token required'));
         }
 
-        // Verify JWT token
+        // Verify JWT token with expiration check
         const decoded = await verifyToken(token);
         
         // Attach user information to socket
         socket.userId = decoded.userId;
         socket.role = decoded.role;
         socket.institutionId = decoded.institutionId;
-        socket.vendorId = decoded.vendorId;
+        socket.canteenId = decoded.canteenId;
 
         next();
       } catch (error) {
         console.error('WebSocket authentication error:', error);
-        next(new Error('Authentication failed'));
+        next(new Error('Authentication failed: Invalid or expired token'));
       }
     });
   }
@@ -96,43 +97,63 @@ export class WebSocketServer {
 
   /**
    * Join user to appropriate rooms based on their role and institution
+   * Backend-controlled room assignment only
    */
   private joinRoleBasedRooms(socket: AuthenticatedSocket): void {
     if (!socket.userId || !socket.role) return;
 
-    // Join user-specific room
+    // Always join user-specific room
     socket.join(`user:${socket.userId}`);
 
-    // Join institution room
+    // Always join institution room if available
     if (socket.institutionId) {
       socket.join(`institution:${socket.institutionId}`);
     }
 
-    // Join role-specific rooms
+    // Role-specific room assignment
     switch (socket.role) {
       case UserRole.VENDOR:
-        if (socket.vendorId) {
-          socket.join(`vendor:${socket.vendorId}`);
+        // Vendors join canteen-specific room if canteenId is available
+        if (socket.canteenId) {
+          socket.join(`canteen:${socket.canteenId}`);
+          console.log(`Vendor ${socket.userId} joined canteen room: canteen:${socket.canteenId}`);
         }
         break;
+      
       case UserRole.INSTITUTION_ADMIN:
         socket.join(`institution-admin:${socket.institutionId}`);
         break;
+      
       case UserRole.MAIN_ADMIN:
         socket.join('main-admin');
         break;
+      
       case UserRole.USER:
+        // Regular users join customer room for their institution
         socket.join(`customer:${socket.institutionId}`);
         break;
     }
 
-    console.log(`User ${socket.userId} joined rooms for role: ${socket.role}`);
+    console.log(`User ${socket.userId} (${socket.role}) joined appropriate rooms`);
+  }
+
+  /**
+   * Notify canteen of new order (ONLY after payment DB commit)
+   * Emits to canteen-specific room only
+   */
+  public notifyNewOrder(canteenId: string, orderData: any): void {
+    this.io.to(`canteen:${canteenId}`).emit('order:new', {
+      ...orderData,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(`New order notification sent to canteen:${canteenId}`);
   }
 
   /**
    * Broadcast order status update to relevant users
    */
-  public broadcastOrderUpdate(orderId: string, userId: string, vendorId: string, update: any): void {
+  public broadcastOrderUpdate(orderId: string, userId: string, canteenId: string, update: any): void {
     // Send to the user who placed the order
     this.io.to(`user:${userId}`).emit('order:status-update', {
       orderId,
@@ -140,8 +161,8 @@ export class WebSocketServer {
       timestamp: new Date().toISOString(),
     });
 
-    // Send to the vendor
-    this.io.to(`vendor:${vendorId}`).emit('order:status-update', {
+    // Send to the canteen
+    this.io.to(`canteen:${canteenId}`).emit('order:status-update', {
       orderId,
       ...update,
       timestamp: new Date().toISOString(),
@@ -187,16 +208,16 @@ export class WebSocketServer {
   }
 
   /**
-   * Send low stock alert to vendor
+   * Send low stock alert to canteen
    */
-  public sendLowStockAlert(vendorId: string, productId: string, stockQuantity: number): void {
-    this.io.to(`vendor:${vendorId}`).emit('product:low-stock', {
+  public sendLowStockAlert(canteenId: string, productId: string, stockQuantity: number): void {
+    this.io.to(`canteen:${canteenId}`).emit('product:low-stock', {
       productId,
       stockQuantity,
       timestamp: new Date().toISOString(),
     });
 
-    console.log(`Low stock alert sent to vendor ${vendorId} for product ${productId}`);
+    console.log(`Low stock alert sent to canteen:${canteenId} for product ${productId}`);
   }
 
   /**
