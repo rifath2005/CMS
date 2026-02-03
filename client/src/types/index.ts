@@ -63,6 +63,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   userId: string
+  userName?: string // Customer name from backend
   vendorId: string
   items: OrderItem[]
   totalAmount: number

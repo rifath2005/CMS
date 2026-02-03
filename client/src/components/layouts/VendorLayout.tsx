@@ -2,8 +2,6 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import {
     LayoutDashboard,
-    ShoppingBag,
-    List,
     Package,
     QrCode,
     BarChart3,
@@ -12,6 +10,7 @@ import {
     X
 } from 'lucide-react'
 import { useState } from 'react'
+
 
 const VendorLayout = () => {
     const location = useLocation()
@@ -26,12 +25,12 @@ const VendorLayout = () => {
 
     const navigation = [
         { name: 'Dashboard', href: '/vendor/dashboard', icon: LayoutDashboard },
-        { name: 'Active Orders', href: '/vendor/orders', icon: ShoppingBag },
-        { name: 'Combined Items', href: '/vendor/combined-items', icon: List },
         { name: 'Products', href: '/vendor/products', icon: Package },
         { name: 'QR Scanner', href: '/vendor/qr-scanner', icon: QrCode },
         { name: 'Analytics', href: '/vendor/analytics', icon: BarChart3 },
     ]
+
+
 
     const isActive = (path: string) => location.pathname === path
 

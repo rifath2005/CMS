@@ -42,8 +42,29 @@ const VendorAnalytics = () => {
     const { user } = useAuthStore()
     const [analytics, setAnalytics] = useState<Analytics | null>(null)
     const [loading, setLoading] = useState(true)
+    const [vendorId, setVendorId] = useState<string | null>(null)
 
-    const vendorId = (user as VendorUser)?.vendorId || user?.id
+    // Fetch vendorId from user or from canteen
+    useEffect(() => {
+        const fetchVendorId = async () => {
+            if ((user as VendorUser)?.vendorId) {
+                setVendorId((user as VendorUser).vendorId!)
+                console.log('✓ VendorId from user:', (user as VendorUser).vendorId)
+            } else if (user?.id) {
+                // Fallback: fetch from canteen
+                try {
+                    const response = await api.get(`/canteens/user/${user.id}`)
+                    if (response.data.data?.vendorId) {
+                        setVendorId(response.data.data.vendorId)
+                        console.log('✓ VendorId from canteen:', response.data.data.vendorId)
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch vendorId:', error)
+                }
+            }
+        }
+        fetchVendorId()
+    }, [user])
 
     useEffect(() => {
         if (vendorId) {

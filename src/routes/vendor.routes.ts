@@ -33,6 +33,30 @@ export function createVendorRoutes(pool: Pool): Router {
   });
 
   /**
+   * GET /api/vendor/:vendorId/order-history
+   * Get completed/delivered orders for vendor
+   */
+  router.get('/:vendorId/order-history', async (req: Request, res: Response) => {
+    try {
+      const { vendorId } = req.params;
+
+      const orders = await vendorOrderService.getOrderHistory(vendorId);
+
+      res.status(200).json({
+        success: true,
+        data: orders
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        error: {
+          code: 'GET_ORDER_HISTORY_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  /**
    * GET /api/vendor/:vendorId/combined-items
    * Get combined item list for vendor
    */

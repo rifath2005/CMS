@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 import { Order, OrderStatus } from '../../types'
 import api from '../../services/api'
-import { QrCodeIcon, BellIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { QrCodeIcon, BellIcon, ClockIcon, ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import VendorDashboardSkeleton from '../../components/VendorDashboardSkeleton'
 
@@ -37,8 +37,12 @@ const VendorDashboard = () => {
     const [combinedItems, setCombinedItems] = useState<CombinedItem[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'all' | OrderStatus>('all')
-    const [kitchenStatus, setKitchenStatus] = useState<'open' | 'closed'>('open')
     const [vendorId, setVendorId] = useState<string | null>(null)
+    const [currentView, setCurrentView] = useState<'live' | 'history' | 'menu'>('live')
+    const [orderHistory, setOrderHistory] = useState<Order[]>([])
+    const [searchQuery, setSearchQuery] = useState('')
+    const [sortField, setSortField] = useState<'status' | 'date' | 'amount'>('date')
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
     useEffect(() => {
         if (user?.id) {
@@ -99,6 +103,53 @@ const VendorDashboard = () => {
         }
     }
 
+    const fetchOrderHistory = async () => {
+        if (!vendorId) return
+
+        try {
+            const response = await api.get(`/vendor/${vendorId}/order-history`)
+            setOrderHistory(response.data.data)
+        } catch (error) {
+            console.error('Failed to fetch order history:', error)
+        }
+    }
+
+    const handleViewChange = (view: 'live' | 'history' | 'menu') => {
+        setCurrentView(view)
+        if (view === 'history') {
+            fetchOrderHistory()
+        } else if (view === 'menu') {
+            navigate('/vendor/products')
+        }
+    }
+
+    const handleSort = (field: 'status' | 'date' | 'amount') => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortField(field)
+            setSortDirection('desc')
+        }
+    }
+
+    const filteredAndSortedHistory = orderHistory
+        .filter(order => 
+            order.id.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => {
+            let comparison = 0
+            
+            if (sortField === 'status') {
+                comparison = a.status.localeCompare(b.status)
+            } else if (sortField === 'date') {
+                comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            } else if (sortField === 'amount') {
+                comparison = Number(a.totalAmount) - Number(b.totalAmount)
+            }
+            
+            return sortDirection === 'asc' ? comparison : -comparison
+        })
+
     const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
         try {
             await api.patch(`/orders/${orderId}/status`, { status })
@@ -156,31 +207,35 @@ const VendorDashboard = () => {
                             {user?.name || 'Main Campus Canteen'}
                         </h1>
                         <div className="flex space-x-2">
-                            <button className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg border-b-2 border-blue-600">
+                            <button 
+                                onClick={() => handleViewChange('live')}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                                    currentView === 'live' 
+                                        ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' 
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
                                 Live Orders
                             </button>
-                            <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                            <button 
+                                onClick={() => handleViewChange('history')}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                                    currentView === 'history' 
+                                        ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' 
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
                                 History
                             </button>
-                            <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                            <button 
+                                onClick={() => handleViewChange('menu')}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg"
+                            >
                                 Menu Control
                             </button>
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-600">
-                            System Time: <span className="font-medium">{new Date().toLocaleTimeString()}</span>
-                        </span>
-                        <button
-                            onClick={() => setKitchenStatus(prev => prev === 'open' ? 'closed' : 'open')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg ${
-                                kitchenStatus === 'open' 
-                                    ? 'bg-green-600 text-white' 
-                                    : 'bg-gray-600 text-white'
-                            }`}
-                        >
-                            Kitchen {kitchenStatus === 'open' ? 'Open' : 'Closed'}
-                        </button>
                         <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative">
                             <BellIcon className="h-6 w-6" />
                             {stats.activeOrdersCount > 0 && (
@@ -194,42 +249,47 @@ const VendorDashboard = () => {
             </div>
 
             <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-                    {/* Stats Cards */}
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-sm text-gray-600 mb-1">Active Orders</p>
-                        <div className="flex items-baseline space-x-2">
-                            <p className="text-3xl font-bold">{stats.activeOrdersCount}</p>
-                            <span className="text-sm text-green-600 font-medium">+5</span>
+                {/* Stats Cards - Show only in Live Orders view */}
+                {currentView === 'live' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                        {/* Stats Cards */}
+                        <div className="bg-white rounded-lg shadow p-4">
+                            <p className="text-sm text-gray-600 mb-1">Active Orders</p>
+                            <div className="flex items-baseline space-x-2">
+                                <p className="text-3xl font-bold">{stats.activeOrdersCount}</p>
+                                <span className="text-sm text-green-600 font-medium">+5</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow p-4">
+                            <p className="text-sm text-gray-600 mb-1">Completed Today</p>
+                            <p className="text-3xl font-bold">{stats.completedToday}</p>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow p-4">
+                            <p className="text-sm text-gray-600 mb-1">Avg. Wait Time</p>
+                            <div className="flex items-baseline space-x-2">
+                                <p className="text-3xl font-bold">{stats.avgWaitTime}m</p>
+                                <span className="text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-600 rounded-lg shadow p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition" onClick={() => navigate('/vendor/qr-scanner')}>
+                            <div className="text-center text-white">
+                                <QrCodeIcon className="h-10 w-10 mx-auto mb-1" />
+                                <p className="text-sm font-medium">Open QR Scanner</p>
+                            </div>
                         </div>
                     </div>
+                )}
 
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-sm text-gray-600 mb-1">Completed Today</p>
-                        <p className="text-3xl font-bold">{stats.completedToday}</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <p className="text-sm text-gray-600 mb-1">Avg. Wait Time</p>
-                        <div className="flex items-baseline space-x-2">
-                            <p className="text-3xl font-bold">{stats.avgWaitTime}m</p>
-                            <span className="text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
-                        </div>
-                    </div>
-
-                    <div className="bg-blue-600 rounded-lg shadow p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition" onClick={() => navigate('/vendor/qr-scanner')}>
-                        <div className="text-center text-white">
-                            <QrCodeIcon className="h-10 w-10 mx-auto mb-1" />
-                            <p className="text-sm font-medium">Open QR Scanner</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Live Orders Feed */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="border-b border-gray-200 px-6 py-4">
+                {/* Live Orders View */}
+                {currentView === 'live' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Live Orders Feed */}
+                        <div className="lg:col-span-2">
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="border-b border-gray-200 px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-lg font-bold">Live Orders Feed</h2>
                                     <div className="flex space-x-2">
@@ -389,6 +449,133 @@ const VendorDashboard = () => {
                         </div>
                     </div>
                 </div>
+                )}
+
+                {/* Order History View */}
+                {currentView === 'history' && (
+                    <div className="bg-white rounded-lg shadow">
+                        <div className="border-b border-gray-200 px-6 py-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 className="text-xl font-bold">Order History</h2>
+                                    <p className="text-sm text-gray-600">Completed and delivered orders</p>
+                                </div>
+                                <div className="w-64">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by Order ID..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            {filteredAndSortedHistory.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    {searchQuery ? 'No orders found matching your search' : 'No order history available'}
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Order ID
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Customer
+                                                </th>
+                                                <th 
+                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                    onClick={() => handleSort('status')}
+                                                >
+                                                    <div className="flex items-center space-x-1">
+                                                        <span>Status</span>
+                                                        {sortField === 'status' ? (
+                                                            sortDirection === 'asc' ? 
+                                                                <ChevronUpIcon className="h-4 w-4 text-blue-600" /> : 
+                                                                <ChevronDownIcon className="h-4 w-4 text-blue-600" />
+                                                        ) : (
+                                                            <ChevronUpDownIcon className="h-4 w-4 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                </th>
+                                                <th 
+                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                    onClick={() => handleSort('date')}
+                                                >
+                                                    <div className="flex items-center space-x-1">
+                                                        <span>Date & Time</span>
+                                                        {sortField === 'date' ? (
+                                                            sortDirection === 'asc' ? 
+                                                                <ChevronUpIcon className="h-4 w-4 text-blue-600" /> : 
+                                                                <ChevronDownIcon className="h-4 w-4 text-blue-600" />
+                                                        ) : (
+                                                            <ChevronUpDownIcon className="h-4 w-4 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                </th>
+                                                <th 
+                                                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                    onClick={() => handleSort('amount')}
+                                                >
+                                                    <div className="flex items-center justify-end space-x-1">
+                                                        <span>Total Amount</span>
+                                                        {sortField === 'amount' ? (
+                                                            sortDirection === 'asc' ? 
+                                                                <ChevronUpIcon className="h-4 w-4 text-blue-600" /> : 
+                                                                <ChevronDownIcon className="h-4 w-4 text-blue-600" />
+                                                        ) : (
+                                                            <ChevronUpDownIcon className="h-4 w-4 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {filteredAndSortedHistory.map((order) => (
+                                                <tr key={order.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            #{order.id.slice(0, 8).toUpperCase()}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{order.userName || 'Guest'}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                            order.status === OrderStatus.DELIVERED 
+                                                                ? 'bg-green-100 text-green-800' 
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">
+                                                            {new Date(order.createdAt).toLocaleDateString()}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {new Date(order.createdAt).toLocaleTimeString()}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <div className="text-sm font-bold text-green-600">
+                                                            ₹{Number(order.totalAmount).toFixed(2)}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
