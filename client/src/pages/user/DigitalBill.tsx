@@ -1,23 +1,62 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { orderService } from '../../services/orderService'
 import { DigitalBill as DigitalBillType } from '../../types'
 import { useWebSocket } from '../../contexts/WebSocketContext'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import QRCode from '../../components/QRCode'
 import { CountdownTimer } from '../../components/shared/CountdownTimer'
-import { CheckCircle, Package, User, Calendar, Receipt } from 'lucide-react'
+import { CheckCircle, Package, User, Calendar, Receipt, AlertCircle } from 'lucide-react'
 
 const DigitalBill = () => {
     const { orderId } = useParams<{ orderId: string }>()
     const navigate = useNavigate()
+    const location = useLocation()
     const { socket } = useWebSocket()
 
-    const [bill, setBill] = useState<DigitalBillType | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    // Get bill data from navigation state (instant rendering)
+    const passedBillData = location.state?.billData
+
+    const [bill, setBill] = useState<DigitalBillType | null>(passedBillData || null)
+    const [isLoading, setIsLoading] = useState(!passedBillData) // No loading if data passed
     const [error, setError] = useState<string | null>(null)
     const [isExpired, setIsExpired] = useState(false)
+    const [canLeave, setCanLeave] = useState(false)
+
+    // Block navigation until order is delivered or expired
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (!canLeave) {
+                e.preventDefault()
+                e.returnValue = ''
+            }
+        }
+
+        window.addEventListener('beforeunload', handleBeforeUnload)
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload)
+        }
+    }, [canLeave])
+
+    // Block back button navigation
+    useEffect(() => {
+        if (!canLeave) {
+            const handlePopState = (e: PopStateEvent) => {
+                e.preventDefault()
+                window.history.pushState(null, '', window.location.pathname)
+                alert('Please wait for your order to be delivered or expire before leaving this page.')
+            }
+
+            // Push current state to prevent back navigation
+            window.history.pushState(null, '', window.location.pathname)
+            window.addEventListener('popstate', handlePopState)
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState)
+            }
+        }
+    }, [canLeave])
 
     useEffect(() => {
         if (!orderId) {
@@ -25,71 +64,169 @@ const DigitalBill = () => {
             return
         }
 
-        fetchBill()
+        // If we have passed data, fetch in background to sync
+        // If no passed data, fetch immediately
+        if (passedBillData) {
+            // Fetch in background to ensure data is synced
+            fetchBillInBackground()
+        } else {
+            // No passed data, fetch immediately
+            fetchBill()
+        }
     }, [orderId])
 
+    const fetchBillInBackground = async () => {
+        if (!orderId) return
+
+        try {
+            const billData = await orderService.getBillByOrderId(orderId)
+            // Update with fresh data from server
+            setBill(billData)
+            
+            // Allow navigation if already delivered or expired
+            if (billData.isDelivered || !billData.isValid) {
+                setCanLeave(true)
+            }
+        } catch (err: any) {
+            // Don't show error if we already have data
+            console.error('Background fetch failed:', err)
+        }
+    }
+
     useEffect(() => {
-        if (!socket) return
+        if (!socket || !orderId) return
 
         // Listen for order status updates
-        socket.on('orderStatusUpdate', (data: any) => {
-            if (data.orderId === orderId && data.status === 'DELIVERED') {
-                // Refresh bill to show delivered status
-                fetchBill()
+        const handleStatusUpdate = (data: any) => {
+            console.log('Status update received:', data)
+            if (data.orderId === orderId) {
+                // Update bill status in real-time without refresh
+                if (bill) {
+                    const updatedBill = { 
+                        ...bill, 
+                        isDelivered: data.status === 'DELIVERED'
+                    }
+                    setBill(updatedBill)
+                    
+                    // Allow navigation if delivered or expired
+                    if (data.status === 'DELIVERED' || data.status === 'EXPIRED') {
+                        setCanLeave(true)
+                    }
+                }
             }
-        })
+        }
+
+        socket.on('order:status-update', handleStatusUpdate)
+        socket.on('orderStatusUpdate', handleStatusUpdate)
 
         return () => {
-            socket.off('orderStatusUpdate')
+            socket.off('order:status-update', handleStatusUpdate)
+            socket.off('orderStatusUpdate', handleStatusUpdate)
         }
-    }, [socket, orderId])
+    }, [socket, orderId, bill])
 
     const fetchBill = async () => {
         if (!orderId) return
 
         try {
-            setIsLoading(true)
             const billData = await orderService.getBillByOrderId(orderId)
             setBill(billData)
+            setIsLoading(false)
+            
+            // Allow navigation if already delivered or expired
+            if (billData.isDelivered || !billData.isValid) {
+                setCanLeave(true)
+            }
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load digital bill')
-        } finally {
             setIsLoading(false)
+            setCanLeave(true) // Allow navigation on error
         }
     }
 
-    const handleExpire = () => {
+    const handleExpire = async () => {
         setIsExpired(true)
-        if (bill) {
+        setCanLeave(true) // Allow navigation when expired
+        
+        if (bill && orderId) {
+            // Update local state
             setBill({ ...bill, isValid: false })
+            
+            // Call backend to mark order as EXPIRED in database
+            try {
+                await orderService.markOrderAsExpired(orderId)
+                console.log('Order marked as EXPIRED in database')
+            } catch (err) {
+                console.error('Failed to mark order as expired:', err)
+            }
         }
     }
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <LoadingSpinner size="lg" />
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-2xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6 text-center">Digital Bill</h1>
+                    
+                    {/* Skeleton Status Badge */}
+                    <div className="mb-6 text-center">
+                        <div className="inline-block h-12 w-32 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    
+                    {/* Skeleton QR Code */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+                        <div className="bg-gray-50 rounded-lg p-6 flex items-center justify-center" style={{ minHeight: '40vh' }}>
+                            <div className="w-64 h-64 bg-gray-200 rounded"></div>
+                        </div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mt-4"></div>
+                    </div>
+                    
+                    {/* Skeleton Countdown */}
+                    <div className="mb-6 text-center">
+                        <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+                    </div>
+                    
+                    {/* Skeleton Bill Details */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-start gap-3">
+                                    <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                                    <div className="flex-1">
+                                        <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+                                        <div className="h-4 bg-gray-200 rounded w-40"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }
 
     if (error || !bill) {
         return (
-            <div className="max-w-2xl mx-auto">
-                <ErrorAlert message={error || 'Bill not found'} />
-                <button
-                    onClick={() => navigate('/orders')}
-                    className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
-                >
-                    ← Back to Orders
-                </button>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-2xl mx-auto">
+                    <ErrorAlert message={error || 'Bill not found'} />
+                    <button
+                        onClick={() => navigate('/orders')}
+                        className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                        ← Back to Orders
+                    </button>
+                </div>
             </div>
         )
     }
 
     if (bill.isDelivered) {
         return (
-            <div className="max-w-2xl mx-auto">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-2xl mx-auto">
                 <div className="bg-green-50 border-2 border-green-300 rounded-lg p-8 text-center mb-6">
                     <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-green-900 mb-2">Order Delivered!</h2>
@@ -119,12 +256,28 @@ const DigitalBill = () => {
                     View Order History
                 </button>
             </div>
+        </div>
         )
     }
 
     return (
-        <div className="max-w-2xl mx-auto px-4">
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-2xl mx-auto px-4">
             <h1 className="text-3xl font-bold mb-6 text-center">Digital Bill</h1>
+
+            {/* Navigation Blocker Warning */}
+            {!canLeave && (
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-6 flex items-start">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium text-yellow-900">Please wait for your order</p>
+                        <p className="text-sm text-yellow-700 mt-1">
+                            You cannot leave this page until your order is delivered or expires. 
+                            Show this QR code to the vendor to collect your order.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Status Badge - Large and Centered */}
             <div className="mb-6 text-center">
@@ -245,17 +398,23 @@ const DigitalBill = () => {
                 </ul>
             </div>
 
-            {/* Action Button - Disabled when expired */}
+            {/* Action Button - Disabled when not allowed to leave */}
             <button
-                onClick={() => navigate('/dashboard')}
-                disabled={isExpired || !bill.isValid}
-                className={`w-full py-3 rounded-lg transition-colors font-medium ${isExpired || !bill.isValid
+                onClick={() => {
+                    if (canLeave) {
+                        navigate('/dashboard')
+                    } else {
+                        alert('Please wait for your order to be delivered or expire before leaving this page.')
+                    }
+                }}
+                className={`w-full py-3 rounded-lg transition-colors font-medium ${!canLeave
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
             >
                 Back to Dashboard
             </button>
+        </div>
         </div>
     )
 }

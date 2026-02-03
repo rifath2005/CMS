@@ -15,7 +15,7 @@ const statusConfig: Record<StatusType, { bg: string; text: string; border: strin
         bg: 'bg-green-100',
         text: 'text-green-800',
         border: 'border-green-300',
-        label: 'Active',
+        label: 'Delivered',
     },
     ready: {
         bg: 'bg-green-100',

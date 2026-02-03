@@ -19,12 +19,16 @@ import { createOrderHistoryRoutes } from './routes/orderHistory.routes';
 import { createProfileRoutes } from './routes/profile.routes';
 import { WebSocketServer } from './websocket';
 import { apiRateLimiter } from './middleware/rateLimiter';
+import { OrderExpirationService } from './services/order/OrderExpirationService';
 
 const app: Application = express();
 const httpServer = createServer(app);
 
 // Initialize WebSocket server
 let wsServer: WebSocketServer;
+
+// Initialize Order Expiration Service
+let orderExpirationService: OrderExpirationService;
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -85,6 +89,10 @@ app.use('/api/v1/bills', createBillRoutes(pool));
 app.use('/api/v1/vendor', createVendorRoutes(pool));
 app.use('/api/v1/order-history', createOrderHistoryRoutes(pool));
 app.use('/api/v1/profile', createProfileRoutes(pool));
+
+// Wallet routes
+import { createWalletRouter } from './routes/wallet.routes';
+app.use('/api/v1/wallet', createWalletRouter(pool));
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -153,6 +161,10 @@ const startServer = async () => {
     wsServer = new WebSocketServer(httpServer);
     console.log('✓ WebSocket server initialized');
 
+    // Initialize and start Order Expiration Service
+    orderExpirationService = new OrderExpirationService(pool);
+    orderExpirationService.start();
+
     // Start server
     httpServer.listen(config.port, () => {
       console.log(`\n🚀 Server running on port ${config.port}`);
@@ -171,6 +183,11 @@ const gracefulShutdown = async () => {
   console.log('Shutting down gracefully...');
   
   try {
+    // Stop Order Expiration Service
+    if (orderExpirationService) {
+      orderExpirationService.stop();
+    }
+    
     // Close WebSocket server
     if (wsServer) {
       await wsServer.close();

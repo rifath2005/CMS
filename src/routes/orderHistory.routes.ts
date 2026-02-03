@@ -22,9 +22,24 @@ export function createOrderHistoryRoutes(pool: Pool): Router {
         vendorId as string | undefined
       );
 
+      // Map backend field names to frontend expected names
+      const mappedHistory = history.map(order => ({
+        id: order.orderId,
+        userId: userId,
+        vendorId: order.vendorId,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        paymentId: '', // Not needed for history
+        status: order.status,
+        billGeneratedAt: order.orderDate,
+        billExpiresAt: order.orderDate,
+        deliveredAt: order.deliveredAt,
+        createdAt: order.orderDate // Map orderDate to createdAt
+      }));
+
       res.status(200).json({
         success: true,
-        data: history
+        data: mappedHistory
       });
     } catch (error: any) {
       res.status(400).json({

@@ -1,22 +1,40 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useWalletStore } from '../../store/walletStore'
+import { walletService } from '../../services/walletService'
 import {
     LayoutDashboard,
-    ShoppingBag,
     ShoppingCart,
     History,
     User,
     LogOut,
     Menu,
-    X
+    X,
+    Wallet
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const UserLayout = () => {
     const location = useLocation()
     const navigate = useNavigate()
     const { user, logout } = useAuthStore()
+    const { balance: walletBalance, setBalance } = useWalletStore()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    useEffect(() => {
+        if (user?.id) {
+            fetchWalletBalance()
+        }
+    }, [user?.id])
+
+    const fetchWalletBalance = async () => {
+        try {
+            const balance = await walletService.getBalance()
+            setBalance(balance.balance)
+        } catch (err: any) {
+            console.error('UserLayout: Failed to load wallet balance:', err)
+        }
+    }
 
     const handleLogout = () => {
         logout()
@@ -24,8 +42,7 @@ const UserLayout = () => {
     }
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Products', href: '/products', icon: ShoppingBag },
+        { name: 'Canteens', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Cart', href: '/cart', icon: ShoppingCart },
         { name: 'Orders', href: '/orders', icon: History },
         { name: 'Profile', href: '/profile', icon: User },
@@ -36,24 +53,33 @@ const UserLayout = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Top Navigation Bar */}
-            <nav className="bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
+            <nav className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+                <div className="max-w-full px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-14">
+                        {/* Left: CMS Title */}
                         <div className="flex items-center">
-                            <h1 className="text-xl font-bold">Canteen Management System</h1>
+                            <h1 className="text-lg font-bold">CMS - Student</h1>
                         </div>
 
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:flex items-center space-x-4">
-                            <span className="text-sm">
-                                {user?.name} ({user?.email})
-                            </span>
+                        {/* Right: User Info and Logout */}
+                        <div className="hidden md:flex items-center space-x-3">
+                            {/* Wallet Balance */}
+                            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20">
+                                <Wallet className="w-4 h-4" />
+                                <span className="text-sm font-semibold">₹{walletBalance.toFixed(2)}</span>
+                            </div>
+                            
+                            <div className="text-right">
+                                <span className="text-sm font-medium">
+                                    {user?.name} ({user?.email})
+                                </span>
+                            </div>
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-400 transition-colors"
+                                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
                             >
                                 <LogOut className="w-4 h-4" />
-                                <span>Logout</span>
+                                <span className="text-sm font-medium">Logout</span>
                             </button>
                         </div>
 
@@ -61,9 +87,9 @@ const UserLayout = () => {
                         <div className="md:hidden flex items-center">
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="p-2 rounded-lg hover:bg-primary-500"
+                                className="p-2 rounded-lg hover:bg-blue-500"
                             >
-                                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                             </button>
                         </div>
                     </div>
@@ -71,8 +97,21 @@ const UserLayout = () => {
 
                 {/* Mobile Navigation */}
                 {isMobileMenuOpen && (
-                    <div className="md:hidden border-t border-primary-500">
+                    <div className="md:hidden border-t border-blue-500">
                         <div className="px-2 pt-2 pb-3 space-y-1">
+                            {/* User Info - Mobile */}
+                            <div className="px-3 py-2 mb-2 bg-blue-500/30 rounded-lg">
+                                <p className="text-sm font-medium">{user?.name}</p>
+                                <p className="text-xs text-blue-100">{user?.email}</p>
+                                
+                                {/* Wallet Balance - Mobile */}
+                                <div className="flex items-center space-x-2 mt-2 pt-2 border-t border-blue-400">
+                                    <Wallet className="w-4 h-4" />
+                                    <span className="text-sm font-semibold">Wallet: ₹{walletBalance.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {/* Navigation Links */}
                             {navigation.map((item) => {
                                 const Icon = item.icon
                                 return (
@@ -80,7 +119,7 @@ const UserLayout = () => {
                                         key={item.name}
                                         to={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg ${isActive(item.href) ? 'bg-primary-500' : 'hover:bg-primary-500'
+                                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg ${isActive(item.href) ? 'bg-blue-500' : 'hover:bg-blue-500'
                                             }`}
                                     >
                                         <Icon className="w-5 h-5" />
@@ -88,12 +127,14 @@ const UserLayout = () => {
                                     </Link>
                                 )
                             })}
+
+                            {/* Logout Button - Mobile */}
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-primary-500 w-full text-left"
+                                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-500 w-full text-left mt-2 border-t border-blue-500 pt-3"
                             >
                                 <LogOut className="w-5 h-5" />
-                                <span>Logout</span>
+                                <span className="font-medium">Logout</span>
                             </button>
                         </div>
                     </div>
@@ -102,7 +143,7 @@ const UserLayout = () => {
 
             <div className="flex">
                 {/* Sidebar - Desktop */}
-                <aside className="hidden md:block w-64 bg-white shadow-lg min-h-[calc(100vh-4rem)]">
+                <aside className="hidden md:block w-64 bg-white shadow-lg min-h-[calc(100vh-3.5rem)]">
                     <nav className="p-4 space-y-2">
                         {navigation.map((item) => {
                             const Icon = item.icon
@@ -111,7 +152,7 @@ const UserLayout = () => {
                                     key={item.name}
                                     to={item.href}
                                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(item.href)
-                                            ? 'bg-primary-100 text-primary-700 font-semibold'
+                                            ? 'bg-blue-100 text-blue-700 font-semibold'
                                             : 'text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
@@ -124,10 +165,8 @@ const UserLayout = () => {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 p-6">
-                    <div className="max-w-7xl mx-auto">
-                        <Outlet />
-                    </div>
+                <main className="flex-1">
+                    <Outlet />
                 </main>
             </div>
         </div>
