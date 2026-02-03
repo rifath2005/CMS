@@ -18,6 +18,7 @@ export class CanteenModel {
    * @param institutionId - Institution ID
    * @param vendorId - Unique vendor identifier (e.g., "SS1", "SS2")
    * @param name - Canteen name
+   * @param userId - Optional user ID to link vendor user
    * @param location - Optional location
    * @param operatingHours - Optional operating hours
    * @returns Created canteen object
@@ -26,13 +27,14 @@ export class CanteenModel {
     institutionId: string,
     vendorId: string,
     name: string,
+    userId?: string,
     location?: string,
     operatingHours?: OperatingHours
   ): Promise<Canteen> {
     const query = `
-      INSERT INTO canteens (institution_id, vendor_id, name, location, operating_hours)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, institution_id as "institutionId", vendor_id as "vendorId",
+      INSERT INTO canteens (institution_id, vendor_id, user_id, name, location, operating_hours)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
                 name, location, operating_hours as "operatingHours",
                 is_active as "isActive", is_approved as "isApproved",
                 created_at as "createdAt"
@@ -41,6 +43,7 @@ export class CanteenModel {
     const values = [
       institutionId,
       vendorId,
+      userId || null,
       name,
       location || null,
       operatingHours ? JSON.stringify(operatingHours) : null,
@@ -59,13 +62,32 @@ export class CanteenModel {
   }
 
   /**
+   * Find canteen by user ID
+   * @param userId - User ID
+   * @returns Canteen object or null if not found
+   */
+  async findByUserId(userId: string): Promise<Canteen | null> {
+    const query = `
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
+             name, location, operating_hours as "operatingHours",
+             is_active as "isActive", is_approved as "isApproved",
+             created_at as "createdAt"
+      FROM canteens
+      WHERE user_id = $1
+    `;
+
+    const result: QueryResult<Canteen> = await this.pool.query(query, [userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
    * Find a canteen by ID
    * @param id - Canteen ID
    * @returns Canteen object or null if not found
    */
   async findById(id: string): Promise<Canteen | null> {
     const query = `
-      SELECT id, institution_id as "institutionId", vendor_id as "vendorId",
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
              name, location, operating_hours as "operatingHours",
              is_active as "isActive", is_approved as "isApproved",
              created_at as "createdAt"
@@ -84,7 +106,7 @@ export class CanteenModel {
    */
   async findByVendorId(vendorId: string): Promise<Canteen | null> {
     const query = `
-      SELECT id, institution_id as "institutionId", vendor_id as "vendorId",
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
              name, location, operating_hours as "operatingHours",
              is_active as "isActive", is_approved as "isApproved",
              created_at as "createdAt"
@@ -103,7 +125,7 @@ export class CanteenModel {
    */
   async findByInstitution(institutionId: string): Promise<Canteen[]> {
     const query = `
-      SELECT id, institution_id as "institutionId", vendor_id as "vendorId",
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
              name, location, operating_hours as "operatingHours",
              is_active as "isActive", is_approved as "isApproved",
              created_at as "createdAt"
@@ -123,7 +145,7 @@ export class CanteenModel {
    */
   async findActiveByInstitution(institutionId: string): Promise<Canteen[]> {
     const query = `
-      SELECT id, institution_id as "institutionId", vendor_id as "vendorId",
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
              name, location, operating_hours as "operatingHours",
              is_active as "isActive", is_approved as "isApproved",
              created_at as "createdAt"
@@ -142,7 +164,7 @@ export class CanteenModel {
    */
   async findAll(): Promise<Canteen[]> {
     const query = `
-      SELECT id, institution_id as "institutionId", vendor_id as "vendorId",
+      SELECT id, institution_id as "institutionId", vendor_id as "vendorId", user_id as "userId",
              name, location, operating_hours as "operatingHours",
              is_active as "isActive", is_approved as "isApproved",
              created_at as "createdAt"

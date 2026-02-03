@@ -47,7 +47,32 @@ ON CONFLICT (id) DO UPDATE SET
   password_hash = EXCLUDED.password_hash,
   name = EXCLUDED.name;
 
--- Insert Test Canteens
+-- Insert Test Canteens (now with user_id linking to vendor users)
+INSERT INTO canteens (id, institution_id, vendor_id, user_id, name, location, operating_hours, is_active, is_approved)
+VALUES 
+  -- MIT College Canteens
+  ('c1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'MIT-MC-001', '44444444-4444-4444-4444-444444444444', 'Main Canteen', 'Ground Floor, Main Building', 
+   '{"monday": "07:00-21:00", "tuesday": "07:00-21:00", "wednesday": "07:00-21:00", "thursday": "07:00-21:00", "friday": "07:00-21:00", "saturday": "08:00-20:00", "sunday": "09:00-18:00"}', 
+   true, true),
+  ('c2222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'MIT-SS-002', '55555555-5555-5555-5555-555555555555', 'Snack Shop', 'First Floor, Library Building', 
+   '{"monday": "08:00-19:00", "tuesday": "08:00-19:00", "wednesday": "08:00-19:00", "thursday": "08:00-19:00", "friday": "08:00-19:00", "saturday": "09:00-17:00", "sunday": "closed"}', 
+   true, true),
+  ('c3333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'MIT-CF-003', '66666666-6666-6666-6666-666666666666', 'Cafeteria', 'Second Floor, Engineering Block', 
+   '{"monday": "09:00-18:00", "tuesday": "09:00-18:00", "wednesday": "09:00-18:00", "thursday": "09:00-18:00", "friday": "09:00-18:00", "saturday": "10:00-16:00", "sunday": "closed"}', 
+   true, true),
+   
+  -- VIT Canteens
+  ('c4444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'VIT-FC-001', '77777777-7777-7777-7777-777777777777', 'Food Court', 'Ground Floor, Student Center', 
+   '{"monday": "07:00-22:00", "tuesday": "07:00-22:00", "wednesday": "07:00-22:00", "thursday": "07:00-22:00", "friday": "07:00-22:00", "saturday": "08:00-22:00", "sunday": "08:00-21:00"}', 
+   true, true)
+ON CONFLICT (id) DO UPDATE SET 
+  name = EXCLUDED.name,
+  location = EXCLUDED.location,
+  user_id = EXCLUDED.user_id,
+  is_active = EXCLUDED.is_active,
+  is_approved = EXCLUDED.is_approved;
+
+-- Insert Test Products
 INSERT INTO canteens (id, institution_id, vendor_id, name, location, operating_hours, is_active, is_approved)
 VALUES 
   -- MIT College Canteens

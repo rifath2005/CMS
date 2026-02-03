@@ -170,6 +170,40 @@ export function createOrderRoutes(pool: Pool): Router {
   });
 
   /**
+   * PATCH /api/orders/:orderId/status
+   * Update order status (alternative method)
+   */
+  router.patch('/:orderId/status', async (req: Request, res: Response) => {
+    try {
+      const { orderId } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({
+          error: {
+            code: 'MISSING_STATUS',
+            message: 'Status is required'
+          }
+        });
+      }
+
+      const order = await orderService.updateOrderStatus(orderId, status);
+
+      res.status(200).json({
+        success: true,
+        data: order
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        error: {
+          code: 'UPDATE_STATUS_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  /**
    * POST /api/orders/:orderId/verify-delivery
    * Verify delivery with QR code
    */
@@ -197,6 +231,39 @@ export function createOrderRoutes(pool: Pool): Router {
       res.status(400).json({
         error: {
           code: 'DELIVERY_VERIFICATION_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  /**
+   * POST /api/orders/verify-qr
+   * Verify order by QR validation token
+   */
+  router.post('/verify-qr', async (req: Request, res: Response) => {
+    try {
+      const { validationToken } = req.body;
+
+      if (!validationToken) {
+        return res.status(400).json({
+          error: {
+            code: 'MISSING_TOKEN',
+            message: 'Validation token is required'
+          }
+        });
+      }
+
+      const order = await orderService.verifyByToken(validationToken);
+
+      res.status(200).json({
+        success: true,
+        data: order
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        error: {
+          code: 'VERIFICATION_FAILED',
           message: error.message
         }
       });

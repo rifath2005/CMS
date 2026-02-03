@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { VendorOrderService } from '../services/vendor/VendorOrderService';
+import { VendorAnalyticsService } from '../services/vendor/VendorAnalyticsService';
 
 export function createVendorRoutes(pool: Pool): Router {
   const router = Router();
   const vendorOrderService = new VendorOrderService(pool);
+  const vendorAnalyticsService = new VendorAnalyticsService(pool);
 
   /**
    * GET /api/vendor/:vendorId/active-orders
@@ -96,6 +98,30 @@ export function createVendorRoutes(pool: Pool): Router {
       res.status(400).json({
         error: {
           code: 'GET_STATS_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  /**
+   * GET /api/vendor/:vendorId/analytics
+   * Get vendor analytics
+   */
+  router.get('/:vendorId/analytics', async (req: Request, res: Response) => {
+    try {
+      const { vendorId } = req.params;
+
+      const analytics = await vendorAnalyticsService.getAnalytics(vendorId);
+
+      res.status(200).json({
+        success: true,
+        data: analytics
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        error: {
+          code: 'GET_ANALYTICS_FAILED',
           message: error.message
         }
       });

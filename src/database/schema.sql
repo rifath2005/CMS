@@ -45,6 +45,7 @@ CREATE TABLE canteens (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   institution_id UUID REFERENCES institutions(id) ON DELETE CASCADE NOT NULL,
   vendor_id VARCHAR(50) UNIQUE NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   name VARCHAR(255) NOT NULL,
   location VARCHAR(255),
   operating_hours JSONB,

@@ -1,10 +1,206 @@
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import api from '../../services/api'
+import { ChartBarIcon, CurrencyRupeeIcon, ShoppingBagIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
+
+interface VendorUser {
+    id: string
+    vendorId?: string
+    name: string
+}
+
+interface Analytics {
+    todayStats: {
+        totalOrders: number
+        totalRevenue: number
+        averageOrderValue: number
+        completedOrders: number
+    }
+    weekStats: {
+        totalOrders: number
+        totalRevenue: number
+        dailyBreakdown: Array<{
+            date: string
+            orders: number
+            revenue: number
+        }>
+    }
+    topProducts: Array<{
+        productId: string
+        productName: string
+        totalSold: number
+        revenue: number
+    }>
+    revenueByCategory: Array<{
+        category: string
+        revenue: number
+        orderCount: number
+    }>
+}
+
 const VendorAnalytics = () => {
+    const { user } = useAuthStore()
+    const [analytics, setAnalytics] = useState<Analytics | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    const vendorId = (user as VendorUser)?.vendorId || user?.id
+
+    useEffect(() => {
+        if (vendorId) {
+            fetchAnalytics()
+        }
+    }, [vendorId])
+
+    const fetchAnalytics = async () => {
+        if (!vendorId) return
+
+        try {
+            setLoading(true)
+            const response = await api.get(`/vendor/${vendorId}/analytics`)
+            setAnalytics(response.data.data)
+        } catch (error) {
+            console.error('Failed to fetch analytics:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            </div>
+        )
+    }
+
+    if (!analytics) {
+        return (
+            <div className="p-6">
+                <p className="text-red-600">Failed to load analytics</p>
+            </div>
+        )
+    }
+
     return (
         <div className="p-6">
-            <h1 className="text-3xl font-bold mb-4">Analytics</h1>
-            <p className="text-gray-600">View sales analytics and reports.</p>
-            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-yellow-800">🚧 This page will be migrated from vendor-panel. Coming soon!</p>
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+                <p className="text-gray-600">Track your sales performance and insights</p>
+            </div>
+
+            {/* Today's Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <ShoppingBagIcon className="h-8 w-8 opacity-80" />
+                        <span className="text-sm opacity-80">Today</span>
+                    </div>
+                    <p className="text-3xl font-bold mb-1">{analytics.todayStats.totalOrders}</p>
+                    <p className="text-sm opacity-90">Total Orders</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <CurrencyRupeeIcon className="h-8 w-8 opacity-80" />
+                        <span className="text-sm opacity-80">Today</span>
+                    </div>
+                    <p className="text-3xl font-bold mb-1">₹{analytics.todayStats.totalRevenue.toFixed(2)}</p>
+                    <p className="text-sm opacity-90">Total Revenue</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <ArrowTrendingUpIcon className="h-8 w-8 opacity-80" />
+                        <span className="text-sm opacity-80">Today</span>
+                    </div>
+                    <p className="text-3xl font-bold mb-1">₹{analytics.todayStats.averageOrderValue.toFixed(2)}</p>
+                    <p className="text-sm opacity-90">Avg Order Value</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <ChartBarIcon className="h-8 w-8 opacity-80" />
+                        <span className="text-sm opacity-80">Today</span>
+                    </div>
+                    <p className="text-3xl font-bold mb-1">{analytics.todayStats.completedOrders}</p>
+                    <p className="text-sm opacity-90">Completed Orders</p>
+                </div>
+            </div>
+
+            {/* Week Stats */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-xl font-bold mb-4">Last 7 Days Performance</h2>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Orders</p>
+                        <p className="text-2xl font-bold text-blue-600">{analytics.weekStats.totalOrders}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+                        <p className="text-2xl font-bold text-green-600">₹{analytics.weekStats.totalRevenue.toFixed(2)}</p>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    {analytics.weekStats.dailyBreakdown.map((day) => (
+                        <div key={day.date} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <span className="font-medium">{new Date(day.date).toLocaleDateString()}</span>
+                            <div className="flex items-center space-x-4">
+                                <span className="text-sm text-gray-600">{day.orders} orders</span>
+                                <span className="font-bold text-green-600">₹{day.revenue.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Products */}
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold mb-4">Top Selling Products (Last 30 Days)</h2>
+                    <div className="space-y-3">
+                        {analytics.topProducts.length === 0 ? (
+                            <p className="text-gray-500 text-center py-8">No data available</p>
+                        ) : (
+                            analytics.topProducts.map((product, index) => (
+                                <div key={product.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                    <div className="flex items-center space-x-3">
+                                        <span className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full font-bold text-sm">
+                                            {index + 1}
+                                        </span>
+                                        <div>
+                                            <p className="font-medium">{product.productName}</p>
+                                            <p className="text-sm text-gray-600">{product.totalSold} sold</p>
+                                        </div>
+                                    </div>
+                                    <span className="font-bold text-green-600">₹{product.revenue.toFixed(2)}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Revenue by Category */}
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold mb-4">Revenue by Category (Last 30 Days)</h2>
+                    <div className="space-y-3">
+                        {analytics.revenueByCategory.length === 0 ? (
+                            <p className="text-gray-500 text-center py-8">No data available</p>
+                        ) : (
+                            analytics.revenueByCategory.map((category) => (
+                                <div key={category.category} className="p-3 bg-gray-50 rounded">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-medium">{category.category}</span>
+                                        <span className="font-bold text-green-600">₹{category.revenue.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm text-gray-600">
+                                        <span>{category.orderCount} orders</span>
+                                        <span>Avg: ₹{(category.revenue / category.orderCount).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     )
