@@ -29,7 +29,7 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
 
         switch (user.role) {
             case UserRole.MAIN_ADMIN:
-                return '/super-admin/dashboard'
+                return '/main-admin/dashboard'
             case UserRole.INSTITUTION_ADMIN:
                 return '/admin/dashboard'
             case UserRole.VENDOR:

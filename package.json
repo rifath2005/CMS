@@ -14,7 +14,11 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:init": "ts-node scripts/init-db.ts",
     "db:reset": "ts-node scripts/reset-db.ts",
-    "create-users": "ts-node scripts/create-test-users.ts"
+    "create-users": "ts-node scripts/create-test-users.ts",
+    "migrate": "ts-node src/database/migrations/migrate.ts",
+    "migrate:up": "ts-node src/database/migrations/migrate.ts up",
+    "migrate:down": "ts-node src/database/migrations/migrate.ts down",
+    "migrate:status": "ts-node src/database/migrations/migrate.ts status"
   },
   "keywords": [
     "canteen",
