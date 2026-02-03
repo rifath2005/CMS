@@ -14,7 +14,6 @@ const Checkout = () => {
     const { items, getTotalAmount, clearCart } = useCartStore()
     const { user } = useAuthStore()
 
-    const [paymentId, setPaymentId] = useState<string | null>(null)
     const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -43,7 +42,6 @@ const Checkout = () => {
 
             // Initiate payment
             const paymentIntent = await paymentService.initiatePayment(user.id, totalAmount)
-            setPaymentId(paymentIntent.payment.id)
             setPaymentStatus(PaymentStatus.INITIATED)
 
             // Simulate UPI payment flow (in real app, this would open UPI app)
@@ -66,7 +64,10 @@ const Checkout = () => {
 
             if (status === PaymentStatus.SUCCESS) {
                 // Create order after successful payment
-                const order = await orderService.createOrder(items, pId)
+                if (!user?.id) {
+                    throw new Error('User not authenticated')
+                }
+                const order = await orderService.createOrder(user.id, pId)
                 setOrderId(order.id)
                 clearCart()
 
@@ -138,7 +139,6 @@ const Checkout = () => {
                         <p className="text-red-700 mb-6">Your payment could not be processed. Please try again.</p>
                         <button
                             onClick={() => {
-                                setPaymentId(null)
                                 setPaymentStatus(null)
                                 setError(null)
                                 setIsProcessing(false)

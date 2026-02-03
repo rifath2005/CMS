@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
+import { useCartStore } from './store/cartStore'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { UserRole } from './types'
 
@@ -26,8 +28,6 @@ import InstitutionStats from './pages/admin/Stats'
 
 // Vendor Pages
 import VendorDashboard from './pages/vendor/Dashboard'
-import ActiveOrders from './pages/vendor/ActiveOrders'
-import CombinedItems from './pages/vendor/CombinedItems'
 import VendorProducts from './pages/vendor/Products'
 import QRScanner from './pages/vendor/QRScanner'
 import VendorAnalytics from './pages/vendor/Analytics'
@@ -46,6 +46,16 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
     const { isAuthenticated, user } = useAuthStore()
+    const { setCurrentUserId } = useCartStore()
+
+    // Load user's cart when they log in, clear when they log out
+    useEffect(() => {
+        if (isAuthenticated && user?.id) {
+            setCurrentUserId(user.id)
+        } else {
+            setCurrentUserId(null)
+        }
+    }, [isAuthenticated, user?.id, setCurrentUserId])
 
     // Redirect to appropriate dashboard based on role
     const getDefaultRoute = () => {
@@ -99,8 +109,6 @@ function App() {
                     <Route element={<ProtectedRoute allowedRoles={[UserRole.VENDOR]} />}>
                         <Route element={<VendorLayout />}>
                             <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-                            <Route path="/vendor/orders" element={<ActiveOrders />} />
-                            <Route path="/vendor/combined-items" element={<CombinedItems />} />
                             <Route path="/vendor/products" element={<VendorProducts />} />
                             <Route path="/vendor/qr-scanner" element={<QRScanner />} />
                             <Route path="/vendor/analytics" element={<VendorAnalytics />} />

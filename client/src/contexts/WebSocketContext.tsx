@@ -6,15 +6,26 @@ import { OrderStatus } from '../types'
 interface WebSocketContextType {
     socket: Socket | null
     isConnected: boolean
-    onOrderUpdate: (callback: (data: OrderUpdateData) => void) => void
-    onTimerUpdate: (callback: (data: TimerUpdateData) => void) => void
-    onStockUpdate: (callback: (data: StockUpdateData) => void) => void
-    onBillExpired: (callback: (data: BillExpiredData) => void) => void
+    onOrderUpdate: (callback: (data: OrderUpdateData) => void) => (() => void) | undefined
+    onNewOrder: (callback: (data: NewOrderData) => void) => (() => void) | undefined
+    onTimerUpdate: (callback: (data: TimerUpdateData) => void) => (() => void) | undefined
+    onStockUpdate: (callback: (data: StockUpdateData) => void) => (() => void) | undefined
+    onBillExpired: (callback: (data: BillExpiredData) => void) => (() => void) | undefined
 }
 
 interface OrderUpdateData {
     orderId: string
     status: OrderStatus
+    timestamp: string
+}
+
+interface NewOrderData {
+    orderId: string
+    userId: string
+    totalAmount: number
+    items: any[]
+    status: string
+    message: string
     timestamp: string
 }
 
@@ -123,6 +134,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         }
     }, [socket])
 
+    const onNewOrder = useCallback((callback: (data: NewOrderData) => void) => {
+        if (socket) {
+            socket.on('order:new', callback)
+            return () => {
+                socket.off('order:new', callback)
+            }
+        }
+    }, [socket])
+
     const onTimerUpdate = useCallback((callback: (data: TimerUpdateData) => void) => {
         if (socket) {
             socket.on('bill:timer-update', callback)
@@ -154,6 +174,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         socket,
         isConnected,
         onOrderUpdate,
+        onNewOrder,
         onTimerUpdate,
         onStockUpdate,
         onBillExpired,

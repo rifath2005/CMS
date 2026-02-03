@@ -164,15 +164,13 @@ const Checkout = () => {
                             <h2 className="text-xl font-bold mb-4">Payment Method</h2>
 
                             {/* Wallet Balance Display */}
-                            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white mb-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center">
-                                        <Wallet className="w-6 h-6 mr-2" />
-                                        <span className="font-semibold">Wallet Balance</span>
-                                    </div>
-                                    <span className="text-2xl font-bold">₹{walletBalance.toFixed(2)}</span>
+                            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 sm:p-6 text-white mb-4">
+                                <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                                    <Wallet className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                                    <span className="font-semibold text-sm sm:text-base">Wallet Balance</span>
+                                    <span className="text-xl sm:text-2xl font-bold">₹{walletBalance.toFixed(2)}</span>
                                 </div>
-                                <p className="text-sm opacity-90">
+                                <p className="text-xs sm:text-sm opacity-90 text-center">
                                     Instant payment from your wallet
                                 </p>
                             </div>

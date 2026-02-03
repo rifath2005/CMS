@@ -40,6 +40,8 @@ export interface CartItem {
   price: number
   imageUrl: string
   vendorId: string
+  canteenId: string
+  canteenName: string
 }
 
 export enum OrderStatus {
@@ -61,6 +63,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   userId: string
+  userName?: string // Customer name from backend
   vendorId: string
   items: OrderItem[]
   totalAmount: number

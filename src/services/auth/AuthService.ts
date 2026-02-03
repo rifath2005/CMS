@@ -70,6 +70,57 @@ export class AuthService {
   }
 
   /**
+   * Register a new user with organization name
+   * @param email - User email address
+   * @param password - Plain text password
+   * @param name - User's full name
+   * @param organizationName - Organization/Institution name
+   * @param role - User role (defaults to USER)
+   * @returns Created user object
+   * @throws Error if organization not found, email already exists, or password is weak
+   */
+  async registerWithOrganization(
+    email: string,
+    password: string,
+    name: string,
+    organizationName: string,
+    role: UserRole = UserRole.USER
+  ): Promise<User> {
+    // Validate email format
+    if (!isValidEmail(email)) {
+      throw new Error('Invalid email format');
+    }
+
+    // Find institution by name
+    const institutionResult = await this.pool.query(
+      'SELECT id, name FROM institutions WHERE LOWER(name) = LOWER($1)',
+      [organizationName]
+    );
+
+    if (institutionResult.rows.length === 0) {
+      throw new Error(`Organization "${organizationName}" not found. Please check the organization name and try again.`);
+    }
+
+    const institution = institutionResult.rows[0];
+
+    // Validate password strength
+    if (!validatePasswordStrength(password)) {
+      throw new Error(
+        'Password must be at least 8 characters long and contain at least one letter and one number'
+      );
+    }
+
+    // Check if email already exists
+    const existingUser = await this.userModel.findByEmail(email);
+    if (existingUser) {
+      throw new Error('Email already exists');
+    }
+
+    // Create user with hashed password and institution ID from organization name
+    return this.userModel.create(email, password, name, role, institution.id);
+  }
+
+  /**
    * Validate if an email belongs to a registered institution
    * @param email - Email address to validate
    * @returns true if email domain is registered, false otherwise
@@ -306,6 +357,25 @@ export class AuthService {
       throw new Error('Current password is incorrect');
     }
 
+    // Validate new password strength
+    if (!validatePasswordStrength(newPassword)) {
+      throw new Error(
+        'Password must be at least 8 characters long and contain at least one letter and one number'
+      );
+    }
+
+    // Update password
+    return this.userModel.updatePassword(userId, newPassword);
+  }
+
+  /**
+   * Reset user password (for forgot password flow)
+   * @param userId - User ID
+   * @param newPassword - New password
+   * @returns true if password reset successfully
+   * @throws Error if new password is weak
+   */
+  async resetPassword(userId: string, newPassword: string): Promise<boolean> {
     // Validate new password strength
     if (!validatePasswordStrength(newPassword)) {
       throw new Error(
