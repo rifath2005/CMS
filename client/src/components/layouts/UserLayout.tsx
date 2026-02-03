@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useWalletStore } from '../../store/walletStore'
+import { useCartStore } from '../../store/cartStore'
 import { walletService } from '../../services/walletService'
 import {
     LayoutDashboard,
@@ -10,7 +11,8 @@ import {
     LogOut,
     Menu,
     X,
-    Wallet
+    Wallet,
+    ChevronRight
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -19,7 +21,11 @@ const UserLayout = () => {
     const navigate = useNavigate()
     const { user, logout } = useAuthStore()
     const { balance: walletBalance, setBalance } = useWalletStore()
+    const { items } = useCartStore()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    // Calculate total cart items
+    const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)
 
     useEffect(() => {
         if (user?.id) {
@@ -169,6 +175,29 @@ const UserLayout = () => {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Floating Cart Button - Only on canteens page */}
+            {cartItemCount > 0 && location.pathname === '/dashboard' && (
+                <Link
+                    to="/cart"
+                    className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 
+                             bg-gradient-to-r from-blue-600 to-blue-700 text-white 
+                             px-4 py-2.5 rounded-full shadow-lg 
+                             hover:shadow-xl hover:scale-105 
+                             transition-all duration-300 
+                             flex items-center space-x-2 group"
+                >
+                    <div className="relative">
+                        <ShoppingCart className="w-5 h-5" />
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                            {cartItemCount}
+                        </span>
+                    </div>
+                    <span className="font-medium">View cart</span>
+                    <span className="text-sm opacity-90">({cartItemCount} {cartItemCount === 1 ? 'item' : 'items'})</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            )}
         </div>
     )
 }

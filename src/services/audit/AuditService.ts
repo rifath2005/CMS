@@ -6,6 +6,7 @@ export enum AuditEventType {
   LOGOUT = 'LOGOUT',
   REGISTER = 'REGISTER',
   PASSWORD_CHANGE = 'PASSWORD_CHANGE',
+  PASSWORD_RESET = 'PASSWORD_RESET',
   ROLE_CHANGE = 'ROLE_CHANGE',
   INSTITUTION_CREATED = 'INSTITUTION_CREATED',
   INSTITUTION_UPDATED = 'INSTITUTION_UPDATED',
@@ -149,6 +150,25 @@ export class AuditService {
     await this.logEvent({
       eventType: AuditEventType.LOGOUT,
       userId: data.userId,
+      userEmail: data.email,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+      success: true,
+    });
+  }
+
+  /**
+   * Log password reset
+   */
+  async logPasswordReset(data: {
+    userId: string;
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    await this.logEvent({
+      eventType: AuditEventType.PASSWORD_RESET,
+      userId: parseInt(data.userId),
       userEmail: data.email,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
