@@ -5,7 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
-import { authenticate, requireRole } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/rbac.middleware';
+import { UserRole } from '../types';
 
 export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
   const router = Router();
@@ -15,7 +17,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get all vendors across all institutions (read-only)
    * Access: Super Admin only
    */
-  router.get('/', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const query = `
         SELECT 
@@ -62,10 +64,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query);
 
-      res.json(result.rows);
+      return res.json({
+        success: true,
+        data: result.rows
+      });
     } catch (error) {
       console.error('Get vendors error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendors'
       });
@@ -77,7 +82,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get specific vendor details (read-only)
    * Access: Super Admin only
    */
-  router.get('/:id', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/:id', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -133,10 +138,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
         });
       }
 
-      res.json(result.rows[0]);
+      return res.json({
+        success: true,
+        data: result.rows[0]
+      });
     } catch (error) {
       console.error('Get vendor error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendor'
       });
@@ -148,7 +156,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get vendor products (read-only)
    * Access: Super Admin only
    */
-  router.get('/:id/products', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/:id/products', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -175,10 +183,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, [id]);
 
-      res.json(result.rows);
+      return res.json({
+        success: true,
+        data: result.rows
+      });
     } catch (error) {
       console.error('Get vendor products error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendor products'
       });
@@ -190,7 +201,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get vendor orders (read-only)
    * Access: Super Admin only
    */
-  router.get('/:id/orders', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/:id/orders', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { limit = 50, offset = 0 } = req.query;
@@ -213,10 +224,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, [id, limit, offset]);
 
-      res.json(result.rows);
+      return res.json({
+        success: true,
+        data: result.rows
+      });
     } catch (error) {
       console.error('Get vendor orders error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendor orders'
       });
@@ -228,7 +242,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get vendor statistics summary
    * Access: Super Admin only
    */
-  router.get('/stats/summary', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/stats/summary', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const query = `
         SELECT 
@@ -258,10 +272,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query);
 
-      res.json(result.rows[0]);
+      return res.json({
+        success: true,
+        data: result.rows[0]
+      });
     } catch (error) {
       console.error('Get vendor stats error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendor statistics'
       });
@@ -273,7 +290,7 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
    * Get vendors by institution (read-only)
    * Access: Super Admin only
    */
-  router.get('/by-institution/:institutionId', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/by-institution/:institutionId', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { institutionId } = req.params;
 
@@ -309,10 +326,13 @@ export const createSuperAdminVendorsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, [institutionId]);
 
-      res.json(result.rows);
+      return res.json({
+        success: true,
+        data: result.rows
+      });
     } catch (error) {
       console.error('Get vendors by institution error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch vendors by institution'
       });

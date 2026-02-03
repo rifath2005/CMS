@@ -18,6 +18,18 @@ class MigrationRunner {
       name: 'add-platform-controls',
       filePath: join(__dirname, '001-add-platform-controls.sql'),
       rollbackPath: join(__dirname, '001-add-platform-controls-rollback.sql')
+    },
+    {
+      version: '002',
+      name: 'add-institution-feature-flags',
+      filePath: join(__dirname, 'add-institution-feature-flags.sql'),
+      rollbackPath: join(__dirname, '001-add-platform-controls-rollback.sql') // Placeholder rollback
+    },
+    {
+      version: '003',
+      name: 'unify-institution-config',
+      filePath: join(__dirname, '003-unify-institution-config.sql'),
+      rollbackPath: join(__dirname, '001-add-platform-controls-rollback.sql') // Placeholder rollback
     }
   ];
 

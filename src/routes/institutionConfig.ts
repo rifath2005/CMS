@@ -6,7 +6,9 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { InstitutionModel } from '../models/Institution';
-import { authenticate, requireRole } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/rbac.middleware';
+import { UserRole } from '../types';
 import { InstitutionFeatures, InstitutionLimits, InstitutionBranding, InstitutionSecurity } from '../types/institutionConfig';
 
 export const createInstitutionConfigRoutes = (pool: Pool): Router => {
@@ -25,7 +27,7 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
       const userInstitutionId = req.user?.institutionId;
 
       // Check permissions
-      if (userRole !== 'super_admin' && userInstitutionId !== id) {
+      if (userRole !== UserRole.MAIN_ADMIN && userInstitutionId !== id) {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'You do not have permission to view this institution configuration'
@@ -41,10 +43,13 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
         });
       }
 
-      res.json(config);
+      return res.json({
+        success: true,
+        data: config
+      });
     } catch (error) {
       console.error('Get institution config error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch institution configuration'
       });
@@ -56,20 +61,21 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Update institution features
    * Access: Super Admin only
    */
-  router.patch('/:id/features', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/features', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const features: Partial<InstitutionFeatures> = req.body;
 
       const config = await institutionModel.updateFeatures(id, features);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Features updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update features error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update features'
       });
@@ -81,20 +87,21 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Update institution limits
    * Access: Super Admin only
    */
-  router.patch('/:id/limits', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/limits', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const limits: Partial<InstitutionLimits> = req.body;
 
       const config = await institutionModel.updateLimits(id, limits);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Limits updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update limits error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update limits'
       });
@@ -113,7 +120,7 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
       const userInstitutionId = req.user?.institutionId;
 
       // Check permissions
-      if (userRole !== 'super_admin' && (userRole !== 'institution_admin' || userInstitutionId !== id)) {
+      if (userRole !== UserRole.MAIN_ADMIN && (userRole !== UserRole.INSTITUTION_ADMIN || userInstitutionId !== id)) {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'You do not have permission to update branding'
@@ -123,13 +130,14 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
       const branding: Partial<InstitutionBranding> = req.body;
       const config = await institutionModel.updateBranding(id, branding);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Branding updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update branding error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update branding'
       });
@@ -141,20 +149,21 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Update institution security settings
    * Access: Super Admin only
    */
-  router.patch('/:id/security', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/security', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const security: Partial<InstitutionSecurity> = req.body;
 
       const config = await institutionModel.updateSecurity(id, security);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Security settings updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update security error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update security settings'
       });
@@ -166,7 +175,7 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Update institution status (active, suspended, inactive)
    * Access: Super Admin only
    */
-  router.patch('/:id/status', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/status', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -180,13 +189,14 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
 
       const config = await institutionModel.updateStatus(id, status);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Status updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update status error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update status'
       });
@@ -198,7 +208,7 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Update institution plan (free, custom, enterprise)
    * Access: Super Admin only
    */
-  router.patch('/:id/plan', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/plan', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { plan } = req.body;
@@ -212,13 +222,14 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
 
       const config = await institutionModel.updatePlan(id, plan);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Plan updated successfully',
-        config
+        data: config
       });
     } catch (error: any) {
       console.error('Update plan error:', error);
-      res.status(error.message === 'Institution not found' ? 404 : 500).json({
+      return res.status(error.message === 'Institution not found' ? 404 : 500).json({
         error: error.message === 'Institution not found' ? 'Not Found' : 'Internal Server Error',
         message: error.message || 'Failed to update plan'
       });
@@ -237,7 +248,7 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
       const userInstitutionId = req.user?.institutionId;
 
       // Check permissions
-      if (userRole !== 'super_admin' && userInstitutionId !== id) {
+      if (userRole !== UserRole.MAIN_ADMIN && userInstitutionId !== id) {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'You do not have permission to view these statistics'
@@ -246,10 +257,10 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
 
       const stats = await institutionModel.getStats(id);
 
-      res.json(stats);
+      return res.json(stats);
     } catch (error) {
       console.error('Get institution stats error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch institution statistics'
       });
@@ -261,14 +272,17 @@ export const createInstitutionConfigRoutes = (pool: Pool): Router => {
    * Get all institution configurations (Super Admin only)
    * Access: Super Admin only
    */
-  router.get('/configs', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/configs', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const configs = await institutionModel.getAllConfigs();
 
-      res.json(configs);
+      return res.json({
+        success: true,
+        data: configs
+      });
     } catch (error) {
       console.error('Get all configs error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch institution configurations'
       });

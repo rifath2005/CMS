@@ -6,7 +6,9 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
-import { authenticate, requireRole } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/rbac.middleware';
+import { UserRole } from '../types';
 
 export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
   const router = Router();
@@ -16,7 +18,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Get all institution admins
    * Access: Super Admin only
    */
-  router.get('/', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const query = `
         SELECT 
@@ -30,16 +32,18 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
           u.created_at as "createdAt"
         FROM users u
         JOIN institutions i ON u.institution_id = i.id
-        WHERE u.role = 'institution_admin'
+        WHERE u.role = 'INSTITUTION_ADMIN'
         ORDER BY u.created_at DESC
       `;
-
       const result = await pool.query(query);
 
-      res.json(result.rows);
+      return res.json({
+        success: true,
+        data: result.rows
+      });
     } catch (error) {
       console.error('Get institution admins error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch institution admins'
       });
@@ -51,7 +55,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Get specific institution admin
    * Access: Super Admin only
    */
-  router.get('/:id', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/:id', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -67,22 +71,18 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
           u.created_at as "createdAt"
         FROM users u
         JOIN institutions i ON u.institution_id = i.id
-        WHERE u.id = $1 AND u.role = 'institution_admin'
+        WHERE u.id = $1 AND u.role = 'INSTITUTION_ADMIN'
       `;
 
       const result = await pool.query(query, [id]);
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: 'Institution admin not found'
-        });
-      }
-
-      res.json(result.rows[0]);
+      return res.json({
+        success: true,
+        data: result.rows[0]
+      });
     } catch (error) {
       console.error('Get institution admin error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch institution admin'
       });
@@ -94,7 +94,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Create new institution admin
    * Access: Super Admin only
    */
-  router.post('/', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.post('/', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { name, email, institutionId, password } = req.body;
 
@@ -138,7 +138,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
       // Create admin
       const query = `
         INSERT INTO users (name, email, password, role, institution_id, status)
-        VALUES ($1, $2, $3, 'institution_admin', $4, 'active')
+        VALUES ($1, $2, $3, 'INSTITUTION_ADMIN', $4, 'active')
         RETURNING 
           id, name, email, institution_id as "institutionId", 
           role, status, created_at as "createdAt"
@@ -146,13 +146,13 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, [name, email, hashedPassword, institutionId]);
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'Institution admin created successfully',
         admin: result.rows[0]
       });
     } catch (error) {
       console.error('Create institution admin error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to create institution admin'
       });
@@ -164,7 +164,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Update institution admin details
    * Access: Super Admin only
    */
-  router.patch('/:id', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { name, email, institutionId } = req.body;
@@ -235,13 +235,13 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, values);
 
-      res.json({
+      return res.json({
         message: 'Institution admin updated successfully',
         admin: result.rows[0]
       });
     } catch (error) {
       console.error('Update institution admin error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to update institution admin'
       });
@@ -253,7 +253,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Reset admin password
    * Access: Super Admin only
    */
-  router.post('/:id/reset-password', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.post('/:id/reset-password', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { password } = req.body;
@@ -287,12 +287,12 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
         [hashedPassword, id]
       );
 
-      res.json({
+      return res.json({
         message: 'Password reset successfully'
       });
     } catch (error) {
       console.error('Reset password error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to reset password'
       });
@@ -304,7 +304,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Toggle admin status (active/disabled)
    * Access: Super Admin only
    */
-  router.patch('/:id/status', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.patch('/:id/status', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -341,13 +341,14 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
 
       const result = await pool.query(query, [status, id]);
 
-      res.json({
+      return res.json({
+        success: true,
         message: `Admin ${status === 'active' ? 'enabled' : 'disabled'} successfully`,
-        admin: result.rows[0]
+        data: result.rows[0]
       });
     } catch (error) {
       console.error('Update admin status error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to update admin status'
       });
@@ -359,7 +360,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Delete institution admin
    * Access: Super Admin only
    */
-  router.delete('/:id', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.delete('/:id', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -379,13 +380,14 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
       // Delete admin
       await pool.query('DELETE FROM users WHERE id = $1', [id]);
 
-      res.json({
+      return res.json({
+        success: true,
         message: 'Institution admin deleted successfully',
-        deletedAdmin: adminCheck.rows[0]
+        data: adminCheck.rows[0]
       });
     } catch (error) {
       console.error('Delete institution admin error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to delete institution admin'
       });
@@ -397,7 +399,7 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
    * Get institution admins statistics
    * Access: Super Admin only
    */
-  router.get('/stats/summary', authenticate, requireRole('super_admin'), async (req: Request, res: Response) => {
+  router.get('/stats/summary', authenticate, requireRole(UserRole.MAIN_ADMIN), async (req: Request, res: Response) => {
     try {
       const query = `
         SELECT 
@@ -406,15 +408,18 @@ export const createInstitutionAdminsRoutes = (pool: Pool): Router => {
           COUNT(*) FILTER (WHERE status = 'disabled') as disabled,
           COUNT(*) FILTER (WHERE last_login > NOW() - INTERVAL '7 days') as active_last_week
         FROM users
-        WHERE role = 'institution_admin'
+        WHERE role = 'INSTITUTION_ADMIN'
       `;
 
       const result = await pool.query(query);
 
-      res.json(result.rows[0]);
+      return res.json({
+        success: true,
+        data: result.rows[0]
+      });
     } catch (error) {
       console.error('Get admin stats error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to fetch admin statistics'
       });

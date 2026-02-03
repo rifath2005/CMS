@@ -30,6 +30,10 @@ export interface Institution {
   emailDomain: string;
   contactEmail?: string;
   contactPhone?: string;
+  status?: 'active' | 'suspended' | 'inactive';
+  plan?: 'free' | 'custom' | 'enterprise';
+  usersCount?: number;
+  vendorsCount?: number;
   createdAt: Date;
 }
 

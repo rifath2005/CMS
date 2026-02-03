@@ -101,11 +101,15 @@ export class InstitutionModel {
    */
   async findAll(): Promise<Institution[]> {
     const query = `
-      SELECT id, name, email_domain as "emailDomain", 
-             contact_email as "contactEmail", contact_phone as "contactPhone",
-             created_at as "createdAt"
-      FROM institutions
-      ORDER BY created_at DESC
+      SELECT 
+        i.id, i.name, i.email_domain as "emailDomain", 
+        i.contact_email as "contactEmail", i.contact_phone as "contactPhone",
+        i.status, i.plan,
+        i.created_at as "createdAt",
+        COALESCE((SELECT COUNT(*) FROM users u WHERE u.institution_id = i.id), 0)::int as "usersCount",
+        COALESCE((SELECT COUNT(*) FROM canteens c WHERE c.institution_id = i.id), 0)::int as "vendorsCount"
+      FROM institutions i
+      ORDER BY i.created_at DESC
     `;
 
     const result: QueryResult<Institution> = await this.pool.query(query);

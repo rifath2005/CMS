@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Search, FileText, Filter, Clock, Building2, User } from 'lucide-react'
+import { Search, FileText, Clock, Building2, User, ShieldAlert, Activity } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { api } from '../../services/api'
 
 interface AuditLog {
     id: string
@@ -31,67 +32,28 @@ const AuditLogs = () => {
     }, [])
 
     const fetchLogs = async () => {
+        setIsLoading(true)
         try {
-            // TODO: Implement API calls
-            // Mock data
-            setInstitutions([
-                { id: '1', name: 'ABC University' },
-                { id: '2', name: 'XYZ College' },
-                { id: '3', name: 'Tech Institute' }
-            ])
-
-            setLogs([
-                {
-                    id: '1',
-                    timestamp: '2024-02-03T14:30:00Z',
-                    actorName: 'Super Admin',
-                    actorRole: 'Super Admin',
-                    institutionName: 'ABC University',
-                    actionType: 'UPDATE_CONFIG',
-                    description: 'Updated ordering hours for ABC University',
-                    ipAddress: '192.168.1.10'
-                },
-                {
-                    id: '2',
-                    timestamp: '2024-02-03T14:15:00Z',
-                    actorName: 'John Doe',
-                    actorRole: 'Institution Admin',
-                    institutionName: 'XYZ College',
-                    actionType: 'SUSPEND_VENDOR',
-                    description: 'Suspended vendor "Snack Bar" due to hygiene issue',
-                    ipAddress: '10.0.0.5'
-                },
-                {
-                    id: '3',
-                    timestamp: '2024-02-03T13:45:00Z',
-                    actorName: 'System',
-                    actorRole: 'System',
-                    institutionName: 'Tech Institute',
-                    actionType: 'AUTO_LOCK',
-                    description: 'Account locked for user "Alice" after 5 failed attempts',
-                    ipAddress: '-'
-                },
-                {
-                    id: '4',
-                    timestamp: '2024-02-03T12:00:00Z',
-                    actorName: 'Jane Smith',
-                    actorRole: 'Institution Admin',
-                    institutionName: 'ABC University',
-                    actionType: 'APPROVE_USER',
-                    description: 'Approved new faculty registration',
-                    ipAddress: '192.168.1.15'
-                },
-                {
-                    id: '5',
-                    timestamp: '2024-02-03T11:30:00Z',
-                    actorName: 'Vendor Manager',
-                    actorRole: 'Vendor',
-                    institutionName: 'XYZ College',
-                    actionType: 'UPDATE_MENU',
-                    description: 'Updated prices for Breakfast Menu',
-                    ipAddress: '10.0.0.8'
-                }
-            ])
+            const [logsRes, institutionsRes] = await Promise.all([
+                api.get('/super-admin/audit-logs'),
+                api.get('/institutions')
+            ]);
+            
+            if (logsRes.data.success) {
+                // Map backend logs to frontend interface
+                const mappedLogs = logsRes.data.data.map((log: any) => ({
+                    id: log.id,
+                    timestamp: log.timestamp,
+                    actorName: log.adminEmail || 'System',
+                    actorRole: log.adminId ? 'Admin' : 'System',
+                    institutionName: log.institutionId ? 'Institution' : 'Platform', // Backend doesn't give name here yet
+                    actionType: log.changeType,
+                    description: `${log.section}: ${log.fieldName} changed`,
+                    ipAddress: log.ipAddress || '-'
+                }));
+                setLogs(mappedLogs);
+            }
+                setInstitutions(institutionsRes.data.data);
         } catch (error) {
             console.error('Failed to fetch logs:', error)
         } finally {
@@ -104,7 +66,7 @@ const AuditLogs = () => {
             log.actorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
             log.actionType.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesInstitution = institutionFilter === 'all' || log.institutionName === institutionFilter // Note: simplified match by name for mock
+        const matchesInstitution = institutionFilter === 'all' || log.institutionName === institutionFilter
         const matchesAction = actionFilter === 'all' || log.actionType === actionFilter
         return matchesSearch && matchesInstitution && matchesAction
     })
@@ -118,30 +80,32 @@ const AuditLogs = () => {
     }
 
     return (
-        <div>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
-                <p className="text-gray-600 mt-2">Monitor all system activities and security events</p>
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Audit Logs</h1>
+                    <p className="text-gray-500 mt-1">Security trail and platform activity monitoring.</p>
+                </div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search logs..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                    </div>
-
+            {/* Filters Bar */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        placeholder="Search logs..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                </div>
+                
+                <div className="flex gap-3 w-full md:w-auto">
                     <select
                         value={institutionFilter}
                         onChange={(e) => setInstitutionFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="all">All Institutions</option>
                         {institutions.map(inst => (
@@ -152,86 +116,71 @@ const AuditLogs = () => {
                     <select
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="all">All Actions</option>
-                        <option value="UPDATE_CONFIG">Configuration Updates</option>
+                        <option value="UPDATE_CONFIG">Config Updates</option>
                         <option value="SUSPEND_VENDOR">Suspensions</option>
                         <option value="AUTO_LOCK">Security Events</option>
-                        <option value="APPROVE_USER">User Management</option>
-                        <option value="UPDATE_MENU">Menu Updates</option>
                     </select>
+                    
+                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 border border-gray-200 font-medium">
+                        Export
+                        <FileText className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
-            {/* Logs Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Timestamp
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actor
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Institution
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Action
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Details
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredLogs.map((log) => (
-                                <tr key={log.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="w-4 h-4 text-gray-400" />
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <User className="w-4 h-4 text-gray-400" />
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">{log.actorName}</div>
-                                                <div className="text-xs text-gray-500">{log.actorRole}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                         <div className="flex items-center gap-2">
-                                            <Building2 className="w-4 h-4 text-gray-400" />
-                                            {log.institutionName}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                            {log.actionType}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {log.description}
-                                        <div className="text-xs text-gray-400 mt-1">IP: {log.ipAddress}</div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                 {filteredLogs.length === 0 && (
-                    <div className="text-center py-12">
-                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-500">No logs found</p>
+            {/* Timeline / List */}
+            <div className="space-y-4">
+                {filteredLogs.map((log) => (
+                    <div key={log.id} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                        <div className="flex items-start gap-4">
+                            <div className={`p-3 rounded-xl flex-shrink-0 ${
+                                log.actionType.includes('SUSPEND') || log.actionType.includes('LOCK') 
+                                ? 'bg-red-50 text-red-600' 
+                                : log.actionType.includes('UPDATE') 
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'bg-gray-50 text-gray-600'
+                            }`}>
+                                {log.actionType.includes('SUSPEND') || log.actionType.includes('LOCK') ? <ShieldAlert className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-1">
+                                    <h4 className="text-sm font-semibold text-gray-900 font-mono">{log.actionType}</h4>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {new Date(log.timestamp).toLocaleString()}
+                                    </div>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-3">{log.description}</p>
+                                
+                                <div className="flex flex-wrap gap-3 text-xs">
+                                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-lg text-gray-600 border border-gray-100">
+                                        <User className="w-3.5 h-3.5 text-gray-400" />
+                                        <span className="font-medium text-gray-900">{log.actorName}</span>
+                                        <span className="text-gray-400">({log.actorRole})</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg text-indigo-700 border border-indigo-100">
+                                        <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+                                        {log.institutionName}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-lg text-gray-500 border border-gray-100 font-mono">
+                                        IP: {log.ipAddress}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                )}
+                ))}
             </div>
+            
+             {filteredLogs.length === 0 && (
+                <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-12 text-center">
+                    <p className="text-gray-500">No audit logs matching your criteria</p>
+                </div>
+            )}
         </div>
     )
 }

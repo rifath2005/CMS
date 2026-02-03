@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Search, Store, TrendingUp, Eye, Building2, Filter } from 'lucide-react'
+import { Search, Store, Building2, Wallet, ShoppingBag, Clock } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { api } from '../../services/api'
 
 interface Vendor {
     id: string
@@ -21,7 +22,7 @@ interface Institution {
     name: string
 }
 
-const Vendors = () => {
+const GlobalVendorsList = () => {
     const [vendors, setVendors] = useState<Vendor[]>([])
     const [institutions, setInstitutions] = useState<Institution[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -36,102 +37,15 @@ const Vendors = () => {
     }, [])
 
     const fetchData = async () => {
+        setIsLoading(true)
         try {
-            // TODO: Implement API calls
-            // const [vendorsRes, institutionsRes] = await Promise.all([
-            //   api.get('/super-admin/vendors'),
-            //   api.get('/super-admin/institutions')
-            // ])
-            // setVendors(vendorsRes.data)
-            // setInstitutions(institutionsRes.data)
-
-            // Mock data
-            setInstitutions([
-                { id: '1', name: 'ABC University' },
-                { id: '2', name: 'XYZ College' },
-                { id: '3', name: 'Tech Institute' }
-            ])
-
-            setVendors([
-                {
-                    id: '1',
-                    name: 'Main Cafeteria',
-                    institutionId: '1',
-                    institutionName: 'ABC University',
-                    status: 'active',
-                    ordersToday: 45,
-                    totalOrders: 1250,
-                    revenue: 125000,
-                    lastActive: '2024-02-03T09:30:00Z',
-                    createdAt: '2024-01-15T08:00:00Z',
-                    productsCount: 35
-                },
-                {
-                    id: '2',
-                    name: 'Coffee Corner',
-                    institutionId: '1',
-                    institutionName: 'ABC University',
-                    status: 'active',
-                    ordersToday: 28,
-                    totalOrders: 890,
-                    revenue: 45000,
-                    lastActive: '2024-02-03T10:15:00Z',
-                    createdAt: '2024-01-20T09:00:00Z',
-                    productsCount: 18
-                },
-                {
-                    id: '3',
-                    name: 'Student Canteen',
-                    institutionId: '2',
-                    institutionName: 'XYZ College',
-                    status: 'active',
-                    ordersToday: 32,
-                    totalOrders: 670,
-                    revenue: 67000,
-                    lastActive: '2024-02-03T08:45:00Z',
-                    createdAt: '2024-02-01T10:00:00Z',
-                    productsCount: 42
-                },
-                {
-                    id: '4',
-                    name: 'Snack Bar',
-                    institutionId: '2',
-                    institutionName: 'XYZ College',
-                    status: 'inactive',
-                    ordersToday: 0,
-                    totalOrders: 234,
-                    revenue: 12000,
-                    lastActive: '2024-01-28T16:30:00Z',
-                    createdAt: '2024-01-10T11:00:00Z',
-                    productsCount: 12
-                },
-                {
-                    id: '5',
-                    name: 'Tech Cafe',
-                    institutionId: '3',
-                    institutionName: 'Tech Institute',
-                    status: 'active',
-                    ordersToday: 52,
-                    totalOrders: 1450,
-                    revenue: 156000,
-                    lastActive: '2024-02-03T11:00:00Z',
-                    createdAt: '2023-12-10T10:00:00Z',
-                    productsCount: 48
-                },
-                {
-                    id: '6',
-                    name: 'Food Court',
-                    institutionId: '3',
-                    institutionName: 'Tech Institute',
-                    status: 'suspended',
-                    ordersToday: 0,
-                    totalOrders: 890,
-                    revenue: 89000,
-                    lastActive: '2024-01-20T14:20:00Z',
-                    createdAt: '2023-11-15T09:00:00Z',
-                    productsCount: 56
-                }
-            ])
+            const [vendorsRes, institutionsRes] = await Promise.all([
+                api.get('/super-admin/vendors'),
+                api.get('/institutions')
+            ]);
+            
+            setVendors(vendorsRes.data.data);
+            setInstitutions(institutionsRes.data.data);
         } catch (error) {
             console.error('Failed to fetch data:', error)
         } finally {
@@ -165,32 +79,15 @@ const Vendors = () => {
     const activeVendors = vendors.filter(v => v.status === 'active').length
     const totalRevenue = vendors.reduce((sum, v) => sum + v.revenue, 0)
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'active':
-                return 'bg-green-100 text-green-800'
-            case 'inactive':
-                return 'bg-gray-100 text-gray-800'
-            case 'suspended':
-                return 'bg-red-100 text-red-800'
-            default:
-                return 'bg-gray-100 text-gray-800'
-        }
-    }
-
     const formatLastActive = (lastActive?: string) => {
         if (!lastActive) return 'Never'
-
         const now = new Date()
         const then = new Date(lastActive)
         const diffMs = now.getTime() - then.getTime()
         const diffMins = Math.floor(diffMs / 60000)
         const diffHours = Math.floor(diffMs / 3600000)
-        const diffDays = Math.floor(diffMs / 86400000)
-
-        if (diffMins < 60) return `${diffMins} min ago`
-        if (diffHours < 24) return `${diffHours} hr ago`
-        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+        if (diffMins < 60) return `${diffMins}m ago`
+        if (diffHours < 24) return `${diffHours}h ago`
         return then.toLocaleDateString()
     }
 
@@ -203,94 +100,65 @@ const Vendors = () => {
     }
 
     return (
-        <div>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Vendors Overview</h1>
-                <p className="text-gray-600 mt-2">Platform-wide vendor monitoring (read-only)</p>
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Vendors Monitor</h1>
+                    <p className="text-gray-500 mt-1">Real-time status of all ecosystem vendors.</p>
+                </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Vendors</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">{vendors.length}</p>
-                        </div>
-                        <div className="bg-purple-100 p-3 rounded-lg">
-                            <Store className="w-8 h-8 text-purple-600" />
-                        </div>
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                     <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Store className="w-24 h-24" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Active Vendors</p>
+                        <h3 className="text-3xl font-bold text-gray-900 mt-1">{activeVendors}<span className="text-lg text-gray-400 font-normal">/{vendors.length}</span></h3>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Active Vendors</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">{activeVendors}</p>
-                        </div>
-                        <div className="bg-green-100 p-3 rounded-lg">
-                            <Store className="w-8 h-8 text-green-600" />
-                        </div>
+                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <ShoppingBag className="w-24 h-24" />
+                    </div>
+                    <div>
+                         <p className="text-sm font-medium text-gray-500">Orders Today</p>
+                         <h3 className="text-3xl font-bold text-gray-900 mt-1">{totalOrdersToday}</h3>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Orders Today</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">{totalOrdersToday}</p>
-                        </div>
-                        <div className="bg-blue-100 p-3 rounded-lg">
-                            <TrendingUp className="w-8 h-8 text-blue-600" />
-                        </div>
+                 <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                    <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Wallet className="w-24 h-24" />
                     </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Revenue</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">
-                                ₹{(totalRevenue / 1000).toFixed(0)}K
-                            </p>
-                        </div>
-                        <div className="bg-yellow-100 p-3 rounded-lg">
-                            <TrendingUp className="w-8 h-8 text-yellow-600" />
-                        </div>
+                    <div>
+                         <p className="text-sm font-medium text-indigo-100">Total Revenue</p>
+                         <h3 className="text-3xl font-bold mt-1">₹{(totalRevenue / 1000).toFixed(1)}K</h3>
                     </div>
                 </div>
             </div>
 
-            {/* Filters and Search */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search vendors..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as any)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
-                    </select>
-
-                    <select
+            {/* Filters Bar */}
+             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col xl:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        placeholder="Search vendors or institutions..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                     <select
                         value={institutionFilter}
                         onChange={(e) => setInstitutionFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="all">All Institutions</option>
                         {institutions.map(inst => (
@@ -299,153 +167,83 @@ const Vendors = () => {
                     </select>
 
                     <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+
+                     <select
                         value={`${sortField}-${sortOrder}`}
                         onChange={(e) => {
                             const [field, order] = e.target.value.split('-')
                             setSortField(field as any)
                             setSortOrder(order as any)
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                         className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                        <option value="ordersToday-desc">Most Orders Today</option>
-                        <option value="ordersToday-asc">Least Orders Today</option>
-                        <option value="lastActive-desc">Recently Active</option>
-                        <option value="lastActive-asc">Least Active</option>
-                        <option value="name-asc">Name (A-Z)</option>
-                        <option value="name-desc">Name (Z-A)</option>
+                         <option value="ordersToday-desc">Volume (High-Low)</option>
+                         <option value="lastActive-desc">Recently Active</option>
+                         <option value="revenue-desc">Revenue (High-Low)</option>
                     </select>
                 </div>
             </div>
 
-            {/* Vendors Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Vendor
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Institution
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Orders Today
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total Orders
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Products
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Revenue
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Last Active
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredVendors.map((vendor) => (
-                                <tr key={vendor.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-purple-100 p-2 rounded-lg">
-                                                <Store className="w-5 h-5 text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {vendor.name}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    ID: {vendor.id}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <Building2 className="w-4 h-4 text-gray-400" />
-                                            <span className="text-sm text-gray-900">
-                                                {vendor.institutionName}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(vendor.status)}`}>
-                                            {vendor.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-semibold text-gray-900">
-                                            {vendor.ordersToday}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {vendor.totalOrders.toLocaleString()}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {vendor.productsCount}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">
-                                            ₹{(vendor.revenue / 1000).toFixed(1)}K
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-500">
-                                            {formatLastActive(vendor.lastActive)}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            className="text-blue-600 hover:text-blue-900 inline-flex items-center gap-1"
-                                            title="View Details"
-                                        >
-                                            <Eye className="w-5 h-5" />
-                                            <span className="text-xs">View</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {filteredVendors.length === 0 && (
-                    <div className="text-center py-12">
-                        <Store className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-500">No vendors found</p>
+            {/* Vendors Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredVendors.map((vendor) => (
+                    <div key={vendor.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all group">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="bg-indigo-50 p-3 rounded-lg text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                <Store className="w-6 h-6" />
+                            </div>
+                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
+                                vendor.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                                {vendor.status}
+                            </span>
+                        </div>
+                        
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{vendor.name}</h3>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-4">
+                            <Building2 className="w-3.5 h-3.5" />
+                            {vendor.institutionName}
+                        </div>
+                        
+                         <div className="space-y-3 pt-4 border-t border-gray-100">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Orders Today</span>
+                                <span className="font-semibold text-gray-900">{vendor.ordersToday}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Total Revenue</span>
+                                <span className="font-semibold text-gray-900">₹{(vendor.revenue / 1000).toFixed(1)}K</span>
+                            </div>
+                             <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Last Active</span>
+                                <span className="flex items-center gap-1 text-gray-900">
+                                    <Clock className="w-3 h-3" /> {formatLastActive(vendor.lastActive)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <button className="w-full mt-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            View Details
+                        </button>
                     </div>
-                )}
+                ))}
             </div>
-
-            {/* Info Banner */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                    <Filter className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                        <h3 className="text-sm font-semibold text-blue-900">Read-Only View</h3>
-                        <p className="text-sm text-blue-700 mt-1">
-                            This is a monitoring view only. Vendor management (products, pricing, etc.) is handled by Institution Admins.
-                            Use this page to monitor vendor activity across all institutions.
-                        </p>
-                    </div>
+             {filteredVendors.length === 0 && (
+                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-gray-500">No vendors found matching your filters</p>
                 </div>
-            </div>
+            )}
         </div>
     )
 }
 
-export default Vendors
+export default GlobalVendorsList

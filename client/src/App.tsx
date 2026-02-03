@@ -9,17 +9,20 @@ import { UserRole } from './types'
 import Login from './pages/Login'
 
 // Layouts
-import SuperAdminLayout from './components/layouts/SuperAdminLayout'
+import MainAdminLayout from './components/layouts/MainAdminLayout'
 import AdminLayout from './components/layouts/AdminLayout'
 import VendorLayout from './components/layouts/VendorLayout'
 import UserLayout from './components/layouts/UserLayout'
 
-// Super Admin Pages
-import SuperAdminDashboard from './pages/super-admin/Dashboard'
-import AllInstitutions from './pages/super-admin/Institutions'
-import AllUsers from './pages/super-admin/Users'
+// Main Admin Pages (Refactored)
+import MainAdminDashboard from './pages/super-admin/Dashboard'
+import OrganizationsList from './pages/super-admin/Institutions'
+import GlobalUsersList from './pages/super-admin/Users'
 import AuditLogs from './pages/super-admin/AuditLogs'
 import SystemSettings from './pages/super-admin/Settings'
+import OrgConfiguration from './pages/super-admin/InstitutionConfig'
+import OrgAdminsList from './pages/super-admin/InstitutionAdmins'
+import GlobalVendorsList from './pages/super-admin/Vendors'
 
 // Institution Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -63,7 +66,7 @@ function App() {
 
         switch (user.role) {
             case UserRole.MAIN_ADMIN:
-                return '/super-admin/dashboard'
+                return '/main-admin/dashboard'
             case UserRole.INSTITUTION_ADMIN:
                 return '/admin/dashboard'
             case UserRole.VENDOR:
@@ -85,14 +88,17 @@ function App() {
                         element={isAuthenticated ? <Navigate to={getDefaultRoute()} /> : <Login />}
                     />
 
-                    {/* Super Admin Routes */}
+                    {/* Main Admin Routes */}
                     <Route element={<ProtectedRoute allowedRoles={[UserRole.MAIN_ADMIN]} />}>
-                        <Route element={<SuperAdminLayout />}>
-                            <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
-                            <Route path="/super-admin/institutions" element={<AllInstitutions />} />
-                            <Route path="/super-admin/users" element={<AllUsers />} />
-                            <Route path="/super-admin/audit-logs" element={<AuditLogs />} />
-                            <Route path="/super-admin/settings" element={<SystemSettings />} />
+                        <Route element={<MainAdminLayout />}>
+                            <Route path="/main-admin/dashboard" element={<MainAdminDashboard />} />
+                            <Route path="/main-admin/organizations" element={<OrganizationsList />} />
+                            <Route path="/main-admin/organizations/:id/configure" element={<OrgConfiguration />} />
+                            <Route path="/main-admin/org-admins" element={<OrgAdminsList />} />
+                            <Route path="/main-admin/vendors" element={<GlobalVendorsList />} />
+                            <Route path="/main-admin/users" element={<GlobalUsersList />} />
+                            <Route path="/main-admin/audit-logs" element={<AuditLogs />} />
+                            <Route path="/main-admin/system-settings" element={<SystemSettings />} />
                         </Route>
                     </Route>
 
