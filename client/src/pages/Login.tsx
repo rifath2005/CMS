@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { authService } from '../services/authService'
@@ -10,12 +10,38 @@ const Login = () => {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     const navigate = useNavigate()
     const setAuth = useAuthStore((state) => state.setAuth)
 
+    // Clear error timeout on component unmount
+    useEffect(() => {
+        return () => {
+            if (errorTimeoutRef.current) {
+                clearTimeout(errorTimeoutRef.current)
+            }
+        }
+    }, [])
+
+    // Function to clear error after delay
+    const clearErrorAfterDelay = () => {
+        if (errorTimeoutRef.current) {
+            clearTimeout(errorTimeoutRef.current)
+        }
+        errorTimeoutRef.current = setTimeout(() => {
+            setError('')
+        }, 3000) // Clear after 3 seconds
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        // Clear any existing error timeout
+        if (errorTimeoutRef.current) {
+            clearTimeout(errorTimeoutRef.current)
+        }
+
         setError('')
         setLoading(true)
 
@@ -25,8 +51,26 @@ const Login = () => {
             navigate('/dashboard')
         } catch (err: any) {
             console.error('Login error:', err);
-            const errorMessage = err.response?.data?.error?.message || err.message || 'Login failed. Please check your credentials.';
+
+            // Handle different types of errors with user-friendly messages
+            let errorMessage = 'Incorrect Credentials'
+
+            if (err.response?.status === 401) {
+                errorMessage = 'Incorrect Credentials'
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Account not found'
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Access denied'
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Server error. Please try again later.'
+            } else if (err.code === 'NETWORK_ERROR' || err.message?.includes('Network Error')) {
+                errorMessage = 'Connection error. Please check your internet connection.'
+            } else if (err.message?.includes('timeout')) {
+                errorMessage = 'Request timeout. Please try again.'
+            }
+
             setError(errorMessage);
+            clearErrorAfterDelay(); // Auto-clear error after 3 seconds
         } finally {
             setLoading(false)
         }
@@ -68,14 +112,28 @@ const Login = () => {
                     >
                         {error && (
                             <div
-                                className="mb-6 p-3 rounded-md text-sm border"
+                                className="mb-6 p-3 rounded-md text-sm border relative"
                                 style={{
                                     background: 'rgba(239, 68, 68, 0.2)',
                                     borderColor: 'rgba(239, 68, 68, 0.4)',
                                     color: '#fecaca'
                                 }}
                             >
-                                {error}
+                                <div className="flex items-center justify-between">
+                                    <span>{error}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setError('')
+                                            if (errorTimeoutRef.current) {
+                                                clearTimeout(errorTimeoutRef.current)
+                                            }
+                                        }}
+                                        className="ml-2 text-white/60 hover:text-white transition-colors"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
                             </div>
                         )}
 
