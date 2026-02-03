@@ -35,6 +35,46 @@ export const createCanteenRouter = (pool: Pool): Router => {
     }
   });
 
+  // GET /api/v1/canteens/user/:userId - Get canteen by user ID
+  router.get('/user/:userId', authenticate, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      console.log('=== GET CANTEEN BY USER ID ===');
+      console.log('User ID:', userId);
+
+      if (!userId) {
+        throw new ValidationError('User ID is required');
+      }
+
+      const canteen = await institutionService.getCanteenByUserId(userId);
+
+      console.log('Canteen found:', canteen);
+
+      if (!canteen) {
+        throw new NotFoundError('Canteen not found for this user');
+      }
+
+      res.json({
+        success: true,
+        data: canteen,
+      });
+    } catch (error: any) {
+      console.error('=== GET CANTEEN BY USER ID ERROR ===');
+      console.error('Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'INTERNAL_ERROR',
+          message: error.message,
+        },
+      });
+    }
+  });
+
   // GET /api/v1/canteens/vendor/:vendorId - Get canteen by vendor ID
   router.get('/vendor/:vendorId', authenticate, async (req: Request, res: Response) => {
     try {

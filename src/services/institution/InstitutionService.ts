@@ -131,6 +131,79 @@ export class InstitutionService {
   }
 
   /**
+   * Register a new canteen with vendor user account
+   * @param institutionId - Institution ID
+   * @param canteenName - Canteen name
+   * @param location - Optional location
+   * @param operatingHours - Optional operating hours
+   * @param vendorEmail - Vendor user email
+   * @param vendorPassword - Vendor user password
+   * @param vendorName - Vendor user name
+   * @returns Created canteen and vendor user
+   * Validates: Requirements 3.1, 3.2, 1.3
+   */
+  async registerCanteenWithVendor(
+    institutionId: string,
+    canteenName: string,
+    vendorEmail: string,
+    vendorPassword: string,
+    vendorName: string,
+    location?: string,
+    operatingHours?: any
+  ): Promise<{ canteen: Canteen; vendorUserId: string }> {
+    // Validate inputs
+    if (!canteenName || !vendorEmail || !vendorPassword || !vendorName) {
+      throw new Error('Canteen name, vendor email, password, and name are required');
+    }
+
+    // Validate email format
+    if (!isValidEmail(vendorEmail)) {
+      throw new Error('Invalid vendor email format');
+    }
+
+    // Verify institution exists
+    const institution = await this.institutionModel.findById(institutionId);
+    if (!institution) {
+      throw new Error('Institution not found');
+    }
+
+    // Check if vendor email already exists
+    const existingUser = await this.userModel.findByEmail(vendorEmail);
+    if (existingUser) {
+      throw new Error('Vendor email already exists');
+    }
+
+    // Generate unique vendor ID (e.g., MIT-SS-001, MIT-SS-002...)
+    const emailDomain = institution.emailDomain;
+    const prefix = emailDomain.split('.')[0].toUpperCase().substring(0, 3);
+    const vendorId = await this.canteenModel.generateVendorId(institutionId, `${prefix}-`);
+
+    // Create vendor user first
+    const vendorUser = await this.userModel.create(
+      vendorEmail,
+      vendorPassword,
+      vendorName,
+      'VENDOR' as any,
+      institutionId
+    );
+
+    // Create canteen linked to the vendor user
+    const canteen = await this.canteenModel.create(
+      institutionId,
+      vendorId,
+      canteenName,
+      vendorUser.id, // Link canteen to vendor user
+      location,
+      operatingHours
+    );
+
+    return {
+      canteen,
+      vendorUserId: vendorUser.id,
+    };
+  }
+
+  /**
    * Get all canteens for an institution
    * @param institutionId - Institution ID
    * @returns Array of canteens
@@ -164,6 +237,15 @@ export class InstitutionService {
    */
   async getCanteenByVendorId(vendorId: string): Promise<Canteen | null> {
     return this.canteenModel.findByVendorId(vendorId);
+  }
+
+  /**
+   * Get canteen by user ID
+   * @param userId - User ID
+   * @returns Canteen or null
+   */
+  async getCanteenByUserId(userId: string): Promise<Canteen | null> {
+    return this.canteenModel.findByUserId(userId);
   }
 
   /**

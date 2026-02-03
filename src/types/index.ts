@@ -43,6 +43,7 @@ export interface Canteen {
   id: string;
   institutionId: string;
   vendorId: string;
+  userId?: string; // Links to vendor user
   name: string;
   location?: string;
   operatingHours?: OperatingHours;

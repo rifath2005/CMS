@@ -214,6 +214,53 @@ export const createInstitutionRouter = (pool: Pool): Router => {
     }
   });
 
+  // POST /api/v1/institutions/:id/canteens-with-vendor - Register canteen with vendor user
+  router.post('/:id/canteens-with-vendor', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
+    try {
+      const institutionId = req.params.id;
+
+      const { 
+        canteenName, 
+        location, 
+        operatingHours,
+        vendorEmail, 
+        vendorPassword, 
+        vendorName 
+      } = req.body;
+
+      if (!canteenName || !vendorEmail || !vendorPassword || !vendorName) {
+        throw new ValidationError('Canteen name, vendor email, password, and name are required');
+      }
+
+      const result = await institutionService.registerCanteenWithVendor(
+        institutionId,
+        canteenName,
+        vendorEmail,
+        vendorPassword,
+        vendorName,
+        location,
+        operatingHours
+      );
+
+      res.status(201).json({
+        success: true,
+        data: {
+          canteen: result.canteen,
+          vendorUserId: result.vendorUserId,
+        },
+        message: 'Canteen and vendor user created successfully',
+      });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'INTERNAL_ERROR',
+          message: error.message,
+        },
+      });
+    }
+  });
+
   // GET /api/v1/institutions/:id/canteens - Get canteens for institution
   router.get('/:id/canteens', authenticate, async (req: Request, res: Response) => {
     try {

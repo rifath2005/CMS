@@ -12,12 +12,41 @@ export const createProductRouter = (pool: Pool): Router => {
   // POST /api/v1/products - Create product (Vendor only)
   router.post('/', authenticate, requireVendor, async (req: Request, res: Response) => {
     try {
-      const { vendorId, name, description, price, category, imageUrl, stockQuantity } = req.body;
-
-      if (!vendorId || !name || !price || stockQuantity === undefined) {
-        throw new ValidationError('Vendor ID, name, price, and stock quantity are required');
+      console.log('=== CREATE PRODUCT REQUEST ===');
+      console.log('Request body:', req.body);
+      console.log('User from auth:', (req as any).user);
+      
+      const { name, description, price, category, imageUrl, stockQuantity } = req.body;
+      
+      // Get vendorId by looking up the canteen linked to this user
+      const userId = (req as any).user?.userId;
+      
+      if (!userId) {
+        console.log('Validation failed - no user ID in token');
+        throw new ValidationError('User ID not found in token');
       }
 
+      // Query canteen to get vendor_id for this user
+      const canteenResult = await pool.query(
+        'SELECT vendor_id FROM canteens WHERE user_id = $1',
+        [userId]
+      );
+
+      if (canteenResult.rows.length === 0) {
+        console.log('Validation failed - no canteen found for user');
+        throw new ValidationError('No canteen found for this vendor user. Please contact administrator.');
+      }
+
+      const vendorId = canteenResult.rows[0].vendor_id;
+      console.log('Found vendorId for user:', vendorId);
+
+      if (!name || !price || stockQuantity === undefined) {
+        console.log('Validation failed - missing required fields');
+        throw new ValidationError('Name, price, and stock quantity are required');
+      }
+
+      console.log('Creating product with vendorId:', vendorId);
+      
       const product = await productService.createProduct({
         vendorId,
         name,
@@ -28,12 +57,19 @@ export const createProductRouter = (pool: Pool): Router => {
         stockQuantity,
       });
 
+      console.log('Product created successfully:', product.id);
+
       res.status(201).json({
         success: true,
         data: product,
         message: 'Product created successfully',
       });
     } catch (error: any) {
+      console.error('=== CREATE PRODUCT ERROR ===');
+      console.error('Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      
       res.status(error.statusCode || 500).json({
         success: false,
         error: {

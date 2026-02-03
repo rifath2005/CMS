@@ -213,6 +213,47 @@ export class OrderService {
   }
 
   /**
+   * Verify order by validation token (for QR scanner)
+   */
+  async verifyByToken(validationToken: string): Promise<any> {
+    const order = await this.orderModel.findByValidationToken(validationToken);
+    
+    if (!order) {
+      throw new Error('Invalid QR code or order not found');
+    }
+
+    // Check if already delivered
+    if (order.status === OrderStatus.DELIVERED) {
+      throw new Error('Order already delivered');
+    }
+
+    // Check if bill has expired
+    if (new Date() > order.billExpiresAt) {
+      await this.orderModel.update(order.id, { status: OrderStatus.EXPIRED });
+      throw new Error('Bill has expired');
+    }
+
+    // Update order to delivered
+    const updated = await this.orderModel.update(order.id, {
+      status: OrderStatus.DELIVERED,
+      isQrScanned: true,
+      deliveredAt: new Date()
+    });
+
+    if (!updated) {
+      throw new Error('Failed to update order');
+    }
+
+    // Return order details for display
+    return {
+      orderId: updated.id,
+      userName: 'Customer', // You may want to join with users table
+      items: updated.items,
+      totalAmount: updated.totalAmount
+    };
+  }
+
+  /**
    * Get order by validation token
    */
   async getOrderByValidationToken(validationToken: string): Promise<Order> {
