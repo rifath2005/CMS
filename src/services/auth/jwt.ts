@@ -16,24 +16,32 @@ export interface JWTPayload {
   email: string;
   role: UserRole;
   institutionId: string;
+  canteenId?: string; // For VENDOR role users
+  exp: number; // Expiration timestamp
+  iat: number; // Issued at timestamp
 }
 
 /**
  * Generate a JWT token for a user
  * @param user - User object to generate token for
+ * @param canteenId - Optional canteen ID for vendor users
  * @returns AuthToken object containing the JWT token and user info
  */
-export function generateToken(user: User): AuthToken {
+export function generateToken(user: User, canteenId?: string): AuthToken {
+  const now = Math.floor(Date.now() / 1000);
+  const expirationTime = now + (24 * 60 * 60); // 24 hours from now
+
   const payload: JWTPayload = {
     userId: user.id,
     email: user.email,
     role: user.role,
     institutionId: user.institutionId,
+    canteenId: user.role === UserRole.VENDOR ? canteenId : undefined,
+    exp: expirationTime,
+    iat: now,
   };
 
-  const token = jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+  const token = jwt.sign(payload, JWT_SECRET);
 
   return {
     token,
@@ -57,6 +65,13 @@ export function generateToken(user: User): AuthToken {
 export function verifyToken(token: string): JWTPayload {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    
+    // Additional expiration check
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp && decoded.exp < now) {
+      throw new jwt.TokenExpiredError('Token has expired', new Date(decoded.exp * 1000));
+    }
+    
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

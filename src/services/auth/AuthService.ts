@@ -16,9 +16,11 @@ import { redisHelpers } from '../../config/redis';
 export class AuthService {
   private userModel: UserModel;
   private institutionModel: InstitutionModel;
+  private pool: Pool;
   private readonly SESSION_TTL = 86400; // 24 hours in seconds
 
   constructor(pool: Pool) {
+    this.pool = pool;
     this.userModel = new UserModel(pool);
     this.institutionModel = new InstitutionModel(pool);
   }
@@ -99,8 +101,24 @@ export class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    // Generate JWT token
-    const authToken = generateToken(user);
+    // For vendor users, get their canteen ID
+    let canteenId: string | undefined;
+    if (user.role === UserRole.VENDOR) {
+      try {
+        const canteenResult = await this.pool.query(
+          'SELECT id FROM canteens WHERE vendor_id = $1 LIMIT 1',
+          [user.id]
+        );
+        if (canteenResult.rows.length > 0) {
+          canteenId = canteenResult.rows[0].id;
+        }
+      } catch (error) {
+        console.warn('Could not fetch canteen ID for vendor:', error);
+      }
+    }
+
+    // Generate JWT token with canteenId for vendors
+    const authToken = generateToken(user, canteenId);
 
     // Calculate expiration date (24 hours from now)
     const expiresAt = new Date();

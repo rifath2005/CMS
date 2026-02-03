@@ -20,6 +20,7 @@ import { createProfileRoutes } from './routes/profile.routes';
 import { WebSocketServer } from './websocket';
 import { apiRateLimiter } from './middleware/rateLimiter';
 import { OrderExpirationService } from './services/order/OrderExpirationService';
+import { setWebSocketServer } from './services/order/WalletOrderService';
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -160,6 +161,9 @@ const startServer = async () => {
     // Initialize WebSocket server
     wsServer = new WebSocketServer(httpServer);
     console.log('✓ WebSocket server initialized');
+
+    // Set WebSocket server instance for services
+    setWebSocketServer(wsServer);
 
     // Initialize and start Order Expiration Service
     orderExpirationService = new OrderExpirationService(pool);
