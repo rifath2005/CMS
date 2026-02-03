@@ -95,6 +95,10 @@ app.use('/api/v1/profile', createProfileRoutes(pool));
 import { createWalletRouter } from './routes/wallet.routes';
 app.use('/api/v1/wallet', createWalletRouter(pool));
 
+// Super Admin routes
+import { createSuperAdminRouter } from './routes/superAdmin.routes';
+app.use('/api/v1/super-admin', createSuperAdminRouter(pool));
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);

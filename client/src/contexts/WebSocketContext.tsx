@@ -66,9 +66,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             return
         }
 
-        const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
+        // Use configured URL or default to current origin (which will be proxied by Vite)
+        const WS_URL = import.meta.env.VITE_WS_URL || (window.location.protocol + '//' + window.location.host)
 
         const newSocket = io(WS_URL, {
+            path: '/socket.io',
             auth: {
                 token,
             },
@@ -76,6 +78,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
             reconnectionAttempts: 5,
+            transports: ['websocket'] // Force WebSocket to avoid proxy polling errors
         })
 
         newSocket.on('connect', () => {
@@ -86,6 +89,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         newSocket.on('disconnect', (reason) => {
             console.log('WebSocket disconnected:', reason)
             setIsConnected(false)
+        })
+
+        newSocket.on('connect_error', (err) => {
+            console.error('WebSocket connection error:', err.message)
+            // Stop trying to reconnect if authentication failed
+            if (err.message.includes('Authentication') || err.message.includes('token')) {
+                newSocket.disconnect()
+            }
         })
 
         newSocket.on('connected', (data) => {
