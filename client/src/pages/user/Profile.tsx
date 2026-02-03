@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { userService } from '../../services/userService'
+import { walletService } from '../../services/walletService'
 import { useAuthStore } from '../../store/authStore'
+import { useWalletStore } from '../../store/walletStore'
 import { User } from '../../types'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
-import { User as UserIcon, Mail, Building, Save, CheckCircle } from 'lucide-react'
+import { User as UserIcon, Mail, Building, Save, CheckCircle, Wallet } from 'lucide-react'
 
 const Profile = () => {
     const { user: authUser, updateUser } = useAuthStore()
+    const { balance: walletBalance, setBalance } = useWalletStore()
 
     const [profile, setProfile] = useState<User | null>(null)
     const [name, setName] = useState('')
@@ -18,6 +20,7 @@ const Profile = () => {
 
     useEffect(() => {
         fetchProfile()
+        fetchWalletBalance()
     }, [])
 
     const fetchProfile = async () => {
@@ -28,14 +31,22 @@ const Profile = () => {
         }
 
         try {
-            setIsLoading(true)
             const profileData = await userService.getProfile(authUser.id)
             setProfile(profileData)
             setName(profileData.name)
+            setIsLoading(false)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load profile')
-        } finally {
             setIsLoading(false)
+        }
+    }
+
+    const fetchWalletBalance = async () => {
+        try {
+            const balance = await walletService.getBalance()
+            setBalance(balance.balance)
+        } catch (err: any) {
+            console.error('Failed to load wallet balance:', err)
         }
     }
 
@@ -80,16 +91,62 @@ const Profile = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <LoadingSpinner size="lg" />
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-2xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6">Profile</h1>
+                    
+                    {/* Skeleton Profile Form */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-48 mb-6"></div>
+                        
+                        {/* Name Field Skeleton */}
+                        <div className="mb-6">
+                            <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                            <div className="h-12 bg-gray-200 rounded"></div>
+                        </div>
+                        
+                        {/* Email Field Skeleton */}
+                        <div className="mb-6">
+                            <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                            <div className="h-12 bg-gray-200 rounded"></div>
+                        </div>
+                        
+                        {/* Institution Field Skeleton */}
+                        <div className="mb-6">
+                            <div className="h-4 bg-gray-200 rounded w-28 mb-2"></div>
+                            <div className="h-12 bg-gray-200 rounded"></div>
+                        </div>
+                        
+                        {/* Role Badge Skeleton */}
+                        <div className="mb-6">
+                            <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
+                            <div className="h-8 bg-gray-200 rounded w-24"></div>
+                        </div>
+                    </div>
+                    
+                    {/* Skeleton Account Details */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-40 mb-4"></div>
+                        <div className="space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex justify-between py-2 border-b">
+                                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-40"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }
 
     if (!profile) {
         return (
-            <div className="max-w-2xl mx-auto">
-                <ErrorAlert message="Failed to load profile" />
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-2xl mx-auto">
+                    <ErrorAlert message="Failed to load profile" />
+                </div>
             </div>
         )
     }
@@ -97,7 +154,8 @@ const Profile = () => {
     const hasChanges = name.trim() !== profile.name
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Profile</h1>
 
             {error && (
@@ -112,6 +170,23 @@ const Profile = () => {
                     <p className="text-sm text-green-800">{successMessage}</p>
                 </div>
             )}
+
+            {/* Wallet Balance Card */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center mb-2">
+                            <Wallet className="w-6 h-6 mr-2" />
+                            <h2 className="text-lg font-semibold">Wallet Balance</h2>
+                        </div>
+                        <p className="text-3xl font-bold">₹{walletBalance.toFixed(2)}</p>
+                        <p className="text-sm opacity-90 mt-1">Available for instant payments</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-4">
+                        <Wallet className="w-12 h-12" />
+                    </div>
+                </div>
+            </div>
 
             {/* Profile Information */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -187,11 +262,11 @@ const Profile = () => {
                             <button
                                 type="submit"
                                 disabled={isSaving}
-                                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             >
                                 {isSaving ? (
                                     <>
-                                        <LoadingSpinner size="sm" className="mr-2" />
+                                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                         Saving...
                                     </>
                                 ) : (
@@ -205,7 +280,7 @@ const Profile = () => {
                                 type="button"
                                 onClick={handleReset}
                                 disabled={isSaving}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -244,6 +319,7 @@ const Profile = () => {
                     If you need to update your email or institution, please contact your institution administrator.
                 </p>
             </div>
+        </div>
         </div>
     )
 }

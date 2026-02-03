@@ -8,22 +8,23 @@ export function createOrderRoutes(pool: Pool): Router {
 
   /**
    * POST /api/orders
-   * Create a new order
+   * Create a new order with wallet payment
    */
   router.post('/', async (req: Request, res: Response) => {
     try {
-      const { userId, paymentId } = req.body;
+      const { userId } = req.body;
 
-      if (!userId || !paymentId) {
+      if (!userId) {
         return res.status(400).json({
           error: {
             code: 'MISSING_FIELDS',
-            message: 'userId and paymentId are required'
+            message: 'userId is required'
           }
         });
       }
 
-      const result = await orderService.createOrder({ userId, paymentId });
+      // Create order with wallet payment (integrated flow)
+      const result = await orderService.createOrderWithWallet(userId);
 
       res.status(201).json({
         success: true,
@@ -269,6 +270,36 @@ export function createOrderRoutes(pool: Pool): Router {
       res.status(400).json({
         error: {
           code: 'GET_HISTORY_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  /**
+   * POST /api/orders/:orderId/expire
+   * Mark order as EXPIRED (called when timer reaches zero)
+   */
+  router.post('/:orderId/expire', async (req: Request, res: Response) => {
+    try {
+      const { orderId } = req.params;
+
+      // Update order status to EXPIRED
+      await pool.query(
+        `UPDATE orders 
+         SET status = 'EXPIRED' 
+         WHERE id = $1 AND status NOT IN ('DELIVERED', 'EXPIRED')`,
+        [orderId]
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Order marked as expired'
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        error: {
+          code: 'EXPIRE_ORDER_FAILED',
           message: error.message
         }
       });

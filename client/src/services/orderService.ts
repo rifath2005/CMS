@@ -40,6 +40,10 @@ export const orderService = {
     return response.data.data.remainingSeconds
   },
 
+  async markOrderAsExpired(orderId: string): Promise<void> {
+    await api.post(`/orders/${orderId}/expire`)
+  },
+
   async verifyDelivery(orderId: string, validationToken: string): Promise<Order> {
     const response = await api.post(`/orders/${orderId}/verify-delivery`, {
       validationToken

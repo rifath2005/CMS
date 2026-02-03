@@ -21,6 +21,11 @@ export const productService = {
     return response.data.data
   },
 
+  async getProductsByVendor(vendorId: string, availableOnly: boolean = true): Promise<Product[]> {
+    const response = await api.get<{ success: boolean; data: Product[] }>(`/products/vendor/${vendorId}?availableOnly=${availableOnly}`)
+    return response.data.data
+  },
+
   async getProductsByCanteen(canteenId: number, availableOnly: boolean = true): Promise<Product[]> {
     const response = await api.get<{ success: boolean; data: Product[] }>(`/products/canteen/${canteenId}?availableOnly=${availableOnly}`)
     return response.data.data

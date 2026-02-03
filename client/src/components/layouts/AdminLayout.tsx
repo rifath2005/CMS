@@ -3,7 +3,6 @@ import { useAuthStore } from '../../store/authStore'
 import {
     LayoutDashboard,
     Store,
-    Users,
     BarChart3,
     LogOut,
     Menu,
@@ -25,7 +24,6 @@ const AdminLayout = () => {
     const navigation = [
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Canteens', href: '/admin/canteens', icon: Store },
-        { name: 'Vendors', href: '/admin/vendors', icon: Users },
         { name: 'Statistics', href: '/admin/stats', icon: BarChart3 },
     ]
 

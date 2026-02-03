@@ -4,10 +4,9 @@ import { orderService } from '../../services/orderService'
 import { Order, OrderStatus } from '../../types'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 import { useAuthStore } from '../../store/authStore'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorAlert from '../../components/ErrorAlert'
 import { StatusChip } from '../../components/shared'
-import { Package, Calendar, Filter, Eye, ShoppingBag, X } from 'lucide-react'
+import { Package, Calendar, Filter, ShoppingBag, X } from 'lucide-react'
 
 const OrderHistory = () => {
     const navigate = useNavigate()
@@ -28,6 +27,24 @@ const OrderHistory = () => {
         fetchOrderHistory()
     }, [])
 
+    // Refetch when page becomes visible (user navigates back to this page)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchOrderHistory()
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        
+        // Also refetch when component mounts (navigation)
+        fetchOrderHistory()
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [user?.id])
+
     useEffect(() => {
         applyFilters()
     }, [orders, startDate, endDate, vendorFilter, statusFilter])
@@ -35,10 +52,8 @@ const OrderHistory = () => {
     useEffect(() => {
         if (!socket) return
 
-        // Listen for order status updates with real-time refresh
         const handleOrderUpdate = (data: any) => {
             console.log('Order status update received:', data)
-            // Update the specific order in the list
             setOrders((prevOrders) =>
                 prevOrders.map((order) =>
                     order.id === data.orderId ? { ...order, status: data.status } : order
@@ -54,15 +69,17 @@ const OrderHistory = () => {
     }, [socket])
 
     const fetchOrderHistory = async () => {
-        if (!user?.id) return
+        if (!user?.id) {
+            setIsLoading(false)
+            return
+        }
 
         try {
-            setIsLoading(true)
             const history = await orderService.getOrderHistory(user.id)
             setOrders(history)
+            setIsLoading(false)
         } catch (err: any) {
             setError(err.response?.data?.error?.message || 'Failed to load order history')
-        } finally {
             setIsLoading(false)
         }
     }
@@ -110,7 +127,7 @@ const OrderHistory = () => {
     const mapStatusToChipType = (status: OrderStatus): 'active' | 'inactive' | 'pending' | 'ready' | 'preparing' | 'expired' => {
         switch (status) {
             case OrderStatus.DELIVERED:
-                return 'active'
+                return 'active' // This will show as green "Delivered"
             case OrderStatus.READY:
                 return 'ready'
             case OrderStatus.PREPARING:
@@ -126,14 +143,59 @@ const OrderHistory = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <LoadingSpinner size="lg" />
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-6xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6">Order History</h1>
+                    
+                    {/* Skeleton Filters */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i}>
+                                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                    <div className="h-11 bg-gray-200 rounded"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Skeleton Orders */}
+                    <div className="grid grid-cols-1 gap-4">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 animate-pulse">
+                                <div className="flex justify-between mb-4">
+                                    <div className="flex-1">
+                                        <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+                                        <div className="h-4 bg-gray-200 rounded w-64"></div>
+                                    </div>
+                                    <div className="h-8 bg-gray-200 rounded w-24"></div>
+                                </div>
+                                <div className="border-t pt-4">
+                                    <div className="space-y-3">
+                                        {[...Array(2)].map((_, j) => (
+                                            <div key={j} className="flex gap-3">
+                                                <div className="w-14 h-14 bg-gray-200 rounded"></div>
+                                                <div className="flex-1">
+                                                    <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                                                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                                                </div>
+                                                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-6xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Order History</h1>
 
             {error && (
@@ -232,7 +294,7 @@ const OrderHistory = () => {
                     </p>
                     {orders.length === 0 && (
                         <button
-                            onClick={() => navigate('/products')}
+                            onClick={() => navigate('/dashboard')}
                             className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors min-h-[44px]"
                         >
                             Browse Products
@@ -244,24 +306,24 @@ const OrderHistory = () => {
                     {filteredOrders.map((order) => (
                         <div
                             key={order.id}
-                            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-200"
+                            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md border border-gray-200"
                         >
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                        <h3 className="text-lg font-semibold">Order #{order.id.slice(0, 8)}</h3>
+                                        <h3 className="text-lg font-semibold">Order #{order.id?.slice(0, 8) || 'N/A'}</h3>
                                         <StatusChip status={mapStatusToChipType(order.status)} size="md" showIcon />
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 gap-2 sm:gap-4">
                                         <div className="flex items-center">
                                             <Calendar className="w-4 h-4 mr-1" />
-                                            {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: 'short',
                                                 day: 'numeric',
                                                 hour: '2-digit',
                                                 minute: '2-digit'
-                                            })}
+                                            }) : 'N/A'}
                                         </div>
                                         <div className="flex items-center">
                                             <Package className="w-4 h-4 mr-1" />
@@ -279,81 +341,27 @@ const OrderHistory = () => {
                                 </div>
                             </div>
 
-                            {/* Order Items */}
-                            <div className="border-t pt-4 mb-4">
-                                <div className="space-y-3">
+                            {/* Order Items - No images */}
+                            <div className="border-t pt-4">
+                                <div className="space-y-2">
                                     {order.items.map((item, index) => (
-                                        <div key={index} className="flex items-center gap-3">
-                                            <img
-                                                src={item.imageUrl || '/placeholder-product.png'}
-                                                alt={item.productName}
-                                                className="w-14 h-14 object-cover rounded"
-                                                onError={(e) => {
-                                                    e.currentTarget.src = '/placeholder-product.png'
-                                                }}
-                                            />
+                                        <div key={index} className="flex items-center justify-between">
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-gray-900 truncate">{item.productName}</p>
+                                                <p className="font-medium text-gray-900">{item.productName}</p>
                                                 <p className="text-sm text-gray-500">Quantity: {item.quantity} × ₹{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)}</p>
                                             </div>
-                                            <p className="font-semibold text-gray-900 whitespace-nowrap">
+                                            <p className="font-semibold text-gray-900 whitespace-nowrap ml-4">
                                                 ₹{(item.price * item.quantity).toFixed(2)}
                                             </p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-
-                            {/* Actions */}
-                            {(order.status === OrderStatus.DELIVERED || order.status === OrderStatus.READY || order.status === OrderStatus.PREPARING || order.status === OrderStatus.PENDING) && (
-                                <div className="pt-4 border-t">
-                                    <button
-                                        onClick={() => navigate(`/bill/${order.id}`)}
-                                        className="text-primary-600 hover:text-primary-700 font-medium text-sm flex items-center min-h-[44px]"
-                                    >
-                                        <Eye className="w-4 h-4 mr-1" />
-                                        View Bill
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     ))}
                 </div>
             )}
-
-            {/* Summary */}
-            {filteredOrders.length > 0 && (
-                <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="font-semibold mb-3">Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div>
-                            <p className="text-2xl font-bold text-primary-600">{filteredOrders.length}</p>
-                            <p className="text-sm text-gray-600">Total Orders</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-green-600">
-                                {filteredOrders.filter((o) => o.status === 'DELIVERED').length}
-                            </p>
-                            <p className="text-sm text-gray-600">Delivered</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-red-600">
-                                {filteredOrders.filter((o) => o.status === 'EXPIRED').length}
-                            </p>
-                            <p className="text-sm text-gray-600">Expired</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-primary-600">
-                                ₹
-                                {filteredOrders
-                                    .reduce((sum, order) => sum + order.totalAmount, 0)
-                                    .toFixed(2)}
-                            </p>
-                            <p className="text-sm text-gray-600">Total Spent</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+        </div>
         </div>
     )
 }
