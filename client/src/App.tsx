@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
+import { useCartStore } from './store/cartStore'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { UserRole } from './types'
 
@@ -46,6 +48,16 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
     const { isAuthenticated, user } = useAuthStore()
+    const { setCurrentUserId } = useCartStore()
+
+    // Load user's cart when they log in, clear when they log out
+    useEffect(() => {
+        if (isAuthenticated && user?.id) {
+            setCurrentUserId(user.id)
+        } else {
+            setCurrentUserId(null)
+        }
+    }, [isAuthenticated, user?.id, setCurrentUserId])
 
     // Redirect to appropriate dashboard based on role
     const getDefaultRoute = () => {
