@@ -21,6 +21,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   userId: string;
+  userName?: string;  // Add optional userName field
   vendorId: string;
   items: OrderItem[];
   totalAmount: number;
@@ -341,14 +342,70 @@ export class OrderModel {
 
   async findActiveByVendorId(vendorId: string): Promise<Order[]> {
     const orderQuery = `
-      SELECT id, user_id as "userId", vendor_id as "vendorId", total_amount as "totalAmount",
-             payment_id as "paymentId", status, bill_generated_at as "billGeneratedAt",
-             bill_expires_at as "billExpiresAt", qr_code as "qrCode",
-             validation_token as "validationToken", is_qr_scanned as "isQrScanned",
-             delivered_at as "deliveredAt", created_at as "createdAt"
-      FROM orders
-      WHERE vendor_id = $1 AND status NOT IN ('DELIVERED', 'EXPIRED')
-      ORDER BY created_at ASC
+      SELECT 
+        o.id, 
+        o.user_id as "userId", 
+        u.name as "userName",
+        o.vendor_id as "vendorId", 
+        o.total_amount as "totalAmount",
+        o.payment_id as "paymentId", 
+        o.status, 
+        o.bill_generated_at as "billGeneratedAt",
+        o.bill_expires_at as "billExpiresAt", 
+        o.qr_code as "qrCode",
+        o.validation_token as "validationToken", 
+        o.is_qr_scanned as "isQrScanned",
+        o.delivered_at as "deliveredAt", 
+        o.created_at as "createdAt"
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.vendor_id = $1 AND o.status NOT IN ('DELIVERED', 'EXPIRED')
+      ORDER BY o.created_at ASC
+    `;
+
+    const orderResult = await this.pool.query(orderQuery, [vendorId]);
+    
+    const orders: Order[] = [];
+    for (const orderRow of orderResult.rows) {
+      const itemsQuery = `
+        SELECT id, order_id as "orderId", product_id as "productId", product_name as "productName",
+               quantity, price, image_url as "imageUrl"
+        FROM order_items
+        WHERE order_id = $1
+      `;
+
+      const itemsResult = await this.pool.query(itemsQuery, [orderRow.id]);
+
+      orders.push({
+        ...orderRow,
+        items: itemsResult.rows
+      });
+    }
+
+    return orders;
+  }
+
+  async findHistoryByVendorId(vendorId: string): Promise<Order[]> {
+    const orderQuery = `
+      SELECT 
+        o.id, 
+        o.user_id as "userId", 
+        u.name as "userName",
+        o.vendor_id as "vendorId", 
+        o.total_amount as "totalAmount",
+        o.payment_id as "paymentId", 
+        o.status, 
+        o.bill_generated_at as "billGeneratedAt",
+        o.bill_expires_at as "billExpiresAt", 
+        o.qr_code as "qrCode",
+        o.validation_token as "validationToken", 
+        o.is_qr_scanned as "isQrScanned",
+        o.delivered_at as "deliveredAt", 
+        o.created_at as "createdAt"
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.vendor_id = $1 AND o.status IN ('DELIVERED', 'EXPIRED')
+      ORDER BY o.created_at DESC
     `;
 
     const orderResult = await this.pool.query(orderQuery, [vendorId]);

@@ -25,9 +25,10 @@ const poolConfig: PoolConfig = {
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
   ssl: getSSLConfig(),
-  max: 20, // Maximum number of clients in the pool
+  max: 10, // Reduced for free tier
+  min: 0, // Allow pool to scale down to 0
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 30000, // Increased to 30 seconds for Render.com (free tier can be slow to wake up)
+  connectionTimeoutMillis: 120000, // 2 minutes for free tier wake-up
   // Additional settings for better reliability
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,

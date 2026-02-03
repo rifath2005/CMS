@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 import { Order, OrderStatus } from '../../types'
 import api from '../../services/api'
-import { ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { ClockIcon } from '@heroicons/react/24/outline'
 
 interface VendorUser {
     id: string
@@ -13,12 +13,43 @@ interface VendorUser {
 
 const ActiveOrders = () => {
     const { user } = useAuthStore()
-    const { onOrderUpdate } = useWebSocket()
+    const { onOrderUpdate, onNewOrder } = useWebSocket()
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'all' | OrderStatus>('all')
+    const [vendorId, setVendorId] = useState<string | null>(null)
+    const [currentTime, setCurrentTime] = useState(new Date())
 
-    const vendorId = (user as VendorUser)?.vendorId || user?.id
+    // Fetch vendorId from user or from canteen
+    useEffect(() => {
+        const fetchVendorId = async () => {
+            if ((user as VendorUser)?.vendorId) {
+                setVendorId((user as VendorUser).vendorId!)
+                console.log('✓ VendorId from user:', (user as VendorUser).vendorId)
+            } else if (user?.id) {
+                // Fallback: fetch from canteen
+                try {
+                    const response = await api.get(`/canteens/user/${user.id}`)
+                    if (response.data.data?.vendorId) {
+                        setVendorId(response.data.data.vendorId)
+                        console.log('✓ VendorId from canteen:', response.data.data.vendorId)
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch vendorId:', error)
+                }
+            }
+        }
+        fetchVendorId()
+    }, [user])
+
+    // Update current time every second for countdown
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date())
+        }, 1000)
+
+        return () => clearInterval(timer)
+    }, [])
 
     useEffect(() => {
         if (vendorId) {
@@ -27,11 +58,19 @@ const ActiveOrders = () => {
     }, [vendorId])
 
     useEffect(() => {
-        const cleanup = onOrderUpdate(() => {
+        const cleanupUpdate = onOrderUpdate(() => {
+            console.log('📢 Order status updated, refreshing...')
             fetchOrders()
         })
-        return cleanup
-    }, [onOrderUpdate])
+        const cleanupNew = onNewOrder((data) => {
+            console.log('📢 New order received:', data)
+            fetchOrders()
+        })
+        return () => {
+            if (cleanupUpdate) cleanupUpdate()
+            if (cleanupNew) cleanupNew()
+        }
+    }, [onOrderUpdate, onNewOrder, vendorId])
 
     const fetchOrders = async () => {
         if (!vendorId) return
@@ -68,9 +107,8 @@ const ActiveOrders = () => {
     }
 
     const getTimeRemaining = (expiresAt: string) => {
-        const now = new Date()
         const expires = new Date(expiresAt)
-        const diff = expires.getTime() - now.getTime()
+        const diff = expires.getTime() - currentTime.getTime()
         const minutes = Math.floor(diff / 60000)
         const seconds = Math.floor((diff % 60000) / 1000)
         
@@ -134,44 +172,60 @@ const ActiveOrders = () => {
             </div>
 
             {/* Orders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredOrders.length === 0 ? (
                     <div className="col-span-full text-center py-12 text-gray-500">
                         No active orders
                     </div>
                 ) : (
                     filteredOrders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-600">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="font-bold text-lg">#{order.id.slice(0, 8).toUpperCase()}</h3>
-                                <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(order.status)}`}>
+                        <div key={order.id} className="bg-white rounded-lg shadow-md p-3 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-bold text-base text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</h3>
+                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                                     {order.status}
                                 </span>
                             </div>
 
-                            <div className="mb-3">
-                                <p className="text-sm text-gray-600">Customer: {order.userId.slice(0, 8)}</p>
-                                <p className="text-sm text-gray-600">Time: {new Date(order.createdAt).toLocaleTimeString()}</p>
-                                <div className="flex items-center space-x-1 text-sm text-gray-600 mt-1">
-                                    <ClockIcon className="h-4 w-4" />
-                                    <span>Expires: {getTimeRemaining(order.billExpiresAt)}</span>
+                            {/* Customer & Time Info */}
+                            <div className="mb-2 space-y-1.5">
+                                <div>
+                                    <p className="text-xs text-gray-500">Customer name</p>
+                                    <p className="text-sm font-bold text-gray-900">{order.userName || 'Guest'}</p>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-600">Order Time</span>
+                                    <span className="font-semibold text-gray-900">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                                </div>
+                                <div className="flex items-center justify-between bg-red-50 rounded p-1.5">
+                                    <span className="text-xs font-medium text-gray-700">Expires In</span>
+                                    <div className="flex items-center space-x-1">
+                                        <ClockIcon className="h-3.5 w-3.5 text-red-500" />
+                                        <span className="text-sm font-bold text-red-600">{getTimeRemaining(order.billExpiresAt)}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mb-4">
-                                <p className="text-sm font-medium mb-2">Items:</p>
-                                {order.items.map((item, idx) => (
-                                    <div key={idx} className="text-sm text-gray-700">
-                                        {item.quantity}x {item.productName}
-                                    </div>
-                                ))}
+                            {/* Items List */}
+                            <div className="mb-2 bg-gray-50 rounded p-2">
+                                <p className="text-xs font-semibold text-gray-700 mb-2">Order Items</p>
+                                <div className="space-y-1.5">
+                                    {order.items.map((item, idx) => (
+                                        <div key={idx} className="text-sm text-gray-700">
+                                            <span className="font-bold text-blue-600 text-sm mr-1.5">{item.quantity}×</span>
+                                            <span className="font-medium">{item.productName}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="flex space-x-2">
+                            {/* Action Button */}
+                            <div>
                                 {order.status === OrderStatus.PENDING && (
                                     <button
                                         onClick={() => updateOrderStatus(order.id, OrderStatus.PREPARING)}
-                                        className="flex-1 px-3 py-2 text-sm font-medium text-white bg-yellow-600 rounded hover:bg-yellow-700"
+                                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors"
                                     >
                                         Start Preparing
                                     </button>
@@ -179,7 +233,7 @@ const ActiveOrders = () => {
                                 {order.status === OrderStatus.PREPARING && (
                                     <button
                                         onClick={() => updateOrderStatus(order.id, OrderStatus.READY)}
-                                        className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
                                     >
                                         Mark Ready
                                     </button>
@@ -187,7 +241,7 @@ const ActiveOrders = () => {
                                 {order.status === OrderStatus.READY && (
                                     <button
                                         onClick={() => updateOrderStatus(order.id, OrderStatus.DELIVERED)}
-                                        className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                                     >
                                         Mark Delivered
                                     </button>

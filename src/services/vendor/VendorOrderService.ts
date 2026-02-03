@@ -42,6 +42,14 @@ export class VendorOrderService {
   }
 
   /**
+   * Get order history (completed/delivered orders)
+   * Sorted by timestamp (newest first)
+   */
+  async getOrderHistory(vendorId: string): Promise<Order[]> {
+    return this.orderModel.findHistoryByVendorId(vendorId);
+  }
+
+  /**
    * Get combined item list for vendor
    * Aggregates quantities across all active orders
    */

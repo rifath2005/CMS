@@ -26,8 +26,6 @@ import InstitutionStats from './pages/admin/Stats'
 
 // Vendor Pages
 import VendorDashboard from './pages/vendor/Dashboard'
-import ActiveOrders from './pages/vendor/ActiveOrders'
-import CombinedItems from './pages/vendor/CombinedItems'
 import VendorProducts from './pages/vendor/Products'
 import QRScanner from './pages/vendor/QRScanner'
 import VendorAnalytics from './pages/vendor/Analytics'
@@ -99,8 +97,6 @@ function App() {
                     <Route element={<ProtectedRoute allowedRoles={[UserRole.VENDOR]} />}>
                         <Route element={<VendorLayout />}>
                             <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-                            <Route path="/vendor/orders" element={<ActiveOrders />} />
-                            <Route path="/vendor/combined-items" element={<CombinedItems />} />
                             <Route path="/vendor/products" element={<VendorProducts />} />
                             <Route path="/vendor/qr-scanner" element={<QRScanner />} />
                             <Route path="/vendor/analytics" element={<VendorAnalytics />} />
