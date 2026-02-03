@@ -79,7 +79,7 @@ const Login = () => {
       </div>
 
       {/* Form Content Area */}
-      <main className="flex-1 flex items-center justify-center p-3 md:p-6 relative bg-[#fafafa]">
+      <main className="flex-1 flex items-center justify-center p-3 md:p-6 relative bg-[#fafafa] overflow-y-auto">
         {/* Back to Landing Page Button */}
         <a 
           href="http://localhost:5174" 
@@ -90,7 +90,7 @@ const Login = () => {
           </svg>
         </a>
         
-        <div className={`w-full max-w-[500px] glass-card rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] p-4 md:p-6 transition-all duration-700 transform ${mode === 'signup' ? 'md:max-w-[760px]' : ''}`}>
+        <div className={`w-full max-w-[500px] glass-card rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] p-4 md:p-6 transition-all duration-700 transform my-auto ${mode === 'signup' ? 'md:max-w-[760px]' : ''}`}>
           {mode === 'login' && <LoginForm onSwitchMode={handleModeSwitch} />}
           {mode === 'signup' && <SignupForm onSwitchMode={handleModeSwitch} />}
           {mode === 'forgot-password' && <ForgotPasswordForm onSwitchMode={handleModeSwitch} onEmailSubmit={handleEmailSubmit} />}
