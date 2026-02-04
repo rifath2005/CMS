@@ -32,8 +32,29 @@ let wsServer: WebSocketServer;
 let orderExpirationService: OrderExpirationService;
 
 // Middleware
-app.use(helmet()); // Security headers
-app.use(cors({ origin: config.cors.origin, credentials: true }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // Security headers with CORS compatibility
+
+// Proper CORS configuration
+const allowedOrigins = config.cors.origin;
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || config.nodeEnv === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
