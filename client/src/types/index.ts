@@ -39,9 +39,9 @@ export interface CartItem {
   quantity: number
   price: number
   imageUrl: string
-  vendorId: string
-  canteenId: string
-  canteenName: string
+  vendorId?: string
+  canteenId?: string
+  canteenName?: string
 }
 
 export enum OrderStatus {

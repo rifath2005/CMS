@@ -51,6 +51,7 @@ const Products = () => {
             quantity: 1,
             price: product.price,
             imageUrl: product.imageUrl,
+            vendorId: product.vendorId,
         })
     }
 
