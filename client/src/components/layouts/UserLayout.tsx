@@ -182,7 +182,7 @@ const UserLayout = () => {
                     to="/cart"
                     className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 
                              bg-gradient-to-r from-blue-600 to-blue-700 text-white 
-                             px-4 py-2.5 rounded-full shadow-lg 
+                             px-4 py-2.5 pr-3 rounded-full shadow-lg 
                              hover:shadow-xl hover:scale-105 
                              transition-all duration-300 
                              flex items-center space-x-2 group"
@@ -194,7 +194,6 @@ const UserLayout = () => {
                         </span>
                     </div>
                     <span className="font-medium">View cart</span>
-                    <span className="text-sm opacity-90">({cartItemCount} {cartItemCount === 1 ? 'item' : 'items'})</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
             )}

@@ -244,11 +244,11 @@ const Canteens = () => {
                             return (
                                 <div
                                     key={product.id}
-                                    className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-base hover-elevate ${outOfStock ? 'opacity-60' : ''
+                                    className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-base hover-elevate flex flex-col ${outOfStock ? 'opacity-60' : ''
                                         }`}
                                 >
                                     {/* Product Image */}
-                                    <div className="relative h-48 bg-gray-200">
+                                    <div className="relative h-48 bg-gray-200 flex-shrink-0">
                                         {product.imageUrl ? (
                                             <img
                                                 src={product.imageUrl}
@@ -286,7 +286,7 @@ const Canteens = () => {
                                         </div>
                                     </div>
 
-                                    <div className="p-4">
+                                    <div className="p-4 flex flex-col flex-1">
                                         <h3 className={`text-lg font-semibold mb-2 line-clamp-1 ${outOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
                                             {product.name}
                                         </h3>
@@ -306,7 +306,7 @@ const Canteens = () => {
                                         <button
                                             onClick={() => handleAddToCart(product)}
                                             disabled={outOfStock}
-                                            className={`w-full h-11 px-4 rounded-lg font-semibold ${outOfStock
+                                            className={`w-full h-11 px-4 rounded-lg font-semibold mt-auto ${outOfStock
                                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                 : isInCart(product.id)
                                                     ? 'bg-green-500 text-white hover:bg-green-600'
@@ -386,17 +386,17 @@ const Canteens = () => {
                             <div
                                 key={canteen.id}
                                 onClick={() => loadProductsByCanteen(canteen)}
-                                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg cursor-pointer"
+                                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg cursor-pointer flex flex-col"
                             >
                                 {/* Canteen Image Placeholder */}
-                                <div className="relative h-48 bg-gradient-to-br from-blue-500 to-blue-600">
+                                <div className="relative h-48 bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0">
                                     <div className="w-full h-full flex items-center justify-center text-white">
                                         <Store className="w-20 h-20 opacity-80" />
                                     </div>
                                 </div>
 
                                 {/* Canteen Details */}
-                                <div className="p-4">
+                                <div className="p-4 flex flex-col flex-1">
                                     <h3 className="text-lg font-semibold mb-2 line-clamp-1 text-gray-900">
                                         {canteen.name}
                                     </h3>
@@ -413,7 +413,7 @@ const Canteens = () => {
                                     )}
 
                                     <button
-                                        className="w-full h-11 px-4 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600"
+                                        className="w-full h-11 px-4 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600 mt-auto"
                                         aria-label={`View products from ${canteen.name}`}
                                     >
                                         View Products
