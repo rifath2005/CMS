@@ -24,6 +24,9 @@ const QRScannerEnhanced = () => {
     const scanIntervalRef = useRef<number>()
 
     useEffect(() => {
+        // Auto-start camera when component mounts
+        startCamera()
+        
         return () => {
             stopCamera()
         }
@@ -138,7 +141,7 @@ const QRScannerEnhanced = () => {
 
     const handleClearResult = () => {
         setResult(null)
-        setManualCode('')
+        startCamera() // Restart camera for next scan
     }
 
     return (
@@ -149,60 +152,8 @@ const QRScannerEnhanced = () => {
             </div>
 
             <div className="max-w-2xl mx-auto">
-                {/* Camera Scanner */}
-                {!cameraActive && !result && (
-                    <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-4">
-                                <QrCodeIcon className="h-12 w-12 text-blue-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2">Scan QR Code</h2>
-                            <p className="text-gray-600">Choose scanning method</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <button
-                                onClick={startCamera}
-                                className="flex flex-col items-center justify-center p-6 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition"
-                            >
-                                <CameraIcon className="h-12 w-12 text-blue-600 mb-2" />
-                                <span className="font-medium text-blue-600">Use Camera</span>
-                                <span className="text-sm text-gray-500 mt-1">Scan with device camera</span>
-                            </button>
-
-                            <div className="flex flex-col items-center justify-center p-6 border-2 border-gray-300 rounded-lg">
-                                <QrCodeIcon className="h-12 w-12 text-gray-600 mb-2" />
-                                <span className="font-medium text-gray-600">Manual Entry</span>
-                                <span className="text-sm text-gray-500 mt-1">Enter code below</span>
-                            </div>
-                        </div>
-
-                        {/* Manual Input Form */}
-                        <form onSubmit={handleManualScan} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Validation Code</label>
-                                <input
-                                    type="text"
-                                    value={manualCode}
-                                    onChange={(e) => setManualCode(e.target.value)}
-                                    placeholder="Enter validation code"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-lg font-mono"
-                                    disabled={scanning}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={scanning || !manualCode.trim()}
-                                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {scanning ? 'Verifying...' : 'Verify Order'}
-                            </button>
-                        </form>
-                    </div>
-                )}
-
-                {/* Camera View */}
-                {cameraActive && (
+                {/* Camera View - Auto-starts */}
+                {cameraActive && !result && (
                     <div className="bg-gray-900 rounded-lg shadow-2xl overflow-hidden mb-6">
                         <div className="relative">
                             <video
@@ -248,26 +199,7 @@ const QRScannerEnhanced = () => {
                             </button>
                         </div>
 
-                        {/* Manual input while camera is active */}
-                        <div className="p-4 bg-gray-800 border-t border-gray-700">
-                            <form onSubmit={handleManualScan} className="flex space-x-2">
-                                <input
-                                    type="text"
-                                    value={manualCode}
-                                    onChange={(e) => setManualCode(e.target.value)}
-                                    placeholder="Or enter code manually"
-                                    className="flex-1 px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-                                    disabled={scanning}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={scanning || !manualCode.trim()}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-600"
-                                >
-                                    Verify
-                                </button>
-                            </form>
-                        </div>
+                        {/* Manual input removed - camera only */}
                     </div>
                 )}
 
@@ -320,19 +252,6 @@ const QRScannerEnhanced = () => {
                                 </button>
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Instructions */}
-                {!cameraActive && !result && (
-                    <div className="bg-blue-50 rounded-lg p-6">
-                        <h3 className="font-bold text-blue-900 mb-3">How to use:</h3>
-                        <ol className="list-decimal list-inside space-y-2 text-blue-800">
-                            <li>Click "Use Camera" to scan with your device camera</li>
-                            <li>Or enter the validation code manually</li>
-                            <li>Position the QR code within the frame</li>
-                            <li>Order will be automatically verified and marked as delivered</li>
-                        </ol>
                     </div>
                 )}
             </div>

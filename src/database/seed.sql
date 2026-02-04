@@ -22,27 +22,27 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO users (id, email, password_hash, name, role, institution_id)
 VALUES 
   -- Institution Admins
-  ('a1111111-1111-1111-1111-111111111111', 'admin@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Rajesh Kumar', 'INSTITUTION_ADMIN', '11111111-1111-1111-1111-111111111111'),
-  ('a2222222-2222-2222-2222-222222222222', 'admin@vit.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Priya Sharma', 'INSTITUTION_ADMIN', '22222222-2222-2222-2222-222222222222'),
+  ('a1111111-1111-1111-1111-111111111111', 'admin@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Rajesh Kumar', 'INSTITUTION_ADMIN', '11111111-1111-1111-1111-111111111111'),
+  ('a2222222-2222-2222-2222-222222222222', 'admin@vit.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Priya Sharma', 'INSTITUTION_ADMIN', '22222222-2222-2222-2222-222222222222'),
   
   -- Vendors for MIT College
-  ('44444444-4444-4444-4444-444444444444', 'vendor.maincanteen@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Amit Patel', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
-  ('55555555-5555-5555-5555-555555555555', 'vendor.snackshop@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Sunita Desai', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
-  ('66666666-6666-6666-6666-666666666666', 'vendor.cafeteria@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Ravi Mehta', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
+  ('44444444-4444-4444-4444-444444444444', 'vendor.maincanteen@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Amit Patel', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
+  ('55555555-5555-5555-5555-555555555555', 'vendor.snackshop@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Sunita Desai', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
+  ('66666666-6666-6666-6666-666666666666', 'vendor.cafeteria@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Ravi Mehta', 'VENDOR', '11111111-1111-1111-1111-111111111111'),
   
   -- Vendors for VIT
-  ('77777777-7777-7777-7777-777777777777', 'vendor.foodcourt@vit.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Lakshmi Iyer', 'VENDOR', '22222222-2222-2222-2222-222222222222'),
+  ('77777777-7777-7777-7777-777777777777', 'vendor.foodcourt@vit.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Lakshmi Iyer', 'VENDOR', '22222222-2222-2222-2222-222222222222'),
   
   -- Regular Users (Students) - MIT College
-  ('88888888-8888-8888-8888-888888888888', 'john.doe@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'John Doe', 'USER', '11111111-1111-1111-1111-111111111111'),
-  ('99999999-9999-9999-9999-999999999999', 'jane.smith@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Jane Smith', 'USER', '11111111-1111-1111-1111-111111111111'),
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'rahul.verma@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Rahul Verma', 'USER', '11111111-1111-1111-1111-111111111111'),
-  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'priya.singh@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Priya Singh', 'USER', '11111111-1111-1111-1111-111111111111'),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'amit.kumar@mitcoe.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Amit Kumar', 'USER', '11111111-1111-1111-1111-111111111111'),
+  ('88888888-8888-8888-8888-888888888888', 'john.doe@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'John Doe', 'USER', '11111111-1111-1111-1111-111111111111'),
+  ('99999999-9999-9999-9999-999999999999', 'jane.smith@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Jane Smith', 'USER', '11111111-1111-1111-1111-111111111111'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'rahul.verma@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Rahul Verma', 'USER', '11111111-1111-1111-1111-111111111111'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'priya.singh@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Priya Singh', 'USER', '11111111-1111-1111-1111-111111111111'),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'amit.kumar@mitcoe.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Amit Kumar', 'USER', '11111111-1111-1111-1111-111111111111'),
   
   -- Regular Users (Students) - VIT
-  ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'sarah.johnson@vit.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Sarah Johnson', 'USER', '22222222-2222-2222-2222-222222222222'),
-  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'michael.brown@vit.edu', '$2b$10$k1TAo4t0fsOh84eM3TIuA.wd3dzojjWKldfiYLINnfylnqNN/B5XO', 'Michael Brown', 'USER', '22222222-2222-2222-2222-222222222222')
+  ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'sarah.johnson@vit.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Sarah Johnson', 'USER', '22222222-2222-2222-2222-222222222222'),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'michael.brown@vit.edu', '$2b$10$.e/Ex/w77y7lS2yiVwZBvOw/J9D3BP3zbenzZwZU7Ovzpc9X.j48y', 'Michael Brown', 'USER', '22222222-2222-2222-2222-222222222222')
 ON CONFLICT (id) DO UPDATE SET 
   password_hash = EXCLUDED.password_hash,
   name = EXCLUDED.name;

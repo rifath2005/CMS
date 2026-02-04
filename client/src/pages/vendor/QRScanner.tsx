@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../services/api'
-import { CheckCircleIcon, XCircleIcon, QrCodeIcon, CameraIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Html5Qrcode } from 'html5-qrcode'
 
 interface ScanResult {
@@ -15,15 +15,14 @@ interface ScanResult {
 }
 
 const QRScanner = () => {
-    const [manualCode, setManualCode] = useState('')
     const [scanning, setScanning] = useState(false)
     const [result, setResult] = useState<ScanResult | null>(null)
     const [cameraActive, setCameraActive] = useState(false)
-    const [manualMode, setManualMode] = useState(false)
     const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
     const qrCodeRegionId = 'qr-reader'
 
     useEffect(() => {
+        // Don't auto-start camera, wait for user to click button
         return () => {
             stopCamera()
         }
@@ -31,14 +30,13 @@ const QRScanner = () => {
 
     const checkCameraPermission = async () => {
         try {
-            // Check if Permissions API is available
             if (navigator.permissions && navigator.permissions.query) {
                 const result = await navigator.permissions.query({ name: 'camera' as PermissionName })
                 console.log('Camera permission status:', result.state)
                 return result.state
             }
             console.log('Permissions API not available, will prompt user')
-            return 'prompt' // Default to prompt if API not available
+            return 'prompt'
         } catch (err) {
             console.log('Permissions API error (this is normal on some browsers):', err)
             return 'prompt'
@@ -50,7 +48,6 @@ const QRScanner = () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true })
             console.log('✅ Basic camera access works!', stream)
-            // Stop the test stream
             stream.getTracks().forEach(track => track.stop())
             return true
         } catch (err: any) {
@@ -62,14 +59,27 @@ const QRScanner = () => {
     const startCamera = async () => {
         console.log('=== STARTING CAMERA ===')
         
-        // First, set cameraActive to true so the div renders
+        // Stop any existing camera first
+        if (html5QrCodeRef.current) {
+            console.log('Cleaning up existing scanner...')
+            try {
+                const state = await html5QrCodeRef.current.getState()
+                if (state === 2) {
+                    await html5QrCodeRef.current.stop()
+                }
+                await html5QrCodeRef.current.clear()
+            } catch (err) {
+                console.log('Cleanup error (expected):', err)
+            }
+            html5QrCodeRef.current = null
+        }
+        
         setCameraActive(true)
         
         // Wait for the DOM to update
         await new Promise(resolve => setTimeout(resolve, 100))
         
         try {
-            // Check if the element exists
             const element = document.getElementById(qrCodeRegionId)
             console.log('QR reader element:', element)
             
@@ -80,7 +90,6 @@ const QRScanner = () => {
                 return
             }
 
-            // Test basic camera access first
             console.log('Step 1: Testing basic camera access...')
             const basicAccessWorks = await testBasicCameraAccess()
             if (!basicAccessWorks) {
@@ -92,7 +101,6 @@ const QRScanner = () => {
                 return
             }
 
-            // Check permission status
             console.log('Step 2: Checking camera permission...')
             const permissionStatus = await checkCameraPermission()
             console.log('Permission status:', permissionStatus)
@@ -107,7 +115,6 @@ const QRScanner = () => {
                 return
             }
 
-            // Get available cameras
             console.log('Step 3: Getting available cameras...')
             const devices = await Html5Qrcode.getCameras()
             console.log('Devices found:', devices)
@@ -115,25 +122,37 @@ const QRScanner = () => {
             if (!devices || devices.length === 0) {
                 console.error('No cameras found')
                 setCameraActive(false)
-                alert('No camera found on this device. Please use manual entry.')
+                alert('No camera found on this device.')
                 return
             }
 
             console.log('Available cameras:', devices.length, devices)
 
-            // Initialize Html5Qrcode
             console.log('Step 4: Initializing Html5Qrcode...')
             html5QrCodeRef.current = new Html5Qrcode(qrCodeRegionId)
             console.log('Html5Qrcode initialized')
             
             const config = {
                 fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+                qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+                    // Make the QR box 70% of the smaller dimension
+                    const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                    const qrboxSize = Math.floor(minEdgeSize * 0.7);
+                    return {
+                        width: qrboxSize,
+                        height: qrboxSize
+                    };
+                },
+                aspectRatio: 1.777778, // 16:9 aspect ratio
+                disableFlip: false, // Allow flipping for better detection
+                videoConstraints: {
+                    facingMode: 'environment',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
             }
 
             console.log('Step 5: Starting camera with config:', config)
-            // Try to start with environment camera (back camera)
             await html5QrCodeRef.current.start(
                 { facingMode: 'environment' },
                 config,
@@ -150,7 +169,6 @@ const QRScanner = () => {
             
             setCameraActive(false)
             
-            // Provide more specific error messages
             let errorMessage = 'Unable to access camera. '
             
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -164,13 +182,12 @@ const QRScanner = () => {
             } else if (err.name === 'NotSupportedError') {
                 errorMessage += 'Camera access is not supported on this browser. Please use HTTPS or try a different browser.'
             } else {
-                errorMessage += err.message || 'Please grant camera permissions or use manual input.'
+                errorMessage += err.message || 'Please check camera permissions.'
             }
             
             console.error('Showing alert:', errorMessage)
             alert(errorMessage)
             
-            // Clean up if initialization failed
             if (html5QrCodeRef.current) {
                 try {
                     console.log('Cleaning up Html5Qrcode...')
@@ -185,7 +202,6 @@ const QRScanner = () => {
 
     const onScanSuccess = (decodedText: string) => {
         console.log('QR Code detected:', decodedText)
-        // Verify the order
         verifyOrder(decodedText)
     }
 
@@ -194,29 +210,45 @@ const QRScanner = () => {
     }
 
     const stopCamera = async () => {
+        console.log('=== STOPPING CAMERA ===')
+        
         if (html5QrCodeRef.current) {
             try {
-                await html5QrCodeRef.current.stop()
-                html5QrCodeRef.current.clear()
+                const state = await html5QrCodeRef.current.getState()
+                console.log('Scanner state:', state)
+                
+                if (state === 2) { // Scanner is running
+                    console.log('Stopping scanner...')
+                    await html5QrCodeRef.current.stop()
+                }
+                
+                console.log('Clearing scanner...')
+                await html5QrCodeRef.current.clear()
                 html5QrCodeRef.current = null
+                console.log('Scanner cleared')
             } catch (err) {
                 console.error('Error stopping camera:', err)
             }
         }
-        setCameraActive(false)
-    }
-
-    const handleManualScan = async (e: React.FormEvent) => {
-        e.preventDefault()
         
-        if (!manualCode.trim()) return
-
-        await verifyOrder(manualCode.trim())
-        setManualCode('')
+        // Additional cleanup: Stop all video tracks manually
+        const videoElements = document.querySelectorAll('#qr-reader video')
+        videoElements.forEach((video: any) => {
+            if (video.srcObject) {
+                const stream = video.srcObject as MediaStream
+                stream.getTracks().forEach(track => {
+                    console.log('Stopping track:', track.kind, track.label)
+                    track.stop()
+                })
+                video.srcObject = null
+            }
+        })
+        
+        setCameraActive(false)
+        console.log('✅ Camera fully stopped')
     }
 
     const verifyOrder = async (validationToken: string) => {
-        // Prevent multiple simultaneous verifications
         if (scanning) return
         
         setScanning(true)
@@ -234,7 +266,6 @@ const QRScanner = () => {
                 orderDetails: response.data.data
             })
 
-            // Stop camera after successful scan
             await stopCamera()
         } catch (error: any) {
             setResult({
@@ -242,7 +273,6 @@ const QRScanner = () => {
                 message: error.response?.data?.error?.message || 'Invalid QR code or order already delivered'
             })
 
-            // Clear error after 2 seconds and continue scanning
             setTimeout(() => {
                 setResult(null)
                 setScanning(false)
@@ -253,21 +283,12 @@ const QRScanner = () => {
         }
     }
 
-    const handleClearResult = () => {
+    const handleScanAnother = async () => {
+        console.log('=== SCAN ANOTHER ===')
         setResult(null)
-        setManualCode('')
+        setScanning(false)
+        // Go back to initial state - user can click "Scan QR Code" again
         setCameraActive(false)
-        setManualMode(false)
-    }
-
-    const handleManualModeToggle = () => {
-        setManualMode(true)
-    }
-
-    const handleBackToModes = async () => {
-        await stopCamera()
-        setManualMode(false)
-        setManualCode('')
     }
 
     return (
@@ -275,15 +296,40 @@ const QRScanner = () => {
             <style>{`
                 #qr-reader {
                     border: none !important;
+                    width: 100% !important;
+                    position: relative;
+                    overflow: hidden;
                 }
                 #qr-reader video {
                     border-radius: 0.5rem;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    height: auto !important;
+                    display: block;
+                    margin: 0 auto;
                 }
                 #qr-reader__dashboard_section {
                     display: none !important;
                 }
                 #qr-reader__scan_region {
-                    border: 2px solid #3b82f6 !important;
+                    border: 3px solid #3b82f6 !important;
+                    border-radius: 12px !important;
+                    position: relative !important;
+                }
+                #qr-reader__camera_selection {
+                    display: none !important;
+                }
+                #qr-reader canvas {
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    display: none !important;
+                }
+                /* Hide any duplicate video elements */
+                #qr-reader video:not(:first-of-type) {
+                    display: none !important;
                 }
             `}</style>
             
@@ -293,87 +339,66 @@ const QRScanner = () => {
             </div>
 
             <div className="max-w-2xl mx-auto">
-                {/* Mode Selection - Show when no mode is active and no result */}
-                {!cameraActive && !manualMode && !result && (
-                    <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-4">
-                                <QrCodeIcon className="h-12 w-12 text-blue-600" />
+                {/* Initial State - Show Scan Button */}
+                {!cameraActive && !result && (
+                    <div className="text-center">
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-12 mb-6 border-2 border-blue-200">
+                            <div className="mb-6">
+                                <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                    </svg>
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Ready to Scan</h2>
+                                <p className="text-gray-600">Click the button below to open camera and scan customer QR codes</p>
                             </div>
-                            <h2 className="text-2xl font-bold mb-2">Scan QR Code</h2>
-                            <p className="text-gray-600">Choose scanning method</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
                             <button
                                 onClick={startCamera}
-                                className="flex flex-col items-center justify-center p-6 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition"
+                                className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-3 mx-auto"
                             >
-                                <CameraIcon className="h-12 w-12 text-blue-600 mb-2" />
-                                <span className="font-medium text-blue-600">Use Camera</span>
-                                <span className="text-sm text-gray-500 mt-1">Scan with device camera</span>
-                            </button>
-
-                            <button
-                                onClick={handleManualModeToggle}
-                                className="flex flex-col items-center justify-center p-6 border-2 border-gray-600 rounded-lg hover:bg-gray-50 transition"
-                            >
-                                <QrCodeIcon className="h-12 w-12 text-gray-600 mb-2" />
-                                <span className="font-medium text-gray-600">Manual Entry</span>
-                                <span className="text-sm text-gray-500 mt-1">Enter code manually</span>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>Scan QR Code</span>
                             </button>
                         </div>
-                    </div>
-                )}
 
-                {/* Manual Entry Mode */}
-                {manualMode && !result && (
-                    <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full mb-4">
-                                <QrCodeIcon className="h-12 w-12 text-gray-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2">Manual Entry</h2>
-                            <p className="text-gray-600">Enter the validation code</p>
+                        <div className="bg-blue-50 rounded-lg p-6 mb-4">
+                            <h3 className="font-bold text-blue-900 mb-3 flex items-center">
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                How it works:
+                            </h3>
+                            <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                                <li>Click "Scan QR Code" to activate camera</li>
+                                <li>Allow camera permissions when prompted</li>
+                                <li>Point camera at customer's QR code</li>
+                                <li>Order will be verified automatically</li>
+                            </ol>
                         </div>
 
-                        <form onSubmit={handleManualScan} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Validation Code</label>
-                                <input
-                                    type="text"
-                                    value={manualCode}
-                                    onChange={(e) => setManualCode(e.target.value)}
-                                    placeholder="Enter validation code"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-lg font-mono"
-                                    disabled={scanning}
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={handleBackToModes}
-                                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-lg"
-                                >
-                                    Back
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={scanning || !manualCode.trim()}
-                                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    {scanning ? 'Verifying...' : 'Verify Order'}
-                                </button>
-                            </div>
-                        </form>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <h4 className="font-bold text-yellow-900 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                Camera Requirements:
+                            </h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800">
+                                <li>HTTPS connection required (or localhost)</li>
+                                <li>Camera permission must be granted</li>
+                                <li>Camera must not be in use by another app</li>
+                            </ul>
+                        </div>
                     </div>
                 )}
 
                 {/* Camera View */}
                 {cameraActive && !result && (
-                    <div className="bg-white rounded-lg shadow-2xl overflow-hidden mb-6">
-                        {/* QR Code Scanner Container */}
+                    <div className="bg-white rounded-lg shadow-2xl overflow-hidden mb-6 relative">
                         <div id={qrCodeRegionId} className="w-full"></div>
 
                         {scanning && (
@@ -388,7 +413,7 @@ const QRScanner = () => {
                         <div className="p-4 bg-gray-800 flex justify-between items-center">
                             <p className="text-white text-sm">📷 Camera scanning automatically</p>
                             <button
-                                onClick={handleBackToModes}
+                                onClick={stopCamera}
                                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center space-x-2"
                             >
                                 <XMarkIcon className="h-5 w-5" />
@@ -440,7 +465,7 @@ const QRScanner = () => {
                                 )}
 
                                 <button
-                                    onClick={handleClearResult}
+                                    onClick={handleScanAnother}
                                     className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
                                 >
                                     Scan Another
@@ -448,43 +473,6 @@ const QRScanner = () => {
                             </div>
                         </div>
                     </div>
-                )}
-
-                {/* Instructions */}
-                {!cameraActive && !manualMode && !result && (
-                    <>
-                        <div className="bg-blue-50 rounded-lg p-6 mb-4">
-                            <h3 className="font-bold text-blue-900 mb-3">How to use:</h3>
-                            <ol className="list-decimal list-inside space-y-2 text-blue-800">
-                                <li>Click "Use Camera" to activate your device camera for automatic scanning</li>
-                                <li>Or click "Manual Entry" to type the validation code</li>
-                                <li>Position the QR code within the camera frame for auto-detection</li>
-                                <li>Order will be verified and marked as delivered automatically</li>
-                            </ol>
-                        </div>
-
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <h4 className="font-bold text-yellow-900 mb-2">⚠️ Camera Requirements:</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800">
-                                <li>HTTPS connection required (or localhost for testing)</li>
-                                <li>Camera permission must be granted</li>
-                                <li>Camera must not be in use by another app</li>
-                            </ul>
-                        </div>
-
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <h4 className="font-bold text-gray-900 mb-2">🔧 Troubleshooting:</h4>
-                            <div className="space-y-2 text-sm text-gray-700">
-                                <p><strong>Camera not working?</strong></p>
-                                <ol className="list-decimal list-inside space-y-1 ml-2">
-                                    <li>Check the lock icon in your browser's address bar</li>
-                                    <li>Click it and ensure Camera is set to "Allow"</li>
-                                    <li>Refresh the page and try again</li>
-                                    <li>If still not working, use "Manual Entry" instead</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </>
                 )}
             </div>
         </div>
