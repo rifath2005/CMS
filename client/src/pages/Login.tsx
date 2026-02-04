@@ -82,7 +82,7 @@ const Login = () => {
       <main className="flex-1 flex items-center justify-center p-3 md:p-6 relative bg-[#fafafa] overflow-y-auto">
         {/* Back to Landing Page Button */}
         <a 
-          href="http://localhost:5174" 
+          href="/" 
           className="absolute top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2 text-slate-600 hover:text-[#ff7a00] transition-colors font-semibold text-sm group bg-white/80 backdrop-blur-sm px-2.5 py-1.5 rounded-full shadow-sm"
         >
           <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
