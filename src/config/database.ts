@@ -32,6 +32,8 @@ const poolConfig: PoolConfig = {
   // Additional settings for better reliability
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
+  // Force UTF8 encoding to handle special characters
+  client_encoding: 'UTF8',
 };
 
 export const pool = new Pool(poolConfig);
@@ -46,8 +48,12 @@ console.log('Database configuration:', {
 });
 
 // Test database connection on startup
-pool.on('connect', () => {
+pool.on('connect', (client) => {
   console.log('✓ Database connected successfully');
+  // Set client encoding to UTF8 to handle special characters
+  client.query('SET CLIENT_ENCODING TO UTF8').catch((err) => {
+    console.error('Failed to set client encoding:', err);
+  });
 });
 
 pool.on('error', (err: Error) => {
