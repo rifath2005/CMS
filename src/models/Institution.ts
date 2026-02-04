@@ -1,9 +1,19 @@
 import { Pool, QueryResult } from 'pg';
 import { Institution } from '../types';
+import {
+  InstitutionConfig,
+  InstitutionFeatures,
+  InstitutionLimits,
+  InstitutionBranding,
+  InstitutionSecurity,
+  InstitutionStatus,
+  InstitutionPlan
+} from '../types/institutionConfig';
 
 /**
  * Institution model for database operations
  * Validates: Requirements 2.1, 2.5 (Institution Management and Email Domain Configuration)
+ * Enhanced with comprehensive feature flag support
  */
 
 export class InstitutionModel {
@@ -91,11 +101,15 @@ export class InstitutionModel {
    */
   async findAll(): Promise<Institution[]> {
     const query = `
-      SELECT id, name, email_domain as "emailDomain", 
-             contact_email as "contactEmail", contact_phone as "contactPhone",
-             created_at as "createdAt"
-      FROM institutions
-      ORDER BY created_at DESC
+      SELECT 
+        i.id, i.name, i.email_domain as "emailDomain", 
+        i.contact_email as "contactEmail", i.contact_phone as "contactPhone",
+        i.status, i.plan,
+        i.created_at as "createdAt",
+        COALESCE((SELECT COUNT(*) FROM users u WHERE u.institution_id = i.id), 0)::int as "usersCount",
+        COALESCE((SELECT COUNT(*) FROM canteens c WHERE c.institution_id = i.id), 0)::int as "vendorsCount"
+      FROM institutions i
+      ORDER BY i.created_at DESC
     `;
 
     const result: QueryResult<Institution> = await this.pool.query(query);
@@ -186,5 +200,259 @@ export class InstitutionModel {
       return null;
     }
     return this.findByEmailDomain(domain);
+  }
+
+  /**
+   * Get institution with full configuration
+   * @param id - Institution ID
+   * @returns Full institution configuration or null
+   */
+  async getConfig(id: string): Promise<InstitutionConfig | null> {
+    const query = `
+      SELECT 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM institutions
+      WHERE id = $1
+    `;
+
+    const result = await this.pool.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update institution features
+   * @param id - Institution ID
+   * @param features - Partial features to update
+   * @returns Updated institution config
+   */
+  async updateFeatures(
+    id: string,
+    features: Partial<InstitutionFeatures>
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET features = features || $1::jsonb
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [JSON.stringify(features), id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update institution limits
+   * @param id - Institution ID
+   * @param limits - Partial limits to update
+   * @returns Updated institution config
+   */
+  async updateLimits(
+    id: string,
+    limits: Partial<InstitutionLimits>
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET limits = limits || $1::jsonb
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [JSON.stringify(limits), id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update institution branding
+   * @param id - Institution ID
+   * @param branding - Partial branding to update
+   * @returns Updated institution config
+   */
+  async updateBranding(
+    id: string,
+    branding: Partial<InstitutionBranding>
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET branding = branding || $1::jsonb
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [JSON.stringify(branding), id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update institution security settings
+   * @param id - Institution ID
+   * @param security - Partial security settings to update
+   * @returns Updated institution config
+   */
+  async updateSecurity(
+    id: string,
+    security: Partial<InstitutionSecurity>
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET security = security || $1::jsonb
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [JSON.stringify(security), id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update institution status
+   * @param id - Institution ID
+   * @param status - New status
+   * @returns Updated institution config
+   */
+  async updateStatus(
+    id: string,
+    status: InstitutionStatus
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET status = $1
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [status, id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update institution plan
+   * @param id - Institution ID
+   * @param plan - New plan
+   * @returns Updated institution config
+   */
+  async updatePlan(
+    id: string,
+    plan: InstitutionPlan
+  ): Promise<InstitutionConfig> {
+    const query = `
+      UPDATE institutions
+      SET plan = $1
+      WHERE id = $2
+      RETURNING 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await this.pool.query(query, [plan, id]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Institution not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Check if a specific feature is enabled for an institution
+   * @param id - Institution ID
+   * @param featureKey - Feature key to check
+   * @returns true if enabled, false otherwise
+   */
+  async isFeatureEnabled(id: string, featureKey: string): Promise<boolean> {
+    const query = `
+      SELECT features->$1 as enabled
+      FROM institutions
+      WHERE id = $2 AND status = 'active'
+    `;
+
+    const result = await this.pool.query(query, [featureKey, id]);
+    return result.rows[0]?.enabled === true;
+  }
+
+  /**
+   * Get all institutions with their configurations (Super Admin)
+   * @returns Array of institution configs
+   */
+  async getAllConfigs(): Promise<InstitutionConfig[]> {
+    const query = `
+      SELECT 
+        id, name, email_domain as "emailDomain",
+        contact_email as "contactEmail", contact_phone as "contactPhone",
+        status, plan, features, limits, branding, security,
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM institutions
+      ORDER BY created_at DESC
+    `;
+
+    const result = await this.pool.query(query);
+    return result.rows;
+  }
+
+  /**
+   * Get institution statistics for dashboard
+   * @param id - Institution ID
+   * @returns Statistics object
+   */
+  async getStats(id: string): Promise<any> {
+    const query = `
+      SELECT 
+        (SELECT COUNT(*) FROM users WHERE institution_id = $1) as users_count,
+        (SELECT COUNT(*) FROM canteens WHERE institution_id = $1) as vendors_count,
+        (SELECT COUNT(*) FROM orders WHERE institution_id = $1 AND DATE(created_at) = CURRENT_DATE) as orders_today,
+        (SELECT COUNT(*) FROM orders WHERE institution_id = $1 AND status IN ('pending', 'accepted', 'preparing')) as active_orders
+    `;
+
+    const result = await this.pool.query(query, [id]);
+    return result.rows[0];
   }
 }

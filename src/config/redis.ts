@@ -125,6 +125,38 @@ export const redisHelpers = {
     const key = `cart:${userId}`;
     await redisClient.del(key);
   },
+
+  // OTP management for password reset
+  setOTP: async (email: string, otp: string, ttl: number = 600) => {
+    const key = `otp:${email}`;
+    await redisClient.setEx(key, ttl, otp);
+  },
+
+  getOTP: async (email: string): Promise<string | null> => {
+    const key = `otp:${email}`;
+    return await redisClient.get(key);
+  },
+
+  deleteOTP: async (email: string) => {
+    const key = `otp:${email}`;
+    await redisClient.del(key);
+  },
+
+  // Reset token management
+  setResetToken: async (email: string, token: string, ttl: number = 900) => {
+    const key = `reset_token:${email}`;
+    await redisClient.setEx(key, ttl, token);
+  },
+
+  getResetToken: async (email: string): Promise<string | null> => {
+    const key = `reset_token:${email}`;
+    return await redisClient.get(key);
+  },
+
+  deleteResetToken: async (email: string) => {
+    const key = `reset_token:${email}`;
+    await redisClient.del(key);
+  },
 };
 
 // Graceful shutdown

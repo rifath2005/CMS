@@ -15,8 +15,10 @@ const Canteens = () => {
     const [initialLoading, setInitialLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [showCanteenChangeDialog, setShowCanteenChangeDialog] = useState(false)
+    const [pendingProduct, setPendingProduct] = useState<Product | null>(null)
 
-    const { addItem, items: cartItems } = useCartStore()
+    const { addItem, items: cartItems, clearCart, getCanteenId, getCanteenName } = useCartStore()
     const { user } = useAuthStore()
 
     useEffect(() => {
@@ -65,8 +67,18 @@ const Canteens = () => {
     }, [])
 
     const handleAddToCart = useCallback((product: Product) => {
-        if (!product.isAvailable || product.stockQuantity === 0) return
+        if (!product.isAvailable || product.stockQuantity === 0 || !selectedCanteen) return
 
+        const currentCanteenId = getCanteenId()
+        
+        // Check if cart has items from a different canteen
+        if (currentCanteenId && currentCanteenId !== selectedCanteen.id) {
+            setPendingProduct(product)
+            setShowCanteenChangeDialog(true)
+            return
+        }
+
+        // Add to cart
         addItem({
             productId: product.id,
             productName: product.name,
@@ -74,8 +86,35 @@ const Canteens = () => {
             price: product.price,
             imageUrl: product.imageUrl,
             vendorId: product.vendorId,
+            canteenId: selectedCanteen.id,
+            canteenName: selectedCanteen.name,
         })
-    }, [addItem])
+    }, [addItem, selectedCanteen, getCanteenId])
+
+    const handleConfirmCanteenChange = useCallback(() => {
+        if (!pendingProduct || !selectedCanteen) return
+
+        // Clear cart and add new product
+        clearCart()
+        addItem({
+            productId: pendingProduct.id,
+            productName: pendingProduct.name,
+            quantity: 1,
+            price: pendingProduct.price,
+            imageUrl: pendingProduct.imageUrl,
+            vendorId: pendingProduct.vendorId,
+            canteenId: selectedCanteen.id,
+            canteenName: selectedCanteen.name,
+        })
+
+        setShowCanteenChangeDialog(false)
+        setPendingProduct(null)
+    }, [pendingProduct, selectedCanteen, clearCart, addItem])
+
+    const handleCancelCanteenChange = useCallback(() => {
+        setShowCanteenChangeDialog(false)
+        setPendingProduct(null)
+    }, [])
 
     const isInCart = useCallback((productId: string) => {
         return cartItems.some(item => item.productId === productId)
@@ -128,6 +167,35 @@ const Canteens = () => {
 
                 {error && (
                     <ErrorAlert message={error} onClose={() => setError(null)} />
+                )}
+
+                {/* Canteen Change Confirmation Dialog */}
+                {showCanteenChangeDialog && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">Change Canteen?</h3>
+                            <p className="text-gray-600 mb-2">
+                                Your cart contains items from <span className="font-semibold">{getCanteenName()}</span>.
+                            </p>
+                            <p className="text-gray-600 mb-6">
+                                Adding items from <span className="font-semibold">{selectedCanteen?.name}</span> will clear your current cart.
+                            </p>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={handleCancelCanteenChange}
+                                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmCanteenChange}
+                                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                                >
+                                    Clear Cart & Continue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Search Bar */}

@@ -14,7 +14,11 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:init": "ts-node scripts/init-db.ts",
     "db:reset": "ts-node scripts/reset-db.ts",
-    "create-users": "ts-node scripts/create-test-users.ts"
+    "create-users": "ts-node scripts/create-test-users.ts",
+    "migrate": "ts-node src/database/migrations/migrate.ts",
+    "migrate:up": "ts-node src/database/migrations/migrate.ts up",
+    "migrate:down": "ts-node src/database/migrations/migrate.ts down",
+    "migrate:status": "ts-node src/database/migrations/migrate.ts status"
   },
   "keywords": [
     "canteen",
@@ -34,7 +38,7 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
+    "nodemailer": "^7.0.13",
     "ogl": "^1.0.11",
     "pg": "^8.11.3",
     "qrcode": "^1.5.3",
@@ -52,6 +56,7 @@
     "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.5",
+    "@types/nodemailer": "^7.0.9",
     "@types/pg": "^8.10.9",
     "@types/qrcode": "^1.5.5",
     "@types/uuid": "^9.0.7",

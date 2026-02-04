@@ -1,229 +1,116 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
-import { authService } from '../services/authService'
-import { Eye, EyeOff } from 'lucide-react'
+import { useState } from 'react';
+import { Clock, Coffee } from 'lucide-react';
+import { AuthMode } from '../types/auth';
+import LoginForm from '../components/auth/LoginForm';
+import SignupForm from '../components/auth/SignupForm';
+import ForgotPasswordForm from '../components/auth/ForgotPasswordForm';
+import VerifyOtpForm from '../components/auth/VerifyOtpForm';
+import ResetPasswordForm from '../components/auth/ResetPasswordForm';
 
 const Login = () => {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
-    const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
-    const navigate = useNavigate()
-    const setAuth = useAuthStore((state) => state.setAuth)
+  const handleModeSwitch = (newMode: AuthMode) => setMode(newMode);
+  
+  const handleEmailSubmit = (email: string) => setResetEmail(email);
+  
+  const handleTokenReceived = (token: string) => setResetToken(token);
 
-    // Clear error timeout on component unmount
-    useEffect(() => {
-        return () => {
-            if (errorTimeoutRef.current) {
-                clearTimeout(errorTimeoutRef.current)
-            }
-        }
-    }, [])
-
-    // Function to clear error after delay
-    const clearErrorAfterDelay = () => {
-        if (errorTimeoutRef.current) {
-            clearTimeout(errorTimeoutRef.current)
-        }
-        errorTimeoutRef.current = setTimeout(() => {
-            setError('')
-        }, 3000) // Clear after 3 seconds
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-
-        // Clear any existing error timeout
-        if (errorTimeoutRef.current) {
-            clearTimeout(errorTimeoutRef.current)
-        }
-
-        setError('')
-        setLoading(true)
-
-        try {
-            const authData = await authService.login(email, password)
-            setAuth(authData)
-            navigate('/dashboard')
-        } catch (err: any) {
-            console.error('Login error:', err);
-
-            // Handle different types of errors with user-friendly messages
-            let errorMessage = 'Incorrect Credentials'
-
-            if (err.response?.status === 401) {
-                errorMessage = 'Incorrect Credentials'
-            } else if (err.response?.status === 404) {
-                errorMessage = 'Account not found'
-            } else if (err.response?.status === 403) {
-                errorMessage = 'Access denied'
-            } else if (err.response?.status >= 500) {
-                errorMessage = 'Server error. Please try again later.'
-            } else if (err.code === 'NETWORK_ERROR' || err.message?.includes('Network Error')) {
-                errorMessage = 'Connection error. Please check your internet connection.'
-            } else if (err.message?.includes('timeout')) {
-                errorMessage = 'Request timeout. Please try again.'
-            }
-
-            setError(errorMessage);
-            clearErrorAfterDelay(); // Auto-clear error after 3 seconds
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    return (
-        <div
-            className="min-h-screen relative overflow-hidden"
-            style={{
-                background: 'linear-gradient(135deg, #ceaaf0ff 0%, #9bb5ff 25%, #667eea 50%, #764ba2 75%, #102e64ff 100%)'
-            }}
-        >
-            {/* Blurred background overlay */}
-            <div
-                className="absolute inset-0"
-                style={{
-                    background: 'linear-gradient(135deg, rgba(105, 90, 213, 0.3) 0%, rgba(77, 107, 190, 0.3) 25%, rgba(44, 79, 234, 0.3) 50%, rgba(24, 103, 148, 0.3) 75%, rgba(86, 53, 148, 0.3) 100%)',
-                    filter: 'blur(1px)'
-                }}
-            ></div>
-
-            {/* Clear content area */}
-            <div className="min-h-screen flex items-center justify-center px-4 py-12 relative z-10">
-                <div className="w-full max-w-sm">
-                    <div className="flex flex-col space-y-2 text-center mb-8">
-                        <h1 className="text-4xl font-bold tracking-tight text-white">
-                            Login
-                        </h1>
-                        <p className="text-sm text-white/80">
-                            Enter your email below to login to your account
-                        </p>
-                    </div>
-
-                    <div
-                        className="rounded-lg shadow-2xl p-6 border border-white/30"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.15)'
-                        }}
-                    >
-                        {error && (
-                            <div
-                                className="mb-6 p-3 rounded-md text-sm border relative"
-                                style={{
-                                    background: 'rgba(239, 68, 68, 0.2)',
-                                    borderColor: 'rgba(239, 68, 68, 0.4)',
-                                    color: '#fecaca'
-                                }}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <span>{error}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setError('')
-                                            if (errorTimeoutRef.current) {
-                                                clearTimeout(errorTimeoutRef.current)
-                                            }
-                                        }}
-                                        className="ml-2 text-white/60 hover:text-white transition-colors"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <label
-                                    htmlFor="email"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
-                                >
-                                    Email
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm text-white placeholder:text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-50"
-                                    style={{
-                                        background: 'rgba(255, 255, 255, 0.15)',
-                                        borderColor: 'rgba(255, 255, 255, 0.3)'
-                                    }}
-                                    placeholder="sample@mail.com"
-                                    disabled={loading}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label
-                                    htmlFor="password"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
-                                >
-                                    Password
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        id="password"
-                                        type={showPassword ? "text" : "password"}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        className="flex h-10 w-full rounded-md border px-3 pr-10 py-2 text-sm text-white placeholder:text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-50"
-                                        style={{
-                                            background: 'rgba(255, 255, 255, 0.15)',
-                                            borderColor: 'rgba(255, 255, 255, 0.3)'
-                                        }}
-                                        placeholder="••••••••"
-                                        disabled={loading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/60 hover:text-white transition-colors"
-                                        disabled={loading}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff className="h-2 w-2" />
-                                        ) : (
-                                            <Eye className="h-2 w-2" />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:pointer-events-none disabled:opacity-50 text-white h-10 px-4 py-2 w-full border border-white/30"
-                                style={{
-                                    background: 'rgba(0, 0, 0)'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(50, 52, 52, 1)'
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'rgba(0, 0, 0)'
-                                }}
-                            >
-                                {loading ? 'Logging in...' : 'Login'}
-                            </button>
-                        </form>
-                    </div>
-
-                    <p className="mt-4 px-8 text-center text-sm text-white/60">
-                        Canteen Management System
-                    </p>
-                </div>
+  return (
+    <div className="h-screen w-full flex flex-col md:flex-row bg-white overflow-hidden">
+      {/* Brand Story Panel - Left (Hidden on mobile) */}
+      <div className="hidden lg:flex flex-col justify-between w-[40%] p-6 bg-[#001533] text-white relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 bg-[#ff7a00] rounded-[12px] flex items-center justify-center shadow-lg shadow-[#ff7a00]/20">
+               <div className="w-3 h-3 bg-white rounded-full"></div>
             </div>
+            <span className="text-xl font-black tracking-tight">NotinQ</span>
+          </div>
+          
+          <div className="space-y-3">
+            <span className="text-[#ff7a00] font-black tracking-widest text-xs uppercase">THE PROBLEM WE SOLVE</span>
+            <h1 className="text-5xl font-black leading-[1.1] mb-6 tracking-tighter">
+              Goodbye <br />
+              <span className="text-blue-400/40">Long</span> <br />
+              Queues.
+            </h1>
+            <p className="text-slate-400 text-lg font-medium max-w-sm leading-relaxed">
+              We built NotinQ because no one should spend their lunch break waiting in line. 
+            </p>
+          </div>
         </div>
-    )
-}
 
-export default Login
+        <div className="space-y-4 relative z-10 pb-2">
+          <div className="group flex items-start gap-4 p-3 rounded-2xl transition-colors hover:bg-white/5 cursor-default">
+            <div className="p-2.5 bg-white/5 rounded-xl text-[#ff7a00] group-hover:bg-[#ff7a00] group-hover:text-white transition-all"><Clock size={20} /></div>
+            <div>
+              <h3 className="font-extrabold text-white text-base">Save 20+ Minutes</h3>
+              <p className="text-xs text-slate-500 font-medium">Pre-order your meals and pick them up instantly.</p>
+            </div>
+          </div>
+          <div className="group flex items-start gap-4 p-3 rounded-2xl transition-colors hover:bg-white/5 cursor-default">
+            <div className="p-2.5 bg-white/5 rounded-xl text-[#ff7a00] group-hover:bg-[#ff7a00] group-hover:text-white transition-all"><Coffee size={20} /></div>
+            <div>
+              <h3 className="font-extrabold text-white text-base">Smart Canteen</h3>
+              <p className="text-xs text-slate-500 font-medium">Real-time menu updates and availability tracking.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Food Items Decoration */}
+        <div className="absolute inset-0 opacity-[0.08] pointer-events-none overflow-hidden">
+          <div className="absolute top-20 right-10 text-6xl rotate-12">🍕</div>
+          <div className="absolute top-32 left-8 text-5xl -rotate-12">🧃</div>
+          <div className="absolute top-1/3 right-16 text-7xl rotate-6">🍔</div>
+          <div className="absolute top-1/2 left-12 text-5xl -rotate-6">☕</div>
+          <div className="absolute bottom-40 left-16 text-6xl rotate-12">🥪</div>
+          <div className="absolute bottom-32 right-12 text-5xl -rotate-12">🥤</div>
+          <div className="absolute top-2/3 left-1/3 text-5xl rotate-45">🍩</div>
+          <div className="absolute top-1/4 left-1/2 text-5xl -rotate-12">🌮</div>
+          <div className="absolute bottom-1/4 right-8 text-5xl rotate-6">🍟</div>
+        </div>
+
+        {/* Abstract subtle decoration */}
+        <div className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-[#ff7a00]/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[20%] left-[-20%] w-[300px] h-[300px] bg-white/5 rounded-full blur-[100px]"></div>
+      </div>
+
+      {/* Form Content Area */}
+      <main className="flex-1 flex items-center justify-center p-3 md:p-6 relative bg-[#fafafa]">
+        {/* Back to Landing Page Button */}
+        <a 
+          href="http://localhost:5174" 
+          className="absolute top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2 text-slate-600 hover:text-[#ff7a00] transition-colors font-semibold text-sm group bg-white/80 backdrop-blur-sm px-2.5 py-1.5 rounded-full shadow-sm"
+        >
+          <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </a>
+        
+        <div className={`w-full max-w-[500px] glass-card rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] p-4 md:p-6 transition-all duration-700 transform ${mode === 'signup' ? 'md:max-w-[760px]' : ''}`}>
+          {mode === 'login' && <LoginForm onSwitchMode={handleModeSwitch} />}
+          {mode === 'signup' && <SignupForm onSwitchMode={handleModeSwitch} />}
+          {mode === 'forgot-password' && <ForgotPasswordForm onSwitchMode={handleModeSwitch} onEmailSubmit={handleEmailSubmit} />}
+          {mode === 'verify-otp' && <VerifyOtpForm email={resetEmail} onSwitchMode={handleModeSwitch} onTokenReceived={handleTokenReceived} />}
+          {mode === 'reset-password' && <ResetPasswordForm email={resetEmail} resetToken={resetToken} onSwitchMode={handleModeSwitch} />}
+        </div>
+      </main>
+
+      {/* Mobile Footer */}
+      <footer className="lg:hidden p-2 text-center bg-white">
+        <div className="flex justify-center items-center gap-2 mb-1">
+           <div className="w-5 h-5 bg-[#ff7a00] rounded-lg flex items-center justify-center">
+             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+           </div>
+           <span className="font-black text-[#001533] text-sm">NotinQ</span>
+        </div>
+        <p className="text-slate-400 text-[9px] font-bold tracking-widest uppercase">&copy; {new Date().getFullYear()} NotinQ Technologies Inc.</p>
+      </footer>
+    </div>
+  );
+};
+
+export default Login;
