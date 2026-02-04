@@ -89,7 +89,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
             reconnectionAttempts: 5,
-            transports: ['websocket'] // Force WebSocket to avoid proxy polling errors
+        // Force WebSocket to avoid proxy polling errors
         })
 
         newSocket.on('connect', () => {
