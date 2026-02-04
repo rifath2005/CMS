@@ -80,6 +80,89 @@ export const createProductRouter = (pool: Pool): Router => {
     }
   });
 
+  // POST /api/v1/products/bulk - Bulk import products (Vendor only)
+  router.post('/bulk', authenticate, requireVendor, async (req: Request, res: Response) => {
+    try {
+      const { products } = req.body;
+      const userId = (req as any).user?.userId;
+
+      if (!userId) {
+        throw new ValidationError('User ID not found in token');
+      }
+
+      // Get vendorId for this user
+      const canteenResult = await pool.query(
+        'SELECT vendor_id FROM canteens WHERE user_id = $1',
+        [userId]
+      );
+
+      if (canteenResult.rows.length === 0) {
+        throw new ValidationError('No canteen found for this vendor user');
+      }
+
+      const vendorId = canteenResult.rows[0].vendor_id;
+
+      if (!Array.isArray(products) || products.length === 0) {
+        throw new ValidationError('Products array is required');
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+
+      // Process each product
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        try {
+          // Validate required fields
+          if (!product.name || !product.price || product.stockQuantity === undefined) {
+            throw new Error('Missing required fields');
+          }
+
+          // Validate category
+          const validCategories = ['BREAKFAST', 'SNACKS', 'MAIN_COURSE', 'BEVERAGES', 'DESSERTS'];
+          if (!validCategories.includes(product.category)) {
+            throw new Error('Invalid category');
+          }
+
+          // Create product
+          await productService.createProduct({
+            vendorId,
+            name: product.name,
+            description: product.description || '',
+            price: parseFloat(product.price),
+            category: product.category,
+            imageUrl: product.imageUrl || '',
+            stockQuantity: parseInt(product.stockQuantity)
+          });
+
+          successCount++;
+        } catch (error: any) {
+          failedCount++;
+          errors.push(`Row ${i + 2}: ${product.name || 'Unknown'} - ${error.message}`);
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          success: successCount,
+          failed: failedCount,
+          errors: errors.slice(0, 10) // Limit to first 10 errors
+        },
+        message: `Imported ${successCount} products successfully`
+      });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'BULK_IMPORT_FAILED',
+          message: error.message
+        }
+      });
+    }
+  });
+
   // GET /api/v1/products/:id - Get product by ID
   router.get('/:id', authenticate, async (req: Request, res: Response) => {
     try {

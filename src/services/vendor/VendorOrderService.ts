@@ -163,6 +163,8 @@ export class VendorOrderService {
     activeOrdersCount: number;
     totalItemsToPrep: number;
     oldestOrderTime?: Date;
+    completedToday: number;
+    avgWaitTime: number;
   }> {
     const activeOrders = await this.getActiveOrders(vendorId);
     const combinedItems = await this.getCombinedItemList(vendorId);
@@ -173,10 +175,35 @@ export class VendorOrderService {
       ? activeOrders[0].createdAt 
       : undefined;
 
+    // Get completed orders today
+    const completedTodayQuery = `
+      SELECT COUNT(*) as count
+      FROM orders
+      WHERE vendor_id = $1
+        AND status = 'DELIVERED'
+        AND DATE(created_at) = CURRENT_DATE
+    `;
+    const completedResult = await this.pool.query(completedTodayQuery, [vendorId]);
+    const completedToday = parseInt(completedResult.rows[0]?.count || '0');
+
+    // Calculate average wait time (time from order creation to delivery) for today
+    const avgWaitTimeQuery = `
+      SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - created_at)) / 60) as avg_minutes
+      FROM orders
+      WHERE vendor_id = $1
+        AND status = 'DELIVERED'
+        AND delivered_at IS NOT NULL
+        AND DATE(created_at) = CURRENT_DATE
+    `;
+    const avgWaitResult = await this.pool.query(avgWaitTimeQuery, [vendorId]);
+    const avgWaitTime = Math.round(parseFloat(avgWaitResult.rows[0]?.avg_minutes || '0'));
+
     return {
       activeOrdersCount: activeOrders.length,
       totalItemsToPrep,
-      oldestOrderTime
+      oldestOrderTime,
+      completedToday,
+      avgWaitTime
     };
   }
 }

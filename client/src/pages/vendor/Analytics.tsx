@@ -3,12 +3,6 @@ import { useAuthStore } from '../../store/authStore'
 import api from '../../services/api'
 import { ChartBarIcon, CurrencyRupeeIcon, ShoppingBagIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 
-interface VendorUser {
-    id: string
-    vendorId?: string
-    name: string
-}
-
 interface Analytics {
     todayStats: {
         totalOrders: number
@@ -43,24 +37,24 @@ const VendorAnalytics = () => {
     const [analytics, setAnalytics] = useState<Analytics | null>(null)
     const [loading, setLoading] = useState(true)
     const [vendorId, setVendorId] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
-    // Fetch vendorId from user or from canteen
+    // Fetch vendorId from canteen (same as Dashboard)
     useEffect(() => {
         const fetchVendorId = async () => {
-            if ((user as VendorUser)?.vendorId) {
-                setVendorId((user as VendorUser).vendorId!)
-                console.log('✓ VendorId from user:', (user as VendorUser).vendorId)
-            } else if (user?.id) {
-                // Fallback: fetch from canteen
-                try {
-                    const response = await api.get(`/canteens/user/${user.id}`)
-                    if (response.data.data?.vendorId) {
-                        setVendorId(response.data.data.vendorId)
-                        console.log('✓ VendorId from canteen:', response.data.data.vendorId)
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch vendorId:', error)
+            if (!user?.id) return
+            
+            try {
+                const response = await api.get(`/canteens/user/${user.id}`)
+                if (response.data.data?.vendorId) {
+                    setVendorId(response.data.data.vendorId)
+                    console.log('✓ VendorId:', response.data.data.vendorId)
+                } else {
+                    setError('Vendor ID not found')
                 }
+            } catch (error) {
+                console.error('Failed to fetch vendorId:', error)
+                setError('Failed to load vendor information')
             }
         }
         fetchVendorId()
@@ -77,10 +71,17 @@ const VendorAnalytics = () => {
 
         try {
             setLoading(true)
+            setError(null)
+            console.log('Fetching analytics for vendor:', vendorId)
+            
             const response = await api.get(`/vendor/${vendorId}/analytics`)
+            console.log('Analytics response:', response.data)
+            
             setAnalytics(response.data.data)
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch analytics:', error)
+            console.error('Error response:', error.response?.data)
+            setError(error.response?.data?.error?.message || 'Failed to load analytics data')
         } finally {
             setLoading(false)
         }
@@ -89,7 +90,27 @@ const VendorAnalytics = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading analytics...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="p-6">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <p className="text-red-600 font-medium mb-2">Error Loading Analytics</p>
+                    <p className="text-red-500 text-sm">{error}</p>
+                    <button 
+                        onClick={fetchAnalytics}
+                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Retry
+                    </button>
+                </div>
             </div>
         )
     }
@@ -97,7 +118,10 @@ const VendorAnalytics = () => {
     if (!analytics) {
         return (
             <div className="p-6">
-                <p className="text-red-600">Failed to load analytics</p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                    <p className="text-yellow-800 font-medium mb-2">No Analytics Data</p>
+                    <p className="text-yellow-600 text-sm">Analytics data will appear once you have orders</p>
+                </div>
             </div>
         )
     }

@@ -14,7 +14,11 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:init": "ts-node scripts/init-db.ts",
     "db:reset": "ts-node scripts/reset-db.ts",
-    "create-users": "ts-node scripts/create-test-users.ts"
+    "create-users": "ts-node scripts/create-test-users.ts",
+    "migrate": "ts-node src/database/migrations/migrate.ts",
+    "migrate:up": "ts-node src/database/migrations/migrate.ts up",
+    "migrate:down": "ts-node src/database/migrations/migrate.ts down",
+    "migrate:status": "ts-node src/database/migrations/migrate.ts status"
   },
   "keywords": [
     "canteen",
@@ -26,6 +30,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/multer": "^2.0.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -40,6 +45,7 @@
     "redis": "^4.6.10",
     "socket.io": "^4.6.2",
     "uuid": "^9.0.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {

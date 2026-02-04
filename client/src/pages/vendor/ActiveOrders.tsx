@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 import { Order, OrderStatus } from '../../types'
@@ -12,6 +13,7 @@ interface VendorUser {
 }
 
 const ActiveOrders = () => {
+    const navigate = useNavigate()
     const { user } = useAuthStore()
     const { onOrderUpdate, onNewOrder } = useWebSocket()
     const [orders, setOrders] = useState<Order[]>([])
@@ -240,10 +242,10 @@ const ActiveOrders = () => {
                                 )}
                                 {order.status === OrderStatus.READY && (
                                     <button
-                                        onClick={() => updateOrderStatus(order.id, OrderStatus.DELIVERED)}
+                                        onClick={() => navigate('/vendor/qr-scanner')}
                                         className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                                     >
-                                        Mark Delivered
+                                        Open QR Scanner
                                     </button>
                                 )}
                             </div>
