@@ -4,6 +4,7 @@ import { Product } from '../../types'
 import api from '../../services/api'
 import { PencilIcon, TrashIcon, PlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import * as XLSX from 'xlsx'
+import { cache } from '../../utils/cache'
 
 interface ProductFormData {
     name: string
@@ -17,6 +18,7 @@ interface ProductFormData {
 const VendorProducts = () => {
     const { user } = useAuthStore()
     const [products, setProducts] = useState<Product[]>([])
+    const [totalProducts, setTotalProducts] = useState(0)
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
@@ -32,7 +34,9 @@ const VendorProducts = () => {
         imageUrl: ''
     })
     const [vendorId, setVendorId] = useState<string | null>(null)
-    const [displayCount, setDisplayCount] = useState(10)
+    const [displayCount, setDisplayCount] = useState(20) // Increased from 10 to 20
+    const [initialLoad, setInitialLoad] = useState(true) // Track first load
+    const [error, setError] = useState<string | null>(null) // Track errors
 
     useEffect(() => {
         if (user?.id) {
@@ -48,28 +52,93 @@ const VendorProducts = () => {
 
     const fetchVendorId = async () => {
         try {
+            console.log('Fetching vendor ID for user:', user?.id)
             // Get the canteen for this vendor user to find their vendor_id
             const response = await api.get(`/canteens/user/${user?.id}`)
+            console.log('Vendor ID response:', response.data)
             if (response.data.data) {
+                console.log('Setting vendor ID:', response.data.data.vendorId)
                 setVendorId(response.data.data.vendorId)
+                setError(null)
+            } else {
+                console.error('No vendor data found in response')
+                setError('No vendor found for this user. Please contact admin.')
+                setLoading(false)
+                setInitialLoad(false)
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch vendor ID:', error)
+            setError(error.response?.data?.error?.message || 'Failed to load vendor information')
+            setLoading(false)
+            setInitialLoad(false)
         }
     }
 
     const fetchProducts = async () => {
-        if (!vendorId) return
+        if (!vendorId) {
+            console.log('No vendor ID, skipping product fetch')
+            return
+        }
 
         try {
-            setLoading(true)
-            const response = await api.get(`/products/vendor/${vendorId}`)
-            setProducts(response.data.data || [])
+            console.log('Fetching products for vendor:', vendorId)
+            // Check cache first for INSTANT loading
+            const cacheKey = `vendor-products-${vendorId}`
+            const cachedData = cache.get<{ products: Product[], total: number }>(cacheKey)
+
+            if (cachedData) {
+                console.log('Using cached products:', cachedData.products.length)
+                // INSTANT: Show cached data immediately
+                setProducts(cachedData.products)
+                setTotalProducts(cachedData.total)
+                setLoading(false)
+                setInitialLoad(false)
+                // Load fresh data in background silently
+                loadFreshProducts(cacheKey, true)
+                return
+            }
+
+            // First load - show loading
+            if (initialLoad) {
+                console.log('First load, showing skeleton')
+                setLoading(true)
+            }
+            await loadFreshProducts(cacheKey, false)
         } catch (error) {
             console.error('Failed to fetch products:', error)
             setProducts([])
-        } finally {
+            setTotalProducts(0)
             setLoading(false)
+            setInitialLoad(false)
+        }
+    }
+
+    const loadFreshProducts = async (cacheKey: string, silent: boolean = false) => {
+        if (!vendorId) return
+
+        try {
+            console.log('Loading fresh products from API...')
+            // Fetch with limit for faster initial load
+            const response = await api.get(`/products/vendor/${vendorId}?limit=100`)
+            console.log('Products API response:', response.data)
+            const productsData = response.data.data || []
+            const total = response.data.total || productsData.length
+            
+            console.log(`Loaded ${productsData.length} products`)
+            setProducts(productsData)
+            setTotalProducts(total)
+            setError(null)
+            
+            // Cache for 2 minutes (products don't change frequently)
+            cache.set(cacheKey, { products: productsData, total }, 120000)
+        } catch (error: any) {
+            console.error('Error loading fresh products:', error)
+            setError(error.response?.data?.error?.message || 'Failed to load products')
+        } finally {
+            if (!silent) {
+                setLoading(false)
+                setInitialLoad(false)
+            }
         }
     }
 
@@ -78,20 +147,30 @@ const VendorProducts = () => {
 
         try {
             if (editingProduct) {
+                // Optimistic update
+                setProducts(prev => prev.map(p => 
+                    p.id === editingProduct.id ? { ...p, ...formData } : p
+                ))
+                
                 await api.put(`/products/${editingProduct.id}`, formData)
                 alert('Product updated!')
             } else {
-                // Don't send vendorId - it will come from JWT token
                 await api.post('/products', formData)
                 alert('Product created!')
             }
             
+            // Invalidate cache and refresh
+            cache.invalidatePattern('vendor-products')
             fetchProducts()
             handleCloseModal()
         } catch (error: any) {
             const errorMsg = error.response?.data?.error?.message || error.message
             alert(`Error: ${errorMsg}`)
             console.error('Error:', error.response?.data || error)
+            // Revert optimistic update on error
+            if (editingProduct) {
+                fetchProducts()
+            }
         }
     }
 
@@ -99,10 +178,17 @@ const VendorProducts = () => {
         if (!confirm('Delete this product?')) return
 
         try {
+            // Optimistic update
+            setProducts(prev => prev.filter(p => p.id !== productId))
+            
             await api.delete(`/products/${productId}`)
-            fetchProducts()
+            
+            // Invalidate cache
+            cache.invalidatePattern('vendor-products')
         } catch (error) {
             alert('Failed to delete product')
+            // Revert on error
+            fetchProducts()
         }
     }
 
@@ -134,10 +220,19 @@ const VendorProducts = () => {
 
     const updateStock = async (productId: string, quantity: number) => {
         try {
+            // Optimistic update
+            setProducts(prev => prev.map(p => 
+                p.id === productId ? { ...p, stockQuantity: quantity } : p
+            ))
+            
             await api.patch(`/products/${productId}/stock`, { quantity })
-            fetchProducts()
+            
+            // Invalidate cache
+            cache.invalidatePattern('vendor-products')
         } catch (error) {
             alert('Failed to update stock')
+            // Revert on error
+            fetchProducts()
         }
     }
 
@@ -205,41 +300,106 @@ const VendorProducts = () => {
         }
     }
 
-    if (loading) {
+    if (loading && initialLoad) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="p-3 sm:p-4 lg:p-6">
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="w-full sm:w-auto">
+                        <div className="h-8 sm:h-10 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="h-11 bg-gray-200 rounded flex-1 sm:w-40 animate-pulse"></div>
+                        <div className="h-11 bg-gray-200 rounded flex-1 sm:w-32 animate-pulse"></div>
+                    </div>
+                </div>
+
+                {/* Skeleton Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                            <div className="w-full h-40 sm:h-48 bg-gray-200"></div>
+                            <div className="p-3 sm:p-4">
+                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+                                <div className="flex justify-between mb-3">
+                                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                                </div>
+                                <div className="flex gap-2 mb-3">
+                                    <div className="h-10 bg-gray-200 rounded flex-1"></div>
+                                    <div className="h-10 bg-gray-200 rounded flex-1"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-11 bg-gray-200 rounded flex-1"></div>
+                                    <div className="h-11 bg-gray-200 rounded flex-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    // Show error if products failed to load
+    if (error) {
+        return (
+            <div className="p-3 sm:p-4 lg:p-6">
+                <div className="mb-4 sm:mb-6">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Product Management</h1>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage your menu items</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <div className="text-red-600 text-4xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-bold text-red-900 mb-2">Failed to Load Products</h3>
+                    <p className="text-red-700 mb-4">{error}</p>
+                    <button
+                        onClick={() => {
+                            setError(null)
+                            setLoading(true)
+                            setInitialLoad(true)
+                            if (user?.id) {
+                                fetchVendorId()
+                            }
+                        }}
+                        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium min-h-[44px]"
+                    >
+                        Retry
+                    </button>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="p-6">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="p-3 sm:p-4 lg:p-6">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Product Management</h1>
-                    <p className="text-gray-600">Manage your menu items</p>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Product Management</h1>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage your menu items</p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => setShowImportModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium min-h-[44px] text-sm sm:text-base"
                     >
-                        <ArrowUpTrayIcon className="h-5 w-5" />
+                        <ArrowUpTrayIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span>Import Products</span>
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium min-h-[44px] text-sm sm:text-base"
                     >
-                        <PlusIcon className="h-5 w-5" />
+                        <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span>Add Product</span>
                     </button>
                 </div>
             </div>
 
-            {/* Products Grid - 5 cards per row with smaller size */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {/* Products Grid - 4 cards per row optimized for all devices */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
                 {products.length === 0 ? (
                     <div className="col-span-full bg-white rounded-lg shadow-md p-12 text-center">
                         <PlusIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -258,52 +418,53 @@ const VendorProducts = () => {
                             <img
                                 src={product.imageUrl || 'https://via.placeholder.com/300x200'}
                                 alt={product.name}
-                                className="w-full h-32 object-cover"
+                                className="w-full h-40 sm:h-48 object-cover"
+                                loading="lazy"
                             />
-                            <div className="p-3">
+                            <div className="p-3 sm:p-4">
                                 <div className="flex items-start justify-between mb-1">
-                                    <h3 className="font-bold text-sm line-clamp-1">{product.name}</h3>
+                                    <h3 className="font-bold text-xs sm:text-sm line-clamp-1">{product.name}</h3>
                                     <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${
                                         product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                     }`}>
                                         {product.isAvailable ? 'Available' : 'Unavailable'}
                                     </span>
                                 </div>
-                                <p className="text-xs text-gray-600 mb-1 line-clamp-2">{product.description}</p>
-                                <p className="text-xs text-gray-500 mb-2">Category: {product.category}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-600 mb-1 line-clamp-2">{product.description}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-500 mb-2">Category: {product.category}</p>
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-lg font-bold text-green-600">₹{product.price}</span>
-                                    <span className="text-xs text-gray-600">Stock: {product.stockQuantity}</span>
+                                    <span className="text-base sm:text-lg font-bold text-green-600">₹{product.price}</span>
+                                    <span className="text-[10px] sm:text-xs text-gray-600">Stock: {product.stockQuantity}</span>
                                 </div>
 
-                                <div className="flex items-center space-x-1 mb-3">
+                                <div className="flex items-center space-x-1 sm:space-x-2 mb-3">
                                     <button
                                         onClick={() => updateStock(product.id, Math.max(0, product.stockQuantity - 10))}
-                                        className="flex-1 px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs"
+                                        className="flex-1 px-2 py-2 sm:py-2.5 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs sm:text-sm min-h-[40px]"
                                     >
                                         -10
                                     </button>
                                     <button
                                         onClick={() => updateStock(product.id, product.stockQuantity + 10)}
-                                        className="flex-1 px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-200 text-xs"
+                                        className="flex-1 px-2 py-2 sm:py-2.5 bg-green-100 text-green-600 rounded hover:bg-green-200 text-xs sm:text-sm min-h-[40px]"
                                     >
                                         +10
                                     </button>
                                 </div>
 
-                                <div className="flex space-x-1">
+                                <div className="flex space-x-1 sm:space-x-2">
                                     <button
                                         onClick={() => handleEdit(product)}
-                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 sm:py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs sm:text-sm min-h-[44px]"
                                     >
-                                        <PencilIcon className="h-3 w-3" />
+                                        <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                                         <span>Edit</span>
                                     </button>
                                     <button
                                         onClick={() => handleDelete(product.id)}
-                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 sm:py-2.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs sm:text-sm min-h-[44px]"
                                     >
-                                        <TrashIcon className="h-3 w-3" />
+                                        <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                                         <span>Delete</span>
                                     </button>
                                 </div>
@@ -317,7 +478,7 @@ const VendorProducts = () => {
             {products.length > displayCount && (
                 <div className="mt-6 text-center">
                     <button
-                        onClick={() => setDisplayCount(prev => prev + 10)}
+                        onClick={() => setDisplayCount(prev => prev + 20)}
                         className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                     >
                         Load More Products
@@ -328,19 +489,19 @@ const VendorProducts = () => {
             {/* Showing count */}
             {products.length > 0 && (
                 <div className="mt-4 text-center text-sm text-gray-600">
-                    Showing {Math.min(displayCount, products.length)} of {products.length} products
+                    Showing {Math.min(displayCount, products.length)} of {totalProducts} products
                 </div>
             )}
 
-            {/* Add/Edit Modal - Compact Landscape Style */}
+            {/* Add/Edit Modal - Responsive for all devices */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-4 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-                        <h2 className="text-xl font-bold mb-3">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
                             {editingProduct ? 'Edit Product' : 'Add New Product'}
                         </h2>
                         <form onSubmit={handleSubmit}>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Name *</label>
                                     <input
@@ -403,17 +564,17 @@ const VendorProducts = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="flex space-x-2 mt-4">
+                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="flex-1 px-4 py-2 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+                                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium min-h-[44px]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium min-h-[44px]"
                                 >
                                     {editingProduct ? 'Update' : 'Create'}
                                 </button>
@@ -506,20 +667,20 @@ const VendorProducts = () => {
                                 </div>
                             )}
 
-                            <div className="flex space-x-3">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                 <button
                                     onClick={() => {
                                         setShowImportModal(false)
                                         setImportResult(null)
                                     }}
-                                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+                                    className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium min-h-[44px] text-sm sm:text-base"
                                 >
                                     Close
                                 </button>
                                 {importResult && (
                                     <button
                                         onClick={() => setImportResult(null)}
-                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                        className="flex-1 px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium min-h-[44px] text-sm sm:text-base"
                                     >
                                         Import More
                                     </button>

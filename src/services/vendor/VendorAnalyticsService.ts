@@ -32,11 +32,17 @@ export interface VendorAnalytics {
 export class VendorAnalyticsService {
   constructor(private pool: Pool) {}
 
+  /**
+   * Get analytics - OPTIMIZED with parallel queries
+   */
   async getAnalytics(vendorId: string): Promise<VendorAnalytics> {
-    const todayStats = await this.getTodayStats(vendorId);
-    const weekStats = await this.getWeekStats(vendorId);
-    const topProducts = await this.getTopProducts(vendorId);
-    const revenueByCategory = await this.getRevenueByCategory(vendorId);
+    // Execute all queries in parallel for faster response
+    const [todayStats, weekStats, topProducts, revenueByCategory] = await Promise.all([
+      this.getTodayStats(vendorId),
+      this.getWeekStats(vendorId),
+      this.getTopProducts(vendorId),
+      this.getRevenueByCategory(vendorId)
+    ]);
 
     return {
       todayStats,

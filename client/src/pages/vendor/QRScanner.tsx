@@ -292,7 +292,7 @@ const QRScanner = () => {
     }
 
     return (
-        <div className="p-6">
+        <div className="p-3 sm:p-4 lg:p-6">
             <style>{`
                 #qr-reader {
                     border: none !important;
@@ -333,31 +333,31 @@ const QRScanner = () => {
                 }
             `}</style>
             
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">QR Code Scanner</h1>
-                <p className="text-gray-600">Scan customer QR codes to verify and complete orders</p>
+            <div className="mb-4 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">QR Code Scanner</h1>
+                <p className="text-xs sm:text-sm text-gray-600">Scan customer QR codes to verify and complete orders</p>
             </div>
 
             <div className="max-w-2xl mx-auto">
                 {/* Initial State - Show Scan Button */}
                 {!cameraActive && !result && (
                     <div className="text-center">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-12 mb-6 border-2 border-blue-200">
-                            <div className="mb-6">
-                                <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 lg:p-12 mb-4 sm:mb-6 border-2 border-blue-200">
+                            <div className="mb-4 sm:mb-6">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                                    <svg className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                                     </svg>
                                 </div>
-                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Ready to Scan</h2>
-                                <p className="text-gray-600">Click the button below to open camera and scan customer QR codes</p>
+                                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">Ready to Scan</h2>
+                                <p className="text-xs sm:text-sm text-gray-600">Click the button below to open camera and scan customer QR codes</p>
                             </div>
                             
                             <button
                                 onClick={startCamera}
-                                className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-3 mx-auto"
+                                className="px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-2 sm:space-x-3 mx-auto min-h-[44px]"
                             >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
@@ -365,14 +365,14 @@ const QRScanner = () => {
                             </button>
                         </div>
 
-                        <div className="bg-blue-50 rounded-lg p-6 mb-4">
-                            <h3 className="font-bold text-blue-900 mb-3 flex items-center">
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-3 sm:mb-4">
+                            <h3 className="text-sm sm:text-base font-bold text-blue-900 mb-2 sm:mb-3 flex items-center">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 How it works:
                             </h3>
-                            <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                            <ol className="list-decimal list-inside space-y-1 sm:space-y-2 text-xs sm:text-sm text-blue-800">
                                 <li>Click "Scan QR Code" to activate camera</li>
                                 <li>Allow camera permissions when prompted</li>
                                 <li>Point camera at customer's QR code</li>
@@ -380,14 +380,14 @@ const QRScanner = () => {
                             </ol>
                         </div>
 
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 className="font-bold text-yellow-900 mb-2 flex items-center">
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+                            <h4 className="text-sm sm:text-base font-bold text-yellow-900 mb-1 sm:mb-2 flex items-center">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 Camera Requirements:
                             </h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800">
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 text-[10px] sm:text-xs text-yellow-800">
                                 <li>HTTPS connection required (or localhost)</li>
                                 <li>Camera permission must be granted</li>
                                 <li>Camera must not be in use by another app</li>

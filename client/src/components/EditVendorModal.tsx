@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Building2, MapPin, Clock, Phone, User, Mail } from 'lucide-react'
+import { X, Building2, MapPin, Clock } from 'lucide-react'
 
 interface EditVendorModalProps {
     isOpen: boolean

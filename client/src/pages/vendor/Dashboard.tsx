@@ -7,6 +7,7 @@ import { QrCodeIcon, BellIcon, ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon
 import { useNavigate } from 'react-router-dom'
 import VendorDashboardSkeleton from '../../components/VendorDashboardSkeleton'
 import { LiveCountdown } from '../../components/LiveCountdown'
+import { cache } from '../../utils/cache'
 
 interface VendorStats {
     activeOrdersCount: number
@@ -80,26 +81,60 @@ const VendorDashboard = () => {
         if (!vendorId) return
 
         try {
+            // Check cache first for instant loading
+            const cacheKey = `vendor-dashboard-${vendorId}`
+            const cachedData = cache.get<{
+                orders: Order[]
+                stats: VendorStats
+                items: CombinedItem[]
+            }>(cacheKey)
+
+            if (cachedData) {
+                setActiveOrders(cachedData.orders)
+                setStats(cachedData.stats)
+                setCombinedItems(cachedData.items)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshDashboardData(cacheKey)
+                return
+            }
+
             setLoading(true)
+            await loadFreshDashboardData(cacheKey)
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error)
+            setLoading(false)
+        }
+    }
+
+    const loadFreshDashboardData = async (cacheKey: string) => {
+        if (!vendorId) return
+
+        try {
+            // Parallel fetching for faster response
             const [ordersRes, statsRes, itemsRes] = await Promise.all([
                 api.get(`/vendor/${vendorId}/active-orders`),
                 api.get(`/vendor/${vendorId}/stats`),
                 api.get(`/vendor/${vendorId}/combined-items`)
             ])
 
-            setActiveOrders(ordersRes.data.data)
-            setCombinedItems(itemsRes.data.data)
-            
-            // Use real stats from backend
+            const orders = ordersRes.data.data
+            const items = itemsRes.data.data
             const realStats = statsRes.data.data
-            setStats({
+
+            const stats = {
                 activeOrdersCount: realStats.activeOrdersCount,
                 completedToday: realStats.completedToday,
                 avgWaitTime: realStats.avgWaitTime,
-                waitTimeTrend: 0 // Can be calculated later if needed
-            })
-        } catch (error) {
-            console.error('Failed to fetch dashboard data:', error)
+                waitTimeTrend: 0
+            }
+
+            setActiveOrders(orders)
+            setCombinedItems(items)
+            setStats(stats)
+
+            // Cache for 15 seconds (vendor data changes frequently)
+            cache.set(cacheKey, { orders, stats, items }, 15000)
         } finally {
             setLoading(false)
         }
@@ -109,8 +144,21 @@ const VendorDashboard = () => {
         if (!vendorId) return
 
         try {
+            // Check cache first
+            const cacheKey = `vendor-history-${vendorId}`
+            const cachedHistory = cache.get<Order[]>(cacheKey)
+
+            if (cachedHistory) {
+                setOrderHistory(cachedHistory)
+                return
+            }
+
             const response = await api.get(`/vendor/${vendorId}/order-history`)
-            setOrderHistory(response.data.data)
+            const history = response.data.data
+            setOrderHistory(history)
+            
+            // Cache for 60 seconds (history doesn't change as frequently)
+            cache.set(cacheKey, history, 60000)
         } catch (error) {
             console.error('Failed to fetch order history:', error)
         }
@@ -154,10 +202,20 @@ const VendorDashboard = () => {
 
     const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
         try {
+            // Optimistic update for instant UI feedback
+            setActiveOrders(prev => prev.map(order =>
+                order.id === orderId ? { ...order, status } : order
+            ))
+
             await api.patch(`/orders/${orderId}/status`, { status })
+            
+            // Invalidate cache and refresh
+            cache.invalidatePattern('vendor-dashboard')
             fetchDashboardData()
         } catch (error) {
             console.error('Failed to update order status:', error)
+            // Revert on error
+            fetchDashboardData()
         }
     }
 
@@ -189,13 +247,13 @@ const VendorDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+            {/* Header - Fully Responsive */}
+            <div className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <button 
                             onClick={() => handleViewChange('live')}
-                            className={`px-6 py-3 text-base font-medium rounded-lg transition-colors ${
+                            className={`flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors min-h-[44px] ${
                                 currentView === 'live' 
                                     ? 'text-white bg-blue-600 shadow-md' 
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -205,7 +263,7 @@ const VendorDashboard = () => {
                         </button>
                         <button 
                             onClick={() => handleViewChange('history')}
-                            className={`px-6 py-3 text-base font-medium rounded-lg transition-colors ${
+                            className={`flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors min-h-[44px] ${
                                 currentView === 'history' 
                                     ? 'text-white bg-blue-600 shadow-md' 
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -215,7 +273,7 @@ const VendorDashboard = () => {
                         </button>
                         <button 
                             onClick={() => handleViewChange('menu')}
-                            className={`px-6 py-3 text-base font-medium rounded-lg transition-colors ${
+                            className={`flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors min-h-[44px] ${
                                 currentView === 'menu' 
                                     ? 'text-white bg-blue-600 shadow-md' 
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -224,9 +282,9 @@ const VendorDashboard = () => {
                             Menu Control
                         </button>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative">
-                            <BellIcon className="h-6 w-6" />
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                        <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative min-h-[44px] min-w-[44px] flex items-center justify-center">
+                            <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                             {stats.activeOrdersCount > 0 && (
                                 <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-medium">
                                     {stats.activeOrdersCount}
@@ -237,54 +295,54 @@ const VendorDashboard = () => {
                 </div>
             </div>
 
-            <div className="p-6">
-                {/* Stats Cards - Show only in Live Orders view */}
+            <div className="p-3 sm:p-4 lg:p-6">
+                {/* Stats Cards - Fully Responsive */}
                 {currentView === 'live' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                         {/* Stats Cards */}
-                        <div className="bg-white rounded-lg shadow p-4">
-                            <p className="text-sm text-gray-600 mb-1">Active Orders</p>
+                        <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Active Orders</p>
                             <div className="flex items-baseline space-x-2">
-                                <p className="text-3xl font-bold">{stats.activeOrdersCount}</p>
-                                <span className="text-sm text-green-600 font-medium">+5</span>
+                                <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
+                                <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-4">
-                            <p className="text-sm text-gray-600 mb-1">Completed Today</p>
-                            <p className="text-3xl font-bold">{stats.completedToday}</p>
+                        <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Completed Today</p>
+                            <p className="text-2xl sm:text-3xl font-bold">{stats.completedToday}</p>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-4">
-                            <p className="text-sm text-gray-600 mb-1">Avg. Wait Time</p>
+                        <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Avg. Wait Time</p>
                             <div className="flex items-baseline space-x-2">
-                                <p className="text-3xl font-bold">{stats.avgWaitTime}m</p>
-                                <span className="text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
+                                <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
+                                <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
                             </div>
                         </div>
 
-                        <div className="bg-blue-600 rounded-lg shadow p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition" onClick={() => navigate('/vendor/qr-scanner')}>
+                        <div className="bg-blue-600 rounded-lg shadow p-3 sm:p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition min-h-[100px]" onClick={() => navigate('/vendor/qr-scanner')}>
                             <div className="text-center text-white">
-                                <QrCodeIcon className="h-10 w-10 mx-auto mb-1" />
-                                <p className="text-sm font-medium">Open QR Scanner</p>
+                                <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
+                                <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Live Orders View */}
+                {/* Live Orders View - Fully Responsive */}
                 {currentView === 'live' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                         {/* Live Orders Feed */}
                         <div className="lg:col-span-2">
                             <div className="bg-white rounded-lg shadow">
-                                <div className="border-b border-gray-200 px-6 py-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-bold">Live Orders Feed</h2>
-                                    <div className="flex space-x-2">
+                                <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                    <h2 className="text-base sm:text-lg font-bold">Live Orders Feed</h2>
+                                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                                         <button
                                             onClick={() => setFilter('all')}
-                                            className={`px-3 py-1 text-sm rounded ${
+                                            className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded min-h-[36px] ${
                                                 filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
                                             }`}
                                         >
@@ -292,7 +350,7 @@ const VendorDashboard = () => {
                                         </button>
                                         <button
                                             onClick={() => setFilter(OrderStatus.PREPARING)}
-                                            className={`px-3 py-1 text-sm rounded ${
+                                            className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded min-h-[36px] ${
                                                 filter === OrderStatus.PREPARING ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600'
                                             }`}
                                         >
@@ -300,7 +358,7 @@ const VendorDashboard = () => {
                                         </button>
                                         <button
                                             onClick={() => setFilter(OrderStatus.READY)}
-                                            className={`px-3 py-1 text-sm rounded ${
+                                            className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded min-h-[36px] ${
                                                 filter === OrderStatus.READY ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'
                                             }`}
                                         >
@@ -390,21 +448,21 @@ const VendorDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Batch View */}
+                    {/* Batch View - Fully Responsive */}
                     <div className="bg-white rounded-lg shadow">
-                        <div className="border-b border-gray-200 px-6 py-4">
+                        <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                             <div className="flex items-center space-x-2">
-                                <div className="h-8 w-8 bg-blue-100 rounded flex items-center justify-center">
-                                    <span className="text-blue-600 font-bold">📊</span>
+                                <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                                    <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
                                 </div>
                                 <div>
-                                    <h2 className="font-bold">Batch View</h2>
-                                    <p className="text-xs text-gray-500">Aggregated quantities for cooking</p>
+                                    <h2 className="font-bold text-sm sm:text-base">Batch View</h2>
+                                    <p className="text-[10px] sm:text-xs text-gray-500">Aggregated quantities for cooking</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 max-h-[600px] overflow-y-auto">
+                        <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
                             {Object.entries(groupedItems).map(([category, items]) => (
                                 <div key={category} className="mb-6">
                                     <h3 className="text-sm font-bold text-blue-600 mb-3 uppercase">{category}</h3>
@@ -435,27 +493,27 @@ const VendorDashboard = () => {
                 </div>
                 )}
 
-                {/* Order History View */}
+                {/* Order History View - Fully Responsive */}
                 {currentView === 'history' && (
                     <div className="bg-white rounded-lg shadow">
-                        <div className="border-b border-gray-200 px-6 py-4">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
                                 <div>
-                                    <h2 className="text-xl font-bold">Order History</h2>
-                                    <p className="text-sm text-gray-600">Completed and delivered orders</p>
+                                    <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
+                                    <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
                                 </div>
-                                <div className="w-64">
+                                <div className="w-full sm:w-64">
                                     <input
                                         type="text"
                                         placeholder="Search by Order ID..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-h-[44px]"
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6">
+                        <div className="p-3 sm:p-4 lg:p-6">
                             {filteredAndSortedHistory.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     {searchQuery ? 'No orders found matching your search' : 'No order history available'}

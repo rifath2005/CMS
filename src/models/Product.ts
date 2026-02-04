@@ -96,24 +96,76 @@ export class ProductModel {
   }
 
   /**
-   * Find all products for a vendor
+   * Count products for a vendor
    */
-  async findByVendor(vendorId: string): Promise<Product[]> {
-    const query = 'SELECT * FROM products WHERE vendor_id = $1 ORDER BY name';
+  async countByVendor(vendorId: string, availableOnly: boolean = false): Promise<number> {
+    let query = 'SELECT COUNT(*) as count FROM products WHERE vendor_id = $1';
+    
+    if (availableOnly) {
+      query += ' AND is_available = true AND stock_quantity > 0';
+    }
+    
     const result: QueryResult = await this.pool.query(query, [vendorId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  /**
+   * Find all products for a vendor
+   * OPTIMIZED: Only select necessary fields, use index, support pagination
+   */
+  async findByVendor(vendorId: string, limit?: number, offset?: number): Promise<Product[]> {
+    let query = `
+      SELECT 
+        id, vendor_id, name, description, price, category, 
+        stock_quantity, image_url, is_available, created_at, updated_at
+      FROM products 
+      WHERE vendor_id = $1 
+      ORDER BY name
+    `;
+    
+    const values: any[] = [vendorId];
+    
+    if (limit !== undefined) {
+      query += ` LIMIT $2`;
+      values.push(limit);
+      
+      if (offset !== undefined) {
+        query += ` OFFSET $3`;
+        values.push(offset);
+      }
+    }
+    
+    const result: QueryResult = await this.pool.query(query, values);
     return result.rows.map(row => this.transformProduct(row));
   }
 
   /**
    * Find available products for a vendor
+   * OPTIMIZED: Support pagination
    */
-  async findAvailableByVendor(vendorId: string): Promise<Product[]> {
-    const query = `
-      SELECT * FROM products 
+  async findAvailableByVendor(vendorId: string, limit?: number, offset?: number): Promise<Product[]> {
+    let query = `
+      SELECT 
+        id, vendor_id, name, description, price, category, 
+        stock_quantity, image_url, is_available, created_at, updated_at
+      FROM products 
       WHERE vendor_id = $1 AND is_available = true AND stock_quantity > 0
       ORDER BY name
     `;
-    const result: QueryResult = await this.pool.query(query, [vendorId]);
+    
+    const values: any[] = [vendorId];
+    
+    if (limit !== undefined) {
+      query += ` LIMIT $2`;
+      values.push(limit);
+      
+      if (offset !== undefined) {
+        query += ` OFFSET $3`;
+        values.push(offset);
+      }
+    }
+    
+    const result: QueryResult = await this.pool.query(query, values);
     return result.rows.map(row => this.transformProduct(row));
   }
 
