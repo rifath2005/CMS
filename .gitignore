@@ -44,7 +44,9 @@ temp/
 *.sqlite3
 
 # Documentation (keep only essential docs)
-*_COMPLETION*.md
+ReadMe.md
+!ReadMe.md
+*_COMPLETE*.md
 *_FIX*.md
 *_GUIDE*.md
 *_INSTRUCTIONS*.md
@@ -52,3 +54,12 @@ temp/
 *_SUMMARY*.md
 TASK_*.md
 TASKS_*.md
+*.bat
+*.sql
+*.http
+cleanup.js
+clear-rate-limit.js
+frontend-socket-example.js
+generate-password-hash.js
+hash_output.txt
+fix-admin-password.sql

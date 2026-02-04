@@ -224,6 +224,17 @@ process.on('SIGINT', gracefulShutdown);
 // Start the server
 startServer();
 
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...', reason);
+  process.exit(1);
+});
+
 // Export for testing
 export { app, httpServer, wsServer };
 export default app;

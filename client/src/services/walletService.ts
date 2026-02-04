@@ -6,6 +6,13 @@ export interface WalletBalance {
   currency: string;
 }
 
+export interface AddCashResult {
+  success: boolean;
+  newBalance: number;
+  amountAdded: number;
+  message: string;
+}
+
 export interface WalletPaymentResult {
   success: boolean;
   orderId: string;
@@ -31,6 +38,17 @@ export const walletService = {
    */
   async getBalance(): Promise<WalletBalance> {
     const response = await api.get<{ success: boolean; data: WalletBalance }>('/wallet/balance');
+    return response.data.data;
+  },
+
+  /**
+   * Add cash to wallet
+   */
+  async addCash(userId: string, amount: number): Promise<AddCashResult> {
+    const response = await api.post<{ success: boolean; data: AddCashResult }>('/wallet/add-cash', {
+      userId,
+      amount,
+    });
     return response.data.data;
   },
 

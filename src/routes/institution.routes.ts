@@ -181,27 +181,40 @@ export const createInstitutionRouter = (pool: Pool): Router => {
     }
   });
 
-  // POST /api/v1/institutions/:id/canteens - Register canteen
-  router.post('/:id/canteens', authenticate, async (req: Request, res: Response) => {
+  // POST /api/v1/institutions/:id/canteens - Register canteen with vendor user
+  router.post('/:id/canteens', authenticate, requireInstitutionAdmin, async (req: Request, res: Response) => {
     try {
       const institutionId = req.params.id;
 
-      const { name, description, location, contactPhone, ownerName, ownerEmail } = req.body;
+      const { name, location, contactPhone, ownerName, ownerEmail, operatingHours } = req.body;
 
       if (!name || !location || !contactPhone || !ownerName || !ownerEmail) {
         throw new ValidationError('Name, location, contact phone, owner name, and owner email are required');
       }
 
-      const canteen = await institutionService.registerCanteen(
+      // Generate a temporary password for the vendor
+      // In production, you might want to send this via email or let them set it up
+      const tempPassword = `Vendor@${Math.random().toString(36).slice(-8)}`;
+
+      // Use the registerCanteenWithVendor method to create both user and canteen
+      const result = await institutionService.registerCanteenWithVendor(
         institutionId,
         name,
-        location
+        ownerEmail,
+        tempPassword,
+        ownerName,
+        location,
+        operatingHours
       );
 
       res.status(201).json({
         success: true,
-        data: canteen,
-        message: 'Canteen registered successfully. Awaiting approval.',
+        data: {
+          canteen: result.canteen,
+          vendorUserId: result.vendorUserId,
+          temporaryPassword: tempPassword, // Send this back so admin can share with vendor
+        },
+        message: 'Canteen and vendor user created successfully. Awaiting approval.',
       });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({

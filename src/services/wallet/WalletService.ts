@@ -196,6 +196,58 @@ export class WalletService {
   }
 
   /**
+   * Add cash to wallet (user top-up)
+   */
+  async addCash(userId: string, amount: number): Promise<number> {
+    if (amount <= 0) {
+      throw new ValidationError('Amount must be greater than 0');
+    }
+
+    if (amount > 1000) {
+      throw new ValidationError('Amount cannot exceed ₹1000');
+    }
+
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Lock the user row for update
+      const balanceResult = await client.query(
+        `SELECT wallet_balance FROM users 
+         WHERE id = $1 AND role = 'USER' 
+         FOR UPDATE`,
+        [userId]
+      );
+
+      if (balanceResult.rows.length === 0) {
+        throw new NotFoundError('User not found or not eligible for wallet');
+      }
+
+      const currentBalance = parseFloat(balanceResult.rows[0].wallet_balance) || 0;
+      const newBalance = currentBalance + amount;
+
+      // Update wallet balance
+      const updateResult = await client.query(
+        `UPDATE users 
+         SET wallet_balance = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2 AND role = 'USER'
+         RETURNING wallet_balance`,
+        [newBalance, userId]
+      );
+
+      await client.query('COMMIT');
+
+      return parseFloat(updateResult.rows[0].wallet_balance);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Get wallet transaction history (from orders)
    */
   async getTransactionHistory(userId: string, limit: number = 50): Promise<any[]> {

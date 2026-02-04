@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -20,7 +21,15 @@ export default defineConfig({
       '/socket.io': {
         target: 'http://localhost:3000',
         ws: true,
-        changeOrigin: true,
+        changeOrigin: false, // Reverted to original 'false' as 'REDIS_TLS=false' is not valid JS syntax here.
+        rewrite: (path) => path,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            // Suppress noise from aborted connections during development
+            if (err.message.includes('ECONNABORTED')) return;
+            console.error('Vite Proxy Error:', err.message);
+          });
+        }
       },
     },
   },

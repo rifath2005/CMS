@@ -146,8 +146,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchMode }) => {
         <label className="text-xs font-black text-[#001533] ml-0.5 tracking-wide uppercase opacity-70">
           ORGANISATION NAME <span className="text-red-500">*</span>
         </label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+        <div className="relative group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#ff7a00] transition-colors">
             <Building2 size={18} />
           </div>
           <select
@@ -156,7 +156,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchMode }) => {
             value={formData.organizationName}
             onChange={handleChange}
             disabled={loadingInstitutions}
-            className="w-full pl-10 pr-3 py-2 rounded-xl border-2 border-slate-100 bg-white text-sm font-medium text-[#001533] placeholder:text-slate-400 focus:border-[#ff7a00] focus:outline-none focus:ring-4 focus:ring-[#ff7a00]/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-200"
+            className="w-full pl-14 pr-3 py-2 rounded-xl border-2 border-slate-100 bg-white text-sm font-medium text-[#001533] placeholder:text-slate-400 focus:border-[#ff7a00] focus:outline-none focus:ring-4 focus:ring-[#ff7a00]/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-200"
           >
             <option value="" disabled>
               {loadingInstitutions ? 'Loading organizations...' : 'Select your organization'}
