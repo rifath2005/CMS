@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { ProductModel } from '../../models/Product';
-import { Product, ProductCategory } from '../../types';
+import { Product } from '../../types';
 import { ValidationError } from '../../utils/errors';
 
 export class ProductService {

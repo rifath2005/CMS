@@ -51,12 +51,22 @@ export class PaymentService {
         [userId, amount, PaymentStatus.INITIATED]
       );
 
-      const payment = this.paymentModel.mapRow(paymentResult.rows[0]);
+      const row = paymentResult.rows[0];
+      const payment: Payment = {
+        id: row.id,
+        userId: row.user_id,
+        amount: parseFloat(row.amount),
+        status: row.status as PaymentStatus,
+        upiTransactionId: row.upi_transaction_id,
+        createdAt: row.created_at,
+        completedAt: row.completed_at
+      };
 
       // Deduct from wallet (this will throw if insufficient balance)
-      const walletResult = await this.walletService.deductFromWallet(
+      const walletResult = await this.walletService.deductBalance(
         userId,
         amount,
+        payment.id,
         client
       );
 
@@ -71,7 +81,16 @@ export class PaymentService {
 
       await client.query('COMMIT');
 
-      return this.paymentModel.mapRow(updatedPaymentResult.rows[0]);
+      const updatedRow = updatedPaymentResult.rows[0];
+      return {
+        id: updatedRow.id,
+        userId: updatedRow.user_id,
+        amount: parseFloat(updatedRow.amount),
+        status: updatedRow.status as PaymentStatus,
+        upiTransactionId: updatedRow.upi_transaction_id,
+        createdAt: updatedRow.created_at,
+        completedAt: updatedRow.completed_at
+      };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -84,7 +103,7 @@ export class PaymentService {
    * Get wallet balance
    */
   async getWalletBalance(userId: string): Promise<number> {
-    return this.walletService.getWalletBalance(userId);
+    return this.walletService.getBalance(userId);
   }
 
   /**
