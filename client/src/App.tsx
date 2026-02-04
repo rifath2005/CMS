@@ -39,6 +39,7 @@ import Checkout from './pages/user/Checkout'
 import DigitalBill from './pages/user/DigitalBill'
 import OrderHistory from './pages/user/OrderHistory'
 import Profile from './pages/user/Profile'
+import AddCash from './pages/user/AddCash'
 import WalletTest from './pages/user/WalletTest'
 
 // Protected Route Component
@@ -124,6 +125,7 @@ function App() {
                             <Route path="/bill/:orderId" element={<DigitalBill />} />
                             <Route path="/orders" element={<OrderHistory />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/add-cash" element={<AddCash />} />
                             <Route path="/wallet-test" element={<WalletTest />} />
                         </Route>
                     </Route>

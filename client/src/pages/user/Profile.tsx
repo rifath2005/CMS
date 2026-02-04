@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { userService } from '../../services/userService'
 import { walletService } from '../../services/walletService'
 import { useAuthStore } from '../../store/authStore'
 import { useWalletStore } from '../../store/walletStore'
 import { User } from '../../types'
 import ErrorAlert from '../../components/ErrorAlert'
-import { User as UserIcon, Mail, Building, Save, CheckCircle, Wallet } from 'lucide-react'
+import { User as UserIcon, Mail, Building, Save, CheckCircle, Wallet, Plus } from 'lucide-react'
 
 const Profile = () => {
+    const navigate = useNavigate()
     const { user: authUser, updateUser } = useAuthStore()
     const { balance: walletBalance, setBalance } = useWalletStore()
 
@@ -173,7 +175,7 @@ const Profile = () => {
 
             {/* Wallet Balance Card */}
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                     <div>
                         <div className="flex items-center mb-2">
                             <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
@@ -186,6 +188,13 @@ const Profile = () => {
                         <Wallet className="w-8 h-8 sm:w-12 sm:h-12" />
                     </div>
                 </div>
+                <button
+                    onClick={() => navigate('/add-cash')}
+                    className="w-full bg-white text-purple-600 py-2 sm:py-2.5 rounded-lg hover:bg-gray-100 font-semibold text-sm sm:text-base transition-all flex items-center justify-center"
+                >
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    Add Cash to Wallet
+                </button>
             </div>
 
             {/* Profile Information */}

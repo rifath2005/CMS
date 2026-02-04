@@ -44,6 +44,55 @@ export const createWalletRouter = (pool: Pool): Router => {
     }
   });
 
+  // POST /api/v1/wallet/add-cash - Add cash to wallet
+  router.post('/add-cash', authenticate, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      const { amount } = req.body;
+
+      console.log('💰 Add cash request:', { userId, amount });
+
+      if (!userId) {
+        throw new ValidationError('User not authenticated');
+      }
+
+      if (!amount || typeof amount !== 'number') {
+        throw new ValidationError('Valid amount is required');
+      }
+
+      if (amount <= 0) {
+        throw new ValidationError('Amount must be greater than 0');
+      }
+
+      if (amount > 1000) {
+        throw new ValidationError('Amount cannot exceed ₹1000');
+      }
+
+      const newBalance = await walletService.addCash(userId, amount);
+      
+      console.log('✅ Cash added successfully:', { userId, amount, newBalance });
+
+      res.json({
+        success: true,
+        data: {
+          success: true,
+          newBalance,
+          amountAdded: amount,
+          message: `₹${amount} added to wallet successfully`,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Add cash error:', error);
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: {
+          code: error.code || 'ADD_CASH_FAILED',
+          message: error.message,
+        },
+      });
+    }
+  });
+
   // POST /api/v1/wallet/pay - Process wallet payment and create order
   router.post('/pay', authenticate, async (req: Request, res: Response) => {
     try {
