@@ -19,6 +19,7 @@ import AddVendorModal, { VendorFormData } from '../../components/AddVendorModal'
 import EditVendorModal, { VendorData, VendorEditData } from '../../components/EditVendorModal'
 import DashboardSkeleton from '../../components/DashboardSkeleton'
 import { cache } from '../../utils/cache'
+import { Button } from '../../components/ui/Button'
 
 const AdminDashboard = () => {
     const { user } = useAuthStore()
@@ -244,13 +245,15 @@ const AdminDashboard = () => {
                                         Review and manage vendor requests.
                                     </p>
                                 </div>
-                                <button 
+                                <Button
                                     onClick={() => setIsAddModalOpen(true)}
-                                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px] text-sm font-medium whitespace-nowrap"
+                                    variant="default"
+                                    size="default"
+                                    className="min-h-[44px]"
                                 >
                                     <Plus className="h-4 w-4" />
                                     <span>Add Vendor</span>
-                                </button>
+                                </Button>
                             </div>
 
                             {/* Search Bar */}
@@ -337,20 +340,22 @@ const AdminDashboard = () => {
                                                     <div className="flex items-center gap-2">
                                                         {vendor.status === 'pending' ? (
                                                             <>
-                                                                <button
+                                                                <Button
                                                                     onClick={() => handleApprove(vendor.vendorId)}
                                                                     disabled={actionLoading === vendor.vendorId}
-                                                                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                                                    variant="default"
+                                                                    size="sm"
                                                                 >
                                                                     Approve
-                                                                </button>
-                                                                <button
+                                                                </Button>
+                                                                <Button
                                                                     onClick={() => handleDeactivate(vendor.vendorId)}
                                                                     disabled={actionLoading === vendor.vendorId}
-                                                                    className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                                    variant="destructive"
+                                                                    size="sm"
                                                                 >
                                                                     Reject
-                                                                </button>
+                                                                </Button>
                                                             </>
                                                         ) : vendor.status === 'active' ? (
                                                             <>
@@ -371,13 +376,15 @@ const AdminDashboard = () => {
                                                                 </button>
                                                             </>
                                                         ) : (
-                                                            <button
+                                                            <Button
                                                                 onClick={() => handleApprove(vendor.vendorId)}
                                                                 disabled={actionLoading === vendor.vendorId}
-                                                                className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                                variant="default"
+                                                                size="sm"
+                                                                className="bg-green-600 hover:bg-green-700"
                                                             >
                                                                 Activate
-                                                            </button>
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -503,13 +510,15 @@ const AdminDashboard = () => {
                                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredVendors.length)} of {filteredVendors.length}
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
-                                <button
+                                <Button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1}
-                                    className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm min-h-[36px] sm:min-h-[40px]"
+                                    variant="outline"
+                                    size="sm"
+                                    className="min-h-[36px] sm:min-h-[40px]"
                                 >
                                     Prev
-                                </button>
+                                </Button>
                                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                                     let page;
                                     if (totalPages <= 5) {
@@ -535,13 +544,15 @@ const AdminDashboard = () => {
                                         </button>
                                     );
                                 })}
-                                <button
+                                <Button
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm min-h-[36px] sm:min-h-[40px]"
+                                    variant="outline"
+                                    size="sm"
+                                    className="min-h-[36px] sm:min-h-[40px]"
                                 >
                                     Next
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     )}

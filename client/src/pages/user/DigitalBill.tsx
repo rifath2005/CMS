@@ -7,6 +7,9 @@ import ErrorAlert from '../../components/ErrorAlert'
 import QRCode from '../../components/QRCode'
 import { CountdownTimer } from '../../components/shared/CountdownTimer'
 import { CheckCircle, Package, User, Calendar, Receipt, AlertCircle } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
 
 const DigitalBill = () => {
     const { orderId } = useParams<{ orderId: string }>()
@@ -215,12 +218,14 @@ const DigitalBill = () => {
                 <div className="w-full px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 space-y-3 sm:space-y-4 lg:space-y-6">
                     <div className="max-w-2xl mx-auto overflow-x-hidden">
                         <ErrorAlert message={error || 'Bill not found'} />
-                        <button
+                        <Button
                             onClick={() => navigate('/orders')}
-                            className="mt-3 sm:mt-4 text-sm sm:text-base text-primary-600 hover:text-primary-700 font-medium"
+                            variant="ghost"
+                            size="sm"
+                            className="mt-3 sm:mt-4 text-primary hover:text-primary"
                         >
                             ← Back to Orders
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -254,12 +259,14 @@ const DigitalBill = () => {
                             </div>
                         </div>
 
-                        <button
+                        <Button
                             onClick={() => navigate('/orders')}
-                            className="mt-4 sm:mt-6 w-full bg-primary-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm sm:text-base"
+                            variant="default"
+                            size="lg"
+                            className="mt-4 sm:mt-6 w-full"
                         >
                             View Order History
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -288,14 +295,12 @@ const DigitalBill = () => {
 
                     {/* Status Badge - Large and Centered */}
                     <div className="mb-4 sm:mb-6 text-center">
-                        <span
-                            className={`inline-block px-4 sm:px-6 py-2 sm:py-3 rounded-full text-base sm:text-lg font-bold ${isExpired || !bill.isValid
-                                ? 'bg-red-100 text-red-800 border-2 border-red-300'
-                                : 'bg-green-100 text-green-800 border-2 border-green-300'
-                                }`}
+                        <Badge
+                            variant={isExpired || !bill.isValid ? "destructive" : "success"}
+                            className="px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg font-bold border-2"
                         >
                             {isExpired || !bill.isValid ? 'Expired' : 'Valid'}
-                        </span>
+                        </Badge>
                     </div>
 
                     {/* QR Code - Responsive size */}
@@ -410,21 +415,21 @@ const DigitalBill = () => {
                     </div>
 
                     {/* Action Button */}
-                    <button
+                    <Button
                         onClick={() => {
                             if (canLeave) {
                                 navigate('/dashboard')
                             } else {
-                                alert('Please wait for your order to be delivered or expire before leaving this page.')
+                                alert('Please wait for you order to be delivered or expire before leaving this page.')
                             }
                         }}
-                        className={`w-full py-2.5 sm:py-3 rounded-lg transition-colors font-medium text-sm sm:text-base ${!canLeave
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                            }`}
+                        variant={canLeave ? "outline" : "secondary"}
+                        size="lg"
+                        className="w-full"
+                        disabled={!canLeave}
                     >
                         Back to Dashboard
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

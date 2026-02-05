@@ -5,6 +5,9 @@ import { useWalletStore } from '../../store/walletStore'
 import { useAuthStore } from '../../store/authStore'
 import ErrorAlert from '../../components/ErrorAlert'
 import { Wallet, Plus, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { cn } from '../../lib/utils'
 
 const AddCash = () => {
     const navigate = useNavigate()
@@ -106,31 +109,35 @@ const AddCash = () => {
         <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
             <div className="max-w-2xl mx-auto">
                 {/* Back Button */}
-                <button
+                <Button
                     onClick={() => navigate('/profile')}
-                    className="flex items-center text-primary-600 hover:text-primary-700 mb-4 sm:mb-6 text-sm sm:text-base font-medium"
+                    variant="ghost"
+                    size="sm"
+                    className="mb-4 sm:mb-6 text-primary hover:text-primary"
                 >
                     <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Back to Profile
-                </button>
+                </Button>
 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Add Cash to Wallet</h1>
 
                 {/* Current Balance Card */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center mb-2">
-                                <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                                <h2 className="text-base sm:text-lg font-semibold">Current Balance</h2>
+                <Card className="bg-gradient-to-r from-purple-600 to-blue-600 border-0 shadow-lg mb-4 sm:mb-6 text-white">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center mb-2">
+                                    <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                                    <h2 className="text-base sm:text-lg font-semibold">Current Balance</h2>
+                                </div>
+                                <p className="text-2xl sm:text-3xl font-bold">₹{balance.toFixed(2)}</p>
                             </div>
-                            <p className="text-2xl sm:text-3xl font-bold">₹{balance.toFixed(2)}</p>
+                            <div className="bg-white/20 rounded-full p-3 sm:p-4">
+                                <Wallet className="w-8 h-8 sm:w-12 sm:h-12" />
+                            </div>
                         </div>
-                        <div className="bg-white/20 rounded-full p-3 sm:p-4">
-                            <Wallet className="w-8 h-8 sm:w-12 sm:h-12" />
-                        </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
 
                 {error && (
                     <div className="mb-4 sm:mb-6">
@@ -139,7 +146,8 @@ const AddCash = () => {
                 )}
 
                 {/* Add Cash Form */}
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <Card>
+                    <CardContent className="p-4 sm:p-6">
                     <form onSubmit={handleSubmit}>
                         {/* Amount Input */}
                         <div className="mb-4 sm:mb-6">
@@ -172,28 +180,30 @@ const AddCash = () => {
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                                 {quickAmounts.map((quickAmount) => (
-                                    <button
+                                    <Button
                                         key={quickAmount}
                                         type="button"
                                         onClick={() => handleQuickAmount(quickAmount)}
                                         disabled={isLoading}
-                                        className={`py-2.5 sm:py-3 px-4 rounded-lg font-semibold text-sm sm:text-base transition-all ${
-                                            amount === quickAmount.toString()
-                                                ? 'bg-primary-600 text-white shadow-md'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        } disabled:opacity-50`}
+                                        variant={amount === quickAmount.toString() ? 'default' : 'outline'}
+                                        size="lg"
+                                        className={cn(
+                                            amount === quickAmount.toString() && "shadow-md"
+                                        )}
                                     >
                                         ₹{quickAmount}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
 
                         {/* Submit Button */}
-                        <button
+                        <Button
                             type="submit"
                             disabled={isLoading || !amount}
-                            className="w-full bg-primary-600 text-white py-3 sm:py-4 rounded-lg hover:bg-primary-700 font-semibold text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                            variant="default"
+                            size="lg"
+                            className="w-full"
                         >
                             {isLoading ? (
                                 <>
@@ -206,9 +216,10 @@ const AddCash = () => {
                                     Add Cash to Wallet
                                 </>
                             )}
-                        </button>
+                        </Button>
                     </form>
-                </div>
+                    </CardContent>
+                </Card>
 
                 {/* Info Card */}
                 <div className="mt-4 sm:mt-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">

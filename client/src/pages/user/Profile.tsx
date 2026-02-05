@@ -7,6 +7,10 @@ import { useWalletStore } from '../../store/walletStore'
 import { User } from '../../types'
 import ErrorAlert from '../../components/ErrorAlert'
 import { User as UserIcon, Mail, Building, Save, CheckCircle, Wallet, Plus } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 const Profile = () => {
     const navigate = useNavigate()
@@ -174,31 +178,36 @@ const Profile = () => {
             )}
 
             {/* Wallet Balance Card */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <div className="flex items-center mb-2">
-                            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                            <h2 className="text-base sm:text-lg font-semibold">Wallet Balance</h2>
+            <Card className="bg-gradient-to-r from-purple-600 to-blue-600 border-0 shadow-lg mb-4 sm:mb-6 text-white">
+                <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <div className="flex items-center mb-2">
+                                <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                                <h2 className="text-base sm:text-lg font-semibold">Wallet Balance</h2>
+                            </div>
+                            <p className="text-2xl sm:text-3xl font-bold">₹{walletBalance.toFixed(2)}</p>
+                            <p className="text-xs sm:text-sm opacity-90 mt-1">Available for instant payments</p>
                         </div>
-                        <p className="text-2xl sm:text-3xl font-bold">₹{walletBalance.toFixed(2)}</p>
-                        <p className="text-xs sm:text-sm opacity-90 mt-1">Available for instant payments</p>
+                        <div className="bg-white/20 rounded-full p-3 sm:p-4">
+                            <Wallet className="w-8 h-8 sm:w-12 sm:h-12" />
+                        </div>
                     </div>
-                    <div className="bg-white/20 rounded-full p-3 sm:p-4">
-                        <Wallet className="w-8 h-8 sm:w-12 sm:h-12" />
-                    </div>
-                </div>
-                <button
-                    onClick={() => navigate('/add-cash')}
-                    className="w-full bg-white text-purple-600 py-2 sm:py-2.5 rounded-lg hover:bg-gray-100 font-semibold text-sm sm:text-base transition-all flex items-center justify-center"
-                >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    Add Cash to Wallet
-                </button>
-            </div>
+                    <Button
+                        onClick={() => navigate('/add-cash')}
+                        variant="secondary"
+                        size="lg"
+                        className="w-full bg-white text-purple-600 hover:bg-gray-100"
+                    >
+                        <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                        Add Cash to Wallet
+                    </Button>
+                </CardContent>
+            </Card>
 
             {/* Profile Information */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <Card className="mb-4 sm:mb-6">
+                <CardContent className="p-4 sm:p-6">
                 <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Account Information</h2>
 
                 <form onSubmit={handleSubmit}>
@@ -260,18 +269,20 @@ const Profile = () => {
                     {/* Role Badge */}
                     <div className="mb-4 sm:mb-6">
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Role</label>
-                        <span className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-100 text-primary-800 rounded-full text-xs sm:text-sm font-medium">
+                        <Badge variant="default" className="text-xs sm:text-sm">
                             {profile.role}
-                        </span>
+                        </Badge>
                     </div>
 
                     {/* Action Buttons */}
                     {hasChanges && (
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                            <button
+                            <Button
                                 type="submit"
                                 disabled={isSaving}
-                                className="flex-1 bg-primary-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
+                                variant="default"
+                                size="lg"
+                                className="flex-1"
                             >
                                 {isSaving ? (
                                     <>
@@ -284,42 +295,46 @@ const Profile = () => {
                                         Save Changes
                                     </>
                                 )}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={handleReset}
                                 disabled={isSaving}
-                                className="px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 text-sm sm:text-base"
+                                variant="outline"
+                                size="lg"
                             >
                                 Cancel
-                            </button>
+                            </Button>
                         </div>
                     )}
                 </form>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Account Details */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Account Details</h2>
-                <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
-                    <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-600">Account Created</span>
-                        <span className="font-medium">
-                            {new Date(profile.createdAt).toLocaleDateString()}
-                        </span>
+            <Card>
+                <CardContent className="p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Account Details</h2>
+                    <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                        <div className="flex justify-between py-2 border-b">
+                            <span className="text-muted-foreground">Account Created</span>
+                            <span className="font-medium">
+                                {new Date(profile.createdAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b">
+                            <span className="text-muted-foreground">User ID</span>
+                            <span className="font-medium font-mono text-[10px] sm:text-xs break-all">{profile.id}</span>
+                        </div>
+                        <div className="flex justify-between py-2">
+                            <span className="text-muted-foreground">Account Status</span>
+                            <Badge variant="success" className="text-[10px] sm:text-xs">
+                                Active
+                            </Badge>
+                        </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-600">User ID</span>
-                        <span className="font-medium font-mono text-[10px] sm:text-xs break-all">{profile.id}</span>
-                    </div>
-                    <div className="flex justify-between py-2">
-                        <span className="text-gray-600">Account Status</span>
-                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-[10px] sm:text-xs font-medium">
-                            Active
-                        </span>
-                    </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Help Text */}
             <div className="mt-4 sm:mt-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">

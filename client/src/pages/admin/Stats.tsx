@@ -11,6 +11,9 @@ import ErrorAlert from '../../components/ErrorAlert'
 import { KPICard } from '../../components/shared/KPICard'
 import DashboardSkeleton from '../../components/DashboardSkeleton'
 import { cache } from '../../utils/cache'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { cn } from '../../lib/utils'
 
 const InstitutionStats = () => {
     const { user } = useAuthStore()
@@ -86,36 +89,39 @@ const InstitutionStats = () => {
 
                     {/* Time Range Selector */}
                     <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
-                        <button
+                        <Button
                             onClick={() => setTimeRange('today')}
-                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
-                                timeRange === 'today'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
+                            variant={timeRange === 'today' ? 'default' : 'ghost'}
+                            size="sm"
+                            className={cn(
+                                "text-xs sm:text-sm",
+                                timeRange !== 'today' && "text-muted-foreground"
+                            )}
                         >
                             Today
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={() => setTimeRange('week')}
-                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
-                                timeRange === 'week'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
+                            variant={timeRange === 'week' ? 'default' : 'ghost'}
+                            size="sm"
+                            className={cn(
+                                "text-xs sm:text-sm",
+                                timeRange !== 'week' && "text-muted-foreground"
+                            )}
                         >
                             Week
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={() => setTimeRange('month')}
-                            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
-                                timeRange === 'month'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
+                            variant={timeRange === 'month' ? 'default' : 'ghost'}
+                            size="sm"
+                            className={cn(
+                                "text-xs sm:text-sm",
+                                timeRange !== 'month' && "text-muted-foreground"
+                            )}
                         >
                             Month
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -158,27 +164,29 @@ const InstitutionStats = () => {
                 </div>
 
                 {/* Summary Card */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div>
-                                <p className="text-sm text-gray-600">Total Revenue</p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    ₹{stats.dailyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </p>
+                <Card>
+                    <CardContent className="p-4 sm:p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                                    <p className="text-2xl font-bold text-foreground">
+                                        ₹{stats.dailyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+                                <DollarSign className="h-8 w-8 text-green-600" />
                             </div>
-                            <DollarSign className="h-8 w-8 text-green-600" />
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div>
-                                <p className="text-sm text-gray-600">Total Orders</p>
-                                <p className="text-2xl font-bold text-gray-900">{stats.ordersToday}</p>
+                            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total Orders</p>
+                                    <p className="text-2xl font-bold text-foreground">{stats.ordersToday}</p>
+                                </div>
+                                <ShoppingCart className="h-8 w-8 text-blue-600" />
                             </div>
-                            <ShoppingCart className="h-8 w-8 text-blue-600" />
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )

@@ -7,6 +7,10 @@ import { useAuthStore } from '../../store/authStore'
 import ErrorAlert from '../../components/ErrorAlert'
 import { StatusChip } from '../../components/shared'
 import { Package, Calendar, Filter, ShoppingBag, X } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 const OrderHistory = () => {
     const navigate = useNavigate()
@@ -205,20 +209,23 @@ const OrderHistory = () => {
             )}
 
             {/* Filters */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <Card className="mb-4 sm:mb-6">
+                <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <div className="flex items-center">
                         <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 mr-2" />
                         <h2 className="text-base sm:text-lg font-semibold">Filters</h2>
                     </div>
                     {(startDate || endDate || vendorFilter || statusFilter) && (
-                        <button
+                        <Button
                             onClick={clearFilters}
-                            className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center min-h-[44px] px-2 sm:px-3"
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary"
                         >
                             <X className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             Clear All
-                        </button>
+                        </Button>
                     )}
                 </div>
 
@@ -280,7 +287,8 @@ const OrderHistory = () => {
                         </select>
                     </div>
                 </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Orders List - Card-based layout */}
             {filteredOrders.length === 0 ? (
@@ -295,71 +303,74 @@ const OrderHistory = () => {
                             : 'Try adjusting your filters'}
                     </p>
                     {orders.length === 0 && (
-                        <button
+                        <Button
                             onClick={() => navigate('/dashboard')}
-                            className="bg-primary-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg hover:bg-primary-700 transition-colors min-h-[44px]"
+                            variant="default"
+                            size="lg"
                         >
                             Browse Products
-                        </button>
+                        </Button>
                     )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3 sm:gap-4 mb-4 sm:mb-6">
                     {filteredOrders.map((order) => (
-                        <div
+                        <Card
                             key={order.id}
-                            className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md border border-gray-200"
+                            className="hover:shadow-md transition-shadow"
                         >
-                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 sm:mb-4 gap-3">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
-                                        <h3 className="text-base sm:text-lg font-semibold">Order #{order.id?.slice(0, 8) || 'N/A'}</h3>
-                                        <StatusChip status={mapStatusToChipType(order.status)} size="md" showIcon />
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-600 gap-2 sm:gap-4">
-                                        <div className="flex items-center">
-                                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            }) : 'N/A'}
+                            <CardContent className="p-4 sm:p-6">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 sm:mb-4 gap-3">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                                            <h3 className="text-base sm:text-lg font-semibold">Order #{order.id?.slice(0, 8) || 'N/A'}</h3>
+                                            <StatusChip status={mapStatusToChipType(order.status)} size="md" showIcon />
                                         </div>
-                                        <div className="flex items-center">
-                                            <Package className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                            Vendor: {order.vendorId}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-left sm:text-right">
-                                    <p className="text-xl sm:text-2xl font-bold text-primary-600">
-                                        ₹{typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : parseFloat(order.totalAmount).toFixed(2)}
-                                    </p>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                                        {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Order Items - No images */}
-                            <div className="border-t pt-3 sm:pt-4">
-                                <div className="space-y-2">
-                                    {order.items.map((item, index) => (
-                                        <div key={index} className="flex items-center justify-between">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-gray-900 text-sm sm:text-base">{item.productName}</p>
-                                                <p className="text-xs sm:text-sm text-gray-500">Quantity: {item.quantity} × ₹{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)}</p>
+                                        <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-muted-foreground gap-2 sm:gap-4">
+                                            <div className="flex items-center">
+                                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                }) : 'N/A'}
                                             </div>
-                                            <p className="font-semibold text-gray-900 whitespace-nowrap ml-4 text-sm sm:text-base">
-                                                ₹{(item.price * item.quantity).toFixed(2)}
-                                            </p>
+                                            <div className="flex items-center">
+                                                <Package className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                Vendor: {order.vendorId}
+                                            </div>
                                         </div>
-                                    ))}
+                                    </div>
+                                    <div className="text-left sm:text-right">
+                                        <p className="text-xl sm:text-2xl font-bold text-primary">
+                                            ₹{typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : parseFloat(order.totalAmount).toFixed(2)}
+                                        </p>
+                                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                                            {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+
+                                {/* Order Items - No images */}
+                                <div className="border-t pt-3 sm:pt-4">
+                                    <div className="space-y-2">
+                                        {order.items.map((item, index) => (
+                                            <div key={index} className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-sm sm:text-base">{item.productName}</p>
+                                                    <p className="text-xs sm:text-sm text-muted-foreground">Quantity: {item.quantity} × ₹{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)}</p>
+                                                </div>
+                                                <p className="font-semibold whitespace-nowrap ml-4 text-sm sm:text-base">
+                                                    ₹{(item.price * item.quantity).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}

@@ -8,6 +8,9 @@ import { UserRole } from '../types';
 import { ValidationError } from '../utils/errors';
 import { redisHelpers, redisClient } from '../config/redis';
 import { validatePasswordStrength } from '../services/auth/password';
+import { config } from '../config/env';
+import passport from 'passport';
+import { generateToken } from '../services/auth/jwt';
 
 /**
  * Authentication routes
@@ -802,6 +805,48 @@ export const createAuthRouter = (pool: Pool): Router => {
       }
     }
   });
+
+  /**
+   * GET /api/v1/auth/google
+   * Start Google OAuth flow
+   */
+  router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+  /**
+   * GET /api/v1/auth/google/callback
+   * Google OAuth callback URL
+   */
+  router.get('/google/callback', 
+    passport.authenticate('google', { failureRedirect: '/login', session: false }), 
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as any;
+        if (!user) {
+          return res.redirect(`${config.cors.origin[0]}/login?error=auth_failed`);
+        }
+
+        // Generate JWT token
+        const authToken = generateToken(user);
+        
+        // Log successful social login
+        await auditService.logAuthAttempt({
+          email: user.email,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          success: true,
+          userId: user.id,
+          reason: 'Google OAuth Login'
+        });
+
+        // Redirect to frontend with token and user info
+        const frontendUrl = config.cors.origin[0];
+        res.redirect(`${frontendUrl}/login?token=${authToken.token}&user=${encodeURIComponent(JSON.stringify(authToken.user))}`);
+      } catch (error) {
+        console.error('Google Auth Callback Error:', error);
+        res.redirect(`${config.cors.origin[0]}/login?error=callback_error`);
+      }
+    }
+  );
 
   return router;
 };

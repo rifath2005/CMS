@@ -6,7 +6,9 @@ import {
     BarChart3,
     LogOut,
     Menu,
-    X
+    X,
+    Sun,
+    Bell
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,110 +32,130 @@ const AdminLayout = () => {
     const isActive = (path: string) => location.pathname === path
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Top Navigation Bar */}
-            <nav className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-                <div className="max-w-full px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-14">
-                        {/* Left: CMS Title */}
-                        <div className="flex items-center">
-                            <h1 className="text-lg font-bold">CMS - Institution Admin</h1>
-                        </div>
-
-                        {/* Right: User Info and Logout */}
-                        <div className="hidden md:flex items-center space-x-3">
-                            <div className="text-right">
-                                <span className="text-sm font-medium">
-                                    {user?.name} ({user?.email})
-                                </span>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span className="text-sm font-medium">Logout</span>
-                            </button>
-                        </div>
-
-                        {/* Mobile menu button */}
-                        <div className="md:hidden flex items-center">
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="p-2 rounded-lg hover:bg-blue-500"
-                            >
-                                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                            </button>
-                        </div>
+        <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
+            {/* Sidebar - Desktop */}
+            <aside className="hidden md:flex flex-col w-72 bg-white border-r border-gray-100 z-20">
+                {/* Brand Logo Area */}
+                <div className="h-20 flex items-center px-8 mb-4">
+                    <div className="flex items-center gap-3">
+                        {/* <div className="flex -space-x-1.5">
+                             <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
+                             <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div>
+                        </div> */}
+                        <h1 className="text-xl font-black tracking-tight text-[#1E293B]">
+                             <span className="text-black-500">Notin</span><span className="text-[#ff7a00]">Q</span> <span className="text-[#1E293B]">Admin</span>
+                        </h1>
                     </div>
                 </div>
 
-                {/* Mobile Navigation */}
-                {isMobileMenuOpen && (
-                    <div className="md:hidden border-t border-blue-500">
-                        <div className="px-2 pt-2 pb-3 space-y-1">
-                            {/* User Info - Mobile */}
-                            <div className="px-3 py-2 mb-2 bg-blue-500/30 rounded-lg">
-                                <p className="text-sm font-medium">{user?.name}</p>
-                                <p className="text-xs text-blue-100">{user?.email}</p>
-                            </div>
+                {/* Navigation Menu */}
+                <nav className="flex-1 px-2 space-y-0">
+                    {navigation.map((item) => {
+                        const Icon = item.icon
+                        const active = isActive(item.href)
+                        return (
+                            <Link
+                                key={item.name}
+                                to={item.href}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all duration-300 group relative ${
+                                    active
+                                        ? 'bg-[#fce2d2] text-[#ff7b00]'
+                                        : 'text-[#64748B] hover:bg-gray-50/80 hover:text-[#1E293B]'
+                                }`}
+                            >
+                                {active && (
+                                    <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#ff7b00] rounded-r-full shadow-[2px_0_10px_rgba(0,97,255,0.3)]" />
+                                )}
+                                <Icon className={`w-4 h-4 transition-all duration-300 ${active ? 'text-[#ff7b00]' : 'text-[#94A3B8] group-hover:text-[#475569]'}`} />
+                                <span className={`font-bold text-[14px] ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
+                            </Link>
+                        )
+                    })}
+                </nav>
 
-                            {/* Navigation Links */}
-                            {navigation.map((item) => {
+                {/* Footer Section */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50/30 m-2 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                        <div className="w-8 h-8 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border border-white shadow-sm overflow-hidden text-xs">
+                            {user?.name?.[0] || 'A'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-[#1E293B] truncate">{user?.name || 'Admin'}</p>
+                            <p className="text-[10px] font-semibold text-[#94A3B8] truncate uppercase tracking-tighter">{user?.email}</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                {/* Unified Header */}
+                <header className="h-8 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10">
+                    <div className="md:hidden flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md">C</div>
+                         <span className="font-bold text-[#1E293B]">CMS Admin</span>
+                    </div>
+
+                    <div className="hidden md:block">
+                         <p className="text-xl font-semibold text-gray-400">Panel Context: <span className="text-[#1E293B] font-black uppercase tracking-tight">Institution Admin</span></p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleLogout}
+                            className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-sm text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-bold text-sm group"
+                        >
+                            <LogOut className="w-2 h-2 group-hover:-translate-x-1 transition-transform" />
+                            <span>Sign Out</span>
+                        </button>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="md:hidden p-1 rounded-xl bg-gray-100 text-[#1E293B]"
+                        >
+                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        </button>
+                    </div>
+                </header>
+
+                {/* Mobile Navigation Dropdown */}
+                {isMobileMenuOpen && (
+                    <div className="md:hidden fixed inset-0 top-20 bg-white z-40 animate-in slide-in-from-top duration-300">
+                        <nav className="p-6 space-y-2">
+                             {navigation.map((item) => {
                                 const Icon = item.icon
+                                const active = isActive(item.href)
                                 return (
                                     <Link
                                         key={item.name}
                                         to={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg ${isActive(item.href) ? 'bg-blue-500' : 'hover:bg-blue-500'
-                                            }`}
+                                        className={`flex items-center gap-5 px-6 py-5 rounded-3xl transition-all ${
+                                            active ? 'bg-[#F1F5FD] text-[#0061FF] font-black shadow-sm' : 'text-[#64748B]'
+                                        }`}
                                     >
-                                        <Icon className="w-5 h-5" />
-                                        <span>{item.name}</span>
+                                        <Icon className="w-7 h-7" />
+                                        <span className="text-xl font-bold">{item.name}</span>
                                     </Link>
                                 )
                             })}
-
-                            {/* Logout Button - Mobile */}
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-500 w-full text-left mt-2 border-t border-blue-500 pt-3"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                <span className="font-medium">Logout</span>
-                            </button>
-                        </div>
+                             <div className="pt-8 mt-8 border-t border-gray-100">
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-5 w-full px-6 py-5 rounded-3xl text-red-500 font-bold bg-red-50/50"
+                                >
+                                    <LogOut className="w-7 h-7" />
+                                    <span className="text-xl font-bold">Sign Out</span>
+                                </button>
+                             </div>
+                        </nav>
                     </div>
                 )}
-            </nav>
 
-            <div className="flex">
-                {/* Sidebar - Desktop */}
-                <aside className="hidden md:block w-64 bg-white shadow-lg min-h-[calc(100vh-3.5rem)]">
-                    <nav className="p-4 space-y-2">
-                        {navigation.map((item) => {
-                            const Icon = item.icon
-                            return (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(item.href)
-                                            ? 'bg-blue-100 text-blue-700 font-semibold'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Icon className="w-5 h-5" />
-                                    <span>{item.name}</span>
-                                </Link>
-                            )
-                        })}
-                    </nav>
-                </aside>
-
-                {/* Main Content */}
-                <main className="flex-1">
-                    <Outlet />
+                {/* Content */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-10">
+                    <div className="max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>

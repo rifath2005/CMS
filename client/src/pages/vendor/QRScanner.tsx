@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import api from '../../services/api'
 import { CheckCircleIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Html5Qrcode } from 'html5-qrcode'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
+import { QrCode, Camera, X, CheckCircle, AlertCircle, Info, RefreshCw } from 'lucide-react'
 
 interface ScanResult {
     success: boolean
@@ -363,57 +368,64 @@ const QRScanner = () => {
             <div className="max-w-2xl mx-auto">
                 {/* Initial State - Show Scan Button */}
                 {!cameraActive && !result && (
-                    <div className="text-center">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 lg:p-12 mb-4 sm:mb-6 border-2 border-blue-200">
-                            <div className="mb-4 sm:mb-6">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                    <svg className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                    </svg>
+                    <div className="space-y-6">
+                        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+                            <CardContent className="p-8 sm:p-12 text-center">
+                                <div className="mb-6">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+                                        <QrCode className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                                    </div>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Ready to Scan</h2>
+                                    <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
+                                        Open the camera to scan customer QR codes and mark orders as delivered instantly.
+                                    </p>
                                 </div>
-                                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-2">Ready to Scan</h2>
-                                <p className="text-xs sm:text-sm lg:text-base text-gray-600">Click the button below to open camera and scan customer QR codes</p>
-                            </div>
-                            
-                            <button
-                                onClick={startCamera}
-                                className="px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5 lg:py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold text-sm sm:text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-2 sm:space-x-3 mx-auto"
-                            >
-                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span>Scan QR Code</span>
-                            </button>
-                        </div>
+                                
+                                <Button
+                                    onClick={startCamera}
+                                    size="lg"
+                                    className="px-8 py-6 text-lg shadow-xl shadow-primary/25 hover:shadow-2xl hover:scale-105 transition-all duration-300 gap-3"
+                                >
+                                    <Camera className="w-6 h-6" />
+                                    <span>Start Scanner</span>
+                                </Button>
+                            </CardContent>
+                        </Card>
 
-                        <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-3 sm:mb-4">
-                            <h3 className="font-bold text-blue-900 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
-                                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                How it works:
-                            </h3>
-                            <ol className="list-decimal list-inside space-y-1.5 sm:space-y-2 text-blue-800 text-xs sm:text-sm">
-                                <li>Click "Scan QR Code" to activate camera</li>
-                                <li>Allow camera permissions when prompted</li>
-                                <li>Point camera at customer's QR code</li>
-                                <li>Order will be verified automatically</li>
-                            </ol>
-                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Card className="bg-muted/30">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                        <Info className="w-4 h-4 text-primary" />
+                                        Instructions
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                                        <li>Position QR code within the frame</li>
+                                        <li>Hold steady for automatic detection</li>
+                                        <li>Review verified order details</li>
+                                        <li>System updates in real-time</li>
+                                    </ol>
+                                </CardContent>
+                            </Card>
 
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-                            <h4 className="font-bold text-yellow-900 mb-2 flex items-center text-xs sm:text-sm">
-                                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                Camera Requirements:
-                            </h4>
-                            <ul className="list-disc list-inside space-y-1 text-[10px] sm:text-xs text-yellow-800">
-                                <li>HTTPS connection required (or localhost)</li>
-                                <li>Camera permission must be granted</li>
-                                <li>Camera must not be in use by another app</li>
-                            </ul>
+                            <Card className="bg-muted/30">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 text-semantic-warning" />
+                                        Requirements
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                                        <li>Secure HTTPS connection</li>
+                                        <li>Granted camera permissions</li>
+                                        <li>Good lighting conditions</li>
+                                        <li>Valid customer QR code</li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 )}
@@ -432,69 +444,106 @@ const QRScanner = () => {
                             </div>
                         )}
 
-                        <div className="p-3 sm:p-4 bg-gray-800 flex justify-between items-center">
-                            <p className="text-white text-xs sm:text-sm">📷 Camera scanning automatically</p>
-                            <button
+                        <div className="p-4 bg-muted border-t flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-semantic-success animate-pulse" />
+                                <p className="text-sm font-medium text-muted-foreground">Camera Active</p>
+                            </div>
+                            <Button
                                 onClick={stopCamera}
-                                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
+                                variant="destructive"
+                                size="sm"
+                                className="gap-2"
                             >
-                                <XMarkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span>Stop</span>
-                            </button>
+                                <X className="h-4 w-4" />
+                                <span>Stop Camera</span>
+                            </Button>
                         </div>
                     </div>
                 )}
 
                 {/* Result Display */}
                 {result && (
-                    <div className={`rounded-lg shadow-lg p-4 sm:p-6 ${
-                        result.success ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'
-                    }`}>
-                        <div className="flex items-start space-x-3 sm:space-x-4">
-                            <div className={`flex-shrink-0 ${result.success ? 'text-green-600' : 'text-red-600'}`}>
-                                {result.success ? (
-                                    <CheckCircleIcon className="h-10 w-10 sm:h-12 sm:w-12" />
-                                ) : (
-                                    <XCircleIcon className="h-10 w-10 sm:h-12 sm:w-12" />
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <h3 className={`text-lg sm:text-xl font-bold mb-2 ${
-                                    result.success ? 'text-green-800' : 'text-red-800'
-                                }`}>
-                                    {result.success ? 'Success!' : 'Verification Failed'}
-                                </h3>
-                                <p className={`mb-3 sm:mb-4 text-sm sm:text-base ${result.success ? 'text-green-700' : 'text-red-700'}`}>
-                                    {result.message}
-                                </p>
-
-                                {result.success && result.orderDetails && (
-                                    <div className="bg-white rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
-                                        <p className="font-medium mb-2 text-sm sm:text-base">Order ID: #{result.orderId?.slice(0, 8).toUpperCase()}</p>
-                                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Customer: {result.orderDetails.userName}</p>
-                                        <div className="border-t pt-2 mt-2">
-                                            <p className="font-medium mb-2 text-xs sm:text-sm">Items:</p>
-                                            {result.orderDetails.items.map((item, idx) => (
-                                                <div key={idx} className="text-xs sm:text-sm text-gray-700">
-                                                    {item.quantity}x {item.productName}
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="border-t pt-2 mt-2">
-                                            <p className="font-bold text-sm sm:text-base">Total: ₹{result.orderDetails.totalAmount}</p>
-                                        </div>
+                    <Card className={cn(
+                        "border-2 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4",
+                        result.success ? "border-semantic-success bg-green-50/50" : "border-semantic-error bg-red-50/50"
+                    )}>
+                        <CardContent className="p-6">
+                            <div className="flex items-start gap-6">
+                                <div className={cn(
+                                    "p-3 rounded-full",
+                                    result.success ? "bg-semantic-success/20 text-semantic-success" : "bg-semantic-error/20 text-semantic-error"
+                                )}>
+                                    {result.success ? (
+                                        <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12" />
+                                    ) : (
+                                        <XCircleIcon className="h-10 w-10 sm:h-12 sm:w-12" />
+                                    )}
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                    <div>
+                                        <h3 className={cn(
+                                            "text-xl font-bold mb-1",
+                                            result.success ? "text-green-900" : "text-red-900"
+                                        )}>
+                                            {result.success ? 'Order Verified' : 'Verification Failed'}
+                                        </h3>
+                                        <p className={cn(
+                                            "text-sm sm:text-base",
+                                            result.success ? "text-green-700" : "text-red-700"
+                                        )}>
+                                            {result.message}
+                                        </p>
                                     </div>
-                                )}
 
-                                <button
-                                    onClick={handleScanAnother}
-                                    className="px-3 sm:px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-xs sm:text-sm"
-                                >
-                                    Scan Another
-                                </button>
+                                    {result.success && result.orderDetails && (
+                                        <Card className="bg-white/80 shadow-sm border-none">
+                                            <CardContent className="p-4 space-y-4">
+                                                <div className="flex justify-between items-center border-b pb-2">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Order ID</p>
+                                                        <p className="font-mono font-bold text-lg">#{result.orderId?.slice(0, 8).toUpperCase()}</p>
+                                                    </div>
+                                                    <Badge variant="success">Delivered</Badge>
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <p className="text-sm">
+                                                        <span className="text-muted-foreground mr-2">Customer:</span>
+                                                        <span className="font-bold">{result.orderDetails.userName}</span>
+                                                    </p>
+                                                    
+                                                    <div className="space-y-1.5">
+                                                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Items</p>
+                                                        {result.orderDetails.items.map((item, idx) => (
+                                                            <div key={idx} className="flex justify-between text-sm">
+                                                                <span>{item.productName}</span>
+                                                                <span className="font-bold">x{item.quantity}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2 border-t flex justify-between items-center text-lg">
+                                                    <span className="font-medium">Total Paid</span>
+                                                    <span className="font-bold text-primary">₹{result.orderDetails.totalAmount}</span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    <Button
+                                        onClick={handleScanAnother}
+                                        variant="outline"
+                                        className="w-full sm:w-auto gap-2"
+                                    >
+                                        <RefreshCw className="h-4 w-4" />
+                                        Scan Another
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </div>

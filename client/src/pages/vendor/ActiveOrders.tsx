@@ -5,6 +5,10 @@ import { useWebSocket } from '../../contexts/WebSocketContext'
 import { Order, OrderStatus } from '../../types'
 import api from '../../services/api'
 import { ClockIcon } from '@heroicons/react/24/outline'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 interface VendorUser {
     id: string
@@ -139,38 +143,36 @@ const ActiveOrders = () => {
 
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
-                <button
+                <Button
                     onClick={() => setFilter('all')}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm ${
-                        filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    variant={filter === 'all' ? 'default' : 'ghost'}
+                    size="sm"
                 >
                     All ({orders.length})
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => setFilter(OrderStatus.PENDING)}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm ${
-                        filter === OrderStatus.PENDING ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    variant={filter === OrderStatus.PENDING ? 'secondary' : 'ghost'}
+                    size="sm"
                 >
                     Pending ({orders.filter(o => o.status === OrderStatus.PENDING).length})
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => setFilter(OrderStatus.PREPARING)}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm ${
-                        filter === OrderStatus.PREPARING ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    variant={filter === OrderStatus.PREPARING ? 'default' : 'ghost'}
+                    size="sm"
+                    className={cn(filter === OrderStatus.PREPARING && 'bg-semantic-warning hover:bg-semantic-warning/90')}
                 >
                     Preparing ({orders.filter(o => o.status === OrderStatus.PREPARING).length})
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => setFilter(OrderStatus.READY)}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm ${
-                        filter === OrderStatus.READY ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    variant={filter === OrderStatus.READY ? 'default' : 'ghost'}
+                    size="sm"
+                    className={cn(filter === OrderStatus.READY && 'bg-semantic-success hover:bg-semantic-success/90')}
                 >
                     Ready ({orders.filter(o => o.status === OrderStatus.READY).length})
-                </button>
+                </Button>
             </div>
 
             {/* Orders Grid */}
@@ -181,75 +183,97 @@ const ActiveOrders = () => {
                     </div>
                 ) : (
                     filteredOrders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-bold text-sm sm:text-base text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</h3>
-                                <span className={`px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                                    {order.status}
-                                </span>
-                            </div>
+                        <Card key={order.id} className={cn(
+                            "border-l-4 hover:shadow-lg transition-shadow",
+                            order.status === OrderStatus.PENDING && "border-l-gray-400",
+                            order.status === OrderStatus.PREPARING && "border-l-semantic-warning",
+                            order.status === OrderStatus.READY && "border-l-semantic-success"
+                        )}>
+                            <CardContent className="p-3 sm:p-4">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-bold text-sm sm:text-base">#{order.id.slice(0, 8).toUpperCase()}</h3>
+                                    <Badge 
+                                        variant={
+                                            order.status === OrderStatus.PENDING ? 'secondary' :
+                                            order.status === OrderStatus.PREPARING ? 'warning' :
+                                            order.status === OrderStatus.READY ? 'success' :
+                                            order.status === OrderStatus.DELIVERED ? 'default' :
+                                            'destructive'
+                                        }
+                                        className="text-[10px] sm:text-xs"
+                                    >
+                                        {order.status}
+                                    </Badge>
+                                </div>
 
-                            {/* Customer & Time Info */}
-                            <div className="mb-2 space-y-1.5">
-                                <div>
-                                    <p className="text-[10px] sm:text-xs text-gray-500">Customer name</p>
-                                    <p className="text-xs sm:text-sm font-bold text-gray-900">{order.userName || 'Guest'}</p>
-                                </div>
-                                <div className="flex items-center justify-between text-[10px] sm:text-xs">
-                                    <span className="text-gray-600">Order Time</span>
-                                    <span className="font-semibold text-gray-900">{new Date(order.createdAt).toLocaleTimeString()}</span>
-                                </div>
-                                <div className="flex items-center justify-between bg-red-50 rounded p-1.5">
-                                    <span className="text-[10px] sm:text-xs font-medium text-gray-700">Expires In</span>
-                                    <div className="flex items-center space-x-1">
-                                        <ClockIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-500" />
-                                        <span className="text-xs sm:text-sm font-bold text-red-600">{getTimeRemaining(order.billExpiresAt)}</span>
+                                {/* Customer & Time Info */}
+                                <div className="mb-2 space-y-1.5">
+                                    <div>
+                                        <p className="text-[10px] sm:text-xs text-muted-foreground">Customer name</p>
+                                        <p className="text-xs sm:text-sm font-bold">{order.userName || 'Guest'}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[10px] sm:text-xs">
+                                        <span className="text-muted-foreground">Order Time</span>
+                                        <span className="font-semibold">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-red-50 rounded p-1.5">
+                                        <span className="text-[10px] sm:text-xs font-medium text-gray-700">Expires In</span>
+                                        <div className="flex items-center space-x-1">
+                                            <ClockIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-semantic-error" />
+                                            <span className="text-xs sm:text-sm font-bold text-semantic-error">{getTimeRemaining(order.billExpiresAt)}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Items List */}
-                            <div className="mb-2 bg-gray-50 rounded p-2">
-                                <p className="text-[10px] sm:text-xs font-semibold text-gray-700 mb-2">Order Items</p>
-                                <div className="space-y-1.5">
-                                    {order.items.map((item, idx) => (
-                                        <div key={idx} className="text-xs sm:text-sm text-gray-700">
-                                            <span className="font-bold text-blue-600 text-xs sm:text-sm mr-1.5">{item.quantity}×</span>
-                                            <span className="font-medium">{item.productName}</span>
-                                        </div>
-                                    ))}
+                                {/* Items List */}
+                                <div className="mb-2 bg-muted/50 rounded p-2">
+                                    <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground mb-2">Order Items</p>
+                                    <div className="space-y-1.5">
+                                        {order.items.map((item, idx) => (
+                                            <div key={idx} className="text-xs sm:text-sm">
+                                                <span className="font-bold text-primary text-xs sm:text-sm mr-1.5">{item.quantity}×</span>
+                                                <span className="font-medium">{item.productName}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Action Button */}
-                            <div>
-                                {order.status === OrderStatus.PENDING && (
-                                    <button
-                                        onClick={() => updateOrderStatus(order.id, OrderStatus.PREPARING)}
-                                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-yellow-600 rounded-md hover:bg-yellow-700 transition-colors"
-                                    >
-                                        Start Preparing
-                                    </button>
-                                )}
-                                {order.status === OrderStatus.PREPARING && (
-                                    <button
-                                        onClick={() => updateOrderStatus(order.id, OrderStatus.READY)}
-                                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
-                                    >
-                                        Mark Ready
-                                    </button>
-                                )}
-                                {order.status === OrderStatus.READY && (
-                                    <button
-                                        onClick={() => navigate('/vendor/qr-scanner')}
-                                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-                                    >
-                                        Open QR Scanner
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                                {/* Action Button */}
+                                <div>
+                                    {order.status === OrderStatus.PENDING && (
+                                        <Button
+                                            onClick={() => updateOrderStatus(order.id, OrderStatus.PREPARING)}
+                                            variant="default"
+                                            size="default"
+                                            className="w-full bg-semantic-warning hover:bg-semantic-warning/90 text-xs sm:text-sm"
+                                        >
+                                            Start Preparing
+                                        </Button>
+                                    )}
+                                    {order.status === OrderStatus.PREPARING && (
+                                        <Button
+                                            onClick={() => updateOrderStatus(order.id, OrderStatus.READY)}
+                                            variant="default"
+                                            size="default"
+                                            className="w-full bg-semantic-success hover:bg-semantic-success/90 text-xs sm:text-sm"
+                                        >
+                                            Mark Ready
+                                        </Button>
+                                    )}
+                                    {order.status === OrderStatus.READY && (
+                                        <Button
+                                            onClick={() => navigate('/vendor/qr-scanner')}
+                                            variant="default"
+                                            size="default"
+                                            className="w-full text-xs sm:text-sm"
+                                        >
+                                            Open QR Scanner
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     ))
                 )}
             </div>

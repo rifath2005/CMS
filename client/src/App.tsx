@@ -94,10 +94,8 @@ function App() {
                         <Route element={<MainAdminLayout />}>
                             <Route path="/main-admin/dashboard" element={<MainAdminDashboard />} />
                             <Route path="/main-admin/organizations" element={<OrganizationsList />} />
+                            <Route path="/main-admin/organisation-permissions" element={<OrgConfiguration />} />
                             <Route path="/main-admin/organizations/:id/configure" element={<OrgConfiguration />} />
-                            <Route path="/main-admin/org-admins" element={<OrgAdminsList />} />
-                            <Route path="/main-admin/vendors" element={<GlobalVendorsList />} />
-                            <Route path="/main-admin/users" element={<GlobalUsersList />} />
                             <Route path="/main-admin/audit-logs" element={<AuditLogs />} />
                             <Route path="/main-admin/system-settings" element={<SystemSettings />} />
                         </Route>

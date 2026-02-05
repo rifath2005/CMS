@@ -15,31 +15,33 @@ export class UserModel {
   }
 
   /**
-   * Create a new user with hashed password
+   * Create a new user with optional hashed password or google_id
    * @param email - User email address
-   * @param password - Plain text password (will be hashed)
+   * @param password - Plain text password (optional)
    * @param name - User's full name
    * @param role - User role
    * @param institutionId - Institution ID the user belongs to
+   * @param googleId - Optional Google ID for social login
    * @returns Created user object
    */
   async create(
     email: string,
-    password: string,
     name: string,
     role: UserRole,
-    institutionId: string
+    institutionId: string,
+    password?: string,
+    googleId?: string
   ): Promise<User> {
-    // Hash the password before storing
-    const passwordHash = await hashPassword(password);
+    // Hash the password if provided
+    const passwordHash = password ? await hashPassword(password) : null;
 
     const query = `
-      INSERT INTO users (email, password_hash, name, role, institution_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, email, name, role, institution_id as "institutionId", created_at as "createdAt", updated_at as "updatedAt"
+      INSERT INTO users (email, password_hash, name, role, institution_id, google_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, email, name, role, institution_id as "institutionId", google_id as "googleId", created_at as "createdAt", updated_at as "updatedAt"
     `;
 
-    const values = [email, passwordHash, name, role, institutionId];
+    const values = [email, passwordHash, name, role, institutionId, googleId || null];
 
     try {
       const result: QueryResult<User> = await this.pool.query(query, values);
@@ -60,7 +62,7 @@ export class UserModel {
    */
   async findByEmail(email: string): Promise<User | null> {
     const query = `
-      SELECT id, email, name, role, institution_id as "institutionId", 
+      SELECT id, email, name, role, institution_id as "institutionId", google_id as "googleId", 
              created_at as "createdAt", updated_at as "updatedAt"
       FROM users
       WHERE email = $1
@@ -77,7 +79,7 @@ export class UserModel {
    */
   async findById(id: string): Promise<User | null> {
     const query = `
-      SELECT id, email, name, role, institution_id as "institutionId", 
+      SELECT id, email, name, role, institution_id as "institutionId", google_id as "googleId", 
              created_at as "createdAt", updated_at as "updatedAt"
       FROM users
       WHERE id = $1

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { walletService } from '../../services/walletService'
 import { useAuthStore } from '../../store/authStore'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
 
 const WalletTest = () => {
     const { user, token } = useAuthStore()
@@ -38,27 +40,33 @@ const WalletTest = () => {
         <div className="p-8 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Wallet API Test</h1>
 
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h2 className="text-xl font-bold mb-4">Current User</h2>
-                <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
-                    {JSON.stringify(user, null, 2)}
-                </pre>
-            </div>
+            <Card className="mb-6">
+                <CardContent className="p-6">
+                    <h2 className="text-xl font-bold mb-4">Current User</h2>
+                    <pre className="bg-muted p-4 rounded text-sm overflow-auto">
+                        {JSON.stringify(user, null, 2)}
+                    </pre>
+                </CardContent>
+            </Card>
 
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h2 className="text-xl font-bold mb-4">Auth Token</h2>
-                <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto break-all">
-                    {token || 'No token'}
-                </pre>
-            </div>
+            <Card className="mb-6">
+                <CardContent className="p-6">
+                    <h2 className="text-xl font-bold mb-4">Auth Token</h2>
+                    <pre className="bg-muted p-4 rounded text-sm overflow-auto break-all">
+                        {token || 'No token'}
+                    </pre>
+                </CardContent>
+            </Card>
 
-            <button
+            <Button
                 onClick={testWalletAPI}
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 mb-6"
+                variant="default"
+                size="lg"
+                className="w-full mb-6"
             >
                 {loading ? 'Testing...' : 'Test Wallet API'}
-            </button>
+            </Button>
 
             {balance !== null && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
@@ -75,12 +83,14 @@ const WalletTest = () => {
             )}
 
             {rawResponse && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h2 className="text-xl font-bold mb-4">Raw Response</h2>
-                    <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
-                        {JSON.stringify(rawResponse, null, 2)}
-                    </pre>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <h2 className="text-xl font-bold mb-4">Raw Response</h2>
+                        <pre className="bg-muted p-4 rounded text-sm overflow-auto">
+                            {JSON.stringify(rawResponse, null, 2)}
+                        </pre>
+                    </CardContent>
+                </Card>
             )}
         </div>
     )

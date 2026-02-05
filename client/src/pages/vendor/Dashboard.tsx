@@ -8,6 +8,10 @@ import { useNavigate } from 'react-router-dom'
 import VendorDashboardSkeleton from '../../components/VendorDashboardSkeleton'
 import { LiveCountdown } from '../../components/LiveCountdown'
 import { cache } from '../../utils/cache'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 interface VendorStats {
     activeOrdersCount: number
@@ -246,380 +250,310 @@ const VendorDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-2 px-2 sm:mx-0 sm:px-0 flex-1 min-w-0">
-                        <button 
-                            onClick={() => handleViewChange('live')}
-                            className={`px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0 ${
-                                currentView === 'live' 
-                                    ? 'text-white bg-blue-600 shadow-md' 
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            <span className="hidden sm:inline">Live Orders</span>
-                            <span className="sm:hidden">Live</span>
-                        </button>
-                        <button 
-                            onClick={() => handleViewChange('history')}
-                            className={`px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors whitespace-nowrap ${
-                                currentView === 'history' 
-                                    ? 'text-white bg-blue-600 shadow-md' 
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            History
-                        </button>
-                        <button 
-                            onClick={() => handleViewChange('menu')}
-                            className={`px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2.5 lg:py-3 text-xs sm:text-sm lg:text-base font-medium rounded-lg transition-colors whitespace-nowrap ${
-                                currentView === 'menu' 
-                                    ? 'text-white bg-blue-600 shadow-md' 
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            Menu
-                        </button>
+        <div className="min-h-screen bg-gray-50/50 w-full animate-fade-in">
+            {/* Header / Sub-nav */}
+            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+                            <Button
+                                variant={currentView === 'live' ? 'default' : 'ghost'}
+                                onClick={() => handleViewChange('live')}
+                                className="whitespace-nowrap"
+                            >
+                                Live Orders
+                            </Button>
+                            <Button
+                                variant={currentView === 'history' ? 'default' : 'ghost'}
+                                onClick={() => handleViewChange('history')}
+                                className="whitespace-nowrap"
+                            >
+                                History
+                            </Button>
+                            <Button
+                                variant={currentView === 'menu' ? 'default' : 'ghost'}
+                                onClick={() => handleViewChange('menu')}
+                                className="whitespace-nowrap"
+                            >
+                                Menu
+                            </Button>
                         </div>
+                        
                         <div className="flex items-center flex-shrink-0">
-                            <button className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative">
-                                <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                            <Button variant="ghost" size="icon" className="relative">
+                                <BellIcon className="h-5 w-5" />
                                 {stats.activeOrdersCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 rounded-full text-[10px] sm:text-xs text-white flex items-center justify-center font-medium">
-                                        {stats.activeOrdersCount}
-                                    </span>
+                                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-semantic-error rounded-full" />
                                 )}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 max-w-full overflow-x-hidden w-full">
-                {/* Stats Cards - Show only in Live Orders view */}
+            <div className="container mx-auto px-4 py-6 space-y-6">
+                {/* Stats Section - Visible in Live View */}
                 {currentView === 'live' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 max-w-full">
-                        {/* Stats Cards */}
-                        <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Active Orders</p>
-                            <div className="flex items-baseline space-x-2">
-                                <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
-                                <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Card>
+                            <CardContent className="p-4 flex flex-col justify-between h-full">
+                                <p className="text-sm font-medium text-muted-foreground">Active Orders</p>
+                                <div className="mt-2 flex items-baseline gap-2">
+                                    <span className="text-2xl font-bold">{stats.activeOrdersCount}</span>
+                                    <span className="text-xs font-medium text-semantic-success">+5</span>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                        <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Completed Today</p>
-                            <p className="text-2xl sm:text-3xl font-bold">{stats.completedToday}</p>
-                        </div>
+                        <Card>
+                            <CardContent className="p-4 flex flex-col justify-between h-full">
+                                <p className="text-sm font-medium text-muted-foreground">Completed Today</p>
+                                <div className="mt-2">
+                                    <span className="text-2xl font-bold">{stats.completedToday}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                        <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-w-0">
-                            <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Avg. Wait Time</p>
-                            <div className="flex items-baseline space-x-2">
-                                <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
-                                <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
-                            </div>
-                        </div>
+                        <Card>
+                            <CardContent className="p-4 flex flex-col justify-between h-full">
+                                <p className="text-sm font-medium text-muted-foreground">Avg. Wait Time</p>
+                                <div className="mt-2 flex items-baseline gap-2">
+                                    <span className="text-2xl font-bold">{stats.avgWaitTime}m</span>
+                                    <span className="text-xs font-medium text-semantic-success">{stats.waitTimeTrend}m</span>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                        <div className="bg-blue-600 rounded-lg shadow p-3 sm:p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition min-w-0" onClick={() => navigate('/vendor/qr-scanner')}>
-                            <div className="text-center text-white">
-                                <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
-                                <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
-                            </div>
-                        </div>
+                        <Button 
+                            className="h-full w-full bg-primary hover:bg-primary/90 flex flex-col items-center justify-center gap-2 py-3"
+                            onClick={() => navigate('/vendor/qr-scanner')}
+                        >
+                            <QrCodeIcon className="h-6 w-6" />
+                            <span>Scan QR Code</span>
+                        </Button>
                     </div>
                 )}
 
-                {/* Live Orders View - Fully Responsive */}
+                {/* Live Orders View */}
                 {currentView === 'live' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-full">
-                        {/* Live Orders Feed */}
-                        <div className="lg:col-span-2 min-w-0">
-                            <div className="bg-white rounded-lg shadow overflow-hidden">
-                                <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-                                    <h2 className="text-base sm:text-lg font-bold">Live Orders Feed</h2>
-                                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                        <button
-                                            onClick={() => setFilter('all')}
-                                            className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded flex-shrink-0 ${
-                                                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-                                            }`}
-                                        >
-                                            All ({activeOrders.length})
-                                        </button>
-                                        <button
-                                            onClick={() => setFilter(OrderStatus.PREPARING)}
-                                            className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded flex-shrink-0 ${
-                                                filter === OrderStatus.PREPARING ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600'
-                                            }`}
-                                        >
-                                            Preparing ({activeOrders.filter(o => o.status === OrderStatus.PREPARING).length})
-                                        </button>
-                                        <button
-                                            onClick={() => setFilter(OrderStatus.READY)}
-                                            className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded flex-shrink-0 ${
-                                                filter === OrderStatus.READY ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'
-                                            }`}
-                                        >
-                                            Ready ({activeOrders.filter(o => o.status === OrderStatus.READY).length})
-                                        </button>
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Feed Column */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <h2 className="text-lg font-semibold">Live Feed</h2>
+                                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                                    <Button 
+                                        size="sm"
+                                        variant={filter === 'all' ? 'default' : 'outline'}
+                                        onClick={() => setFilter('all')}
+                                    >
+                                        All ({activeOrders.length})
+                                    </Button>
+                                    <Button 
+                                        size="sm"
+                                        variant={filter === OrderStatus.PREPARING ? 'default' : 'outline'}
+                                        onClick={() => setFilter(OrderStatus.PREPARING)}
+                                        className={filter === OrderStatus.PREPARING ? "bg-semantic-warning border-semantic-warning hover:bg-semantic-warning/90" : ""}
+                                    >
+                                        Preparing ({activeOrders.filter(o => o.status === OrderStatus.PREPARING).length})
+                                    </Button>
+                                    <Button 
+                                        size="sm"
+                                        variant={filter === OrderStatus.READY ? 'default' : 'outline'}
+                                        onClick={() => setFilter(OrderStatus.READY)}
+                                        className={filter === OrderStatus.READY ? "bg-semantic-success border-semantic-success hover:bg-semantic-success/90" : ""}
+                                    >
+                                        Ready ({activeOrders.filter(o => o.status === OrderStatus.READY).length})
+                                    </Button>
                                 </div>
                             </div>
 
-                            <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 max-h-[600px] overflow-y-auto">
+                            <div className="space-y-4">
                                 {filteredOrders.length === 0 ? (
-                                    <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
+                                    <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                                         No active orders
                                     </div>
                                 ) : (
                                     filteredOrders.map((order) => (
-                                        <div
-                                            key={order.id}
-                                            className={`border-2 rounded-lg p-3 sm:p-4 min-w-0 ${
-                                                order.status === OrderStatus.PREPARING ? 'border-yellow-300 bg-yellow-50' :
-                                                order.status === OrderStatus.READY ? 'border-green-300 bg-green-50' :
-                                                'border-gray-300 bg-white'
-                                            }`}
-                                        >
-                                            <div className="flex items-start justify-between mb-3 gap-2">
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center space-x-2 mb-1">
-                                                        <h3 className="font-bold text-base sm:text-lg truncate">#{order.id.slice(0, 8).toUpperCase()}</h3>
-                                                        <span className={`px-2 py-1 text-[10px] sm:text-xs font-medium rounded border flex-shrink-0 ${getStatusColor(order.status)}`}>
-                                                            {order.status}
-                                                        </span>
+                                        <Card key={order.id} className={cn(
+                                            "border-l-4 transition-all hover:shadow-md",
+                                            order.status === OrderStatus.PREPARING ? "border-l-semantic-warning bg-yellow-50/30" :
+                                            order.status === OrderStatus.READY ? "border-l-semantic-success bg-green-50/30" :
+                                            "border-l-gray-300"
+                                        )}>
+                                            <CardContent className="p-4 sm:p-5">
+                                                <div className="flex justify-between items-start gap-4 mb-4">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <h3 className="font-bold text-lg">#{order.id.slice(0, 8).toUpperCase()}</h3>
+                                                            <Badge variant={
+                                                                order.status === OrderStatus.READY ? "success" :
+                                                                order.status === OrderStatus.PREPARING ? "warning" : "secondary"
+                                                            }>
+                                                                {order.status}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Customer: <span className="font-medium text-foreground">{order.userName || 'Guest'}</span>
+                                                        </p>
                                                     </div>
-                                                    <p className="text-xs sm:text-sm text-gray-600 truncate">
-                                                        CUSTOMER: {order.userName || order.userId.slice(0, 8).toUpperCase()}
-                                                    </p>
+                                                    <div className="text-right">
+                                                        <LiveCountdown expiresAt={order.billExpiresAt} />
+                                                    </div>
                                                 </div>
-                                                <div className="text-right flex-shrink-0">
-                                                    <LiveCountdown expiresAt={order.billExpiresAt} />
-                                                </div>
-                                            </div>
 
-                                                <div className="space-y-2 mb-3 sm:mb-4">
+                                                <div className="space-y-2 mb-4">
                                                     {order.items.map((item, idx) => (
-                                                        <div key={idx} className="flex items-center space-x-2 min-w-0">
-                                                            <span className="font-bold text-blue-600 text-sm sm:text-base flex-shrink-0">{item.quantity}x</span>
-                                                            <span className="font-medium text-sm sm:text-base truncate">{item.productName}</span>
+                                                        <div key={idx} className="flex items-center justify-between text-sm">
+                                                            <span className="font-medium">{item.productName}</span>
+                                                            <span className="font-bold font-mono">x{item.quantity}</span>
                                                         </div>
                                                     ))}
                                                 </div>
 
-                                                <div className="flex flex-col sm:flex-row gap-2">
-                                                    <button
-                                                        onClick={() => {/* Print KOT */}}
-                                                        className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap"
-                                                    >
-                                                        PRINT KOT
-                                                    </button>
+                                                <div className="flex gap-2 sm:gap-3 flex-wrap">
+                                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => {/* Print */}}>
+                                                        Print KOT
+                                                    </Button>
                                                     {order.status === OrderStatus.PENDING && (
-                                                        <button
+                                                        <Button 
+                                                            className="flex-1 bg-semantic-warning hover:bg-semantic-warning/90 text-white" 
                                                             onClick={() => updateOrderStatus(order.id, OrderStatus.PREPARING)}
-                                                            className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-yellow-600 rounded hover:bg-yellow-700 whitespace-nowrap"
                                                         >
-                                                            START PREPARING
-                                                        </button>
+                                                            Start Preparing
+                                                        </Button>
                                                     )}
                                                     {order.status === OrderStatus.PREPARING && (
-                                                        <button
+                                                        <Button 
+                                                            className="flex-1 bg-semantic-success hover:bg-semantic-success/90 text-white" 
                                                             onClick={() => updateOrderStatus(order.id, OrderStatus.READY)}
-                                                            className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 whitespace-nowrap"
                                                         >
-                                                            MARK READY
-                                                        </button>
+                                                            Mark Ready
+                                                        </Button>
                                                     )}
                                                     {order.status === OrderStatus.READY && (
-                                                        <button
+                                                        <Button 
+                                                            className="flex-1 bg-semantic-info hover:bg-semantic-info/90 text-white" 
                                                             onClick={() => updateOrderStatus(order.id, OrderStatus.DELIVERED)}
-                                                            className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 whitespace-nowrap"
                                                         >
-                                                            MARK DELIVERED
-                                                        </button>
+                                                            Complete
+                                                        </Button>
                                                     )}
                                                 </div>
-                                            </div>
-                                        ))
+                                            </CardContent>
+                                        </Card>
+                                    ))
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Batch View */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden min-w-0">
-                        <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
-                            <div className="flex items-center space-x-2">
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                                    <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
-                                </div>
-                                <div className="min-w-0">
-                                    <h2 className="font-bold text-sm sm:text-base truncate">Batch View</h2>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 truncate">Aggregated quantities for cooking</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
-                            {Object.entries(groupedItems).map(([category, items]) => (
-                                <div key={category} className="mb-4 sm:mb-6">
-                                    <h3 className="text-xs sm:text-sm font-bold text-blue-600 mb-2 sm:mb-3 uppercase">{category}</h3>
-                                    <div className="space-y-2">
-                                        {items.map((item) => (
-                                            <div key={item.productId} className="flex items-center justify-between">
-                                                <span className="text-xs sm:text-sm">{item.productName}</span>
-                                                <span className="font-bold text-blue-600 text-sm sm:text-base">{item.totalQuantity}</span>
+                        {/* Batch View Column */}
+                        <div className="space-y-4">
+                            <Card className="sticky top-24 h-fit">
+                                <CardHeader className="bg-muted/30 pb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                                            <span className="text-lg">📊</span>
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base">Kitchen Batch</CardTitle>
+                                            <CardDescription>Aggregated prep list</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="max-h-[60vh] lg:max-h-[600px] overflow-y-auto p-4 space-y-6">
+                                        {Object.entries(groupedItems).map(([category, items]) => (
+                                            <div key={category}>
+                                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{category}</h4>
+                                                <div className="space-y-1">
+                                                    {items.map((item) => (
+                                                        <div key={item.productId} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded-md transition-colors">
+                                                            <span className="text-sm font-medium">{item.productName}</span>
+                                                            <Badge variant="secondary" className="font-mono text-sm">
+                                                                {item.totalQuantity}
+                                                            </Badge>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
+                                        {combinedItems.length === 0 && (
+                                            <div className="text-center py-8 text-muted-foreground text-sm">
+                                                All items prepared
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
-
-                            {combinedItems.length === 0 && (
-                                <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
-                                    No items to prepare
-                                </div>
-                            )}
-
-                            {combinedItems.length > 0 && (
-                                <button className="w-full mt-3 sm:mt-4 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-blue-600 bg-white border-2 border-blue-600 rounded-lg hover:bg-blue-50">
-                                    🖨️ Print Batch Summary
-                                </button>
-                            )}
+                                    <div className="p-4 border-t bg-muted/10">
+                                         <Button variant="outline" className="w-full gap-2 border-primary text-primary hover:bg-primary/5">
+                                            <span>🖨️ Print Batch</span>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
-                </div>
                 )}
 
-                {/* Order History View - Fully Responsive */}
+                {/* History View */}
                 {currentView === 'history' && (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
+                    <Card>
+                        <CardHeader className="border-b bg-muted/30">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
-                                    <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
+                                    <CardTitle>Order History</CardTitle>
+                                    <CardDescription>Past orders and transactions</CardDescription>
                                 </div>
-                                <div className="w-full sm:w-64">
+                                <div className="w-full sm:w-72">
                                     <input
                                         type="text"
-                                        placeholder="Search by Order ID..."
+                                        placeholder="Search Order ID..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                     />
                                 </div>
                             </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                            {filteredAndSortedHistory.length === 0 ? (
-                                <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base px-3 sm:px-4 lg:px-6">
-                                    {searchQuery ? 'No orders found matching your search' : 'No order history available'}
-                                </div>
-                            ) : (
-                                <div className="min-w-full inline-block align-middle">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                                    Order ID
-                                                </th>
-                                                <th className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                                    Customer
-                                                </th>
-                                                <th 
-                                                    className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
-                                                    onClick={() => handleSort('status')}
-                                                >
-                                                    <div className="flex items-center space-x-1">
-                                                        <span>Status</span>
-                                                        {sortField === 'status' ? (
-                                                            sortDirection === 'asc' ? 
-                                                                <ChevronUpIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" /> : 
-                                                                <ChevronDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                                                        ) : (
-                                                            <ChevronUpDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                                                        )}
-                                                    </div>
-                                                </th>
-                                                <th 
-                                                    className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
-                                                    onClick={() => handleSort('date')}
-                                                >
-                                                    <div className="flex items-center space-x-1">
-                                                        <span>Date & Time</span>
-                                                        {sortField === 'date' ? (
-                                                            sortDirection === 'asc' ? 
-                                                                <ChevronUpIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" /> : 
-                                                                <ChevronDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                                                        ) : (
-                                                            <ChevronUpDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                                                        )}
-                                                    </div>
-                                                </th>
-                                                <th 
-                                                    className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
-                                                    onClick={() => handleSort('amount')}
-                                                >
-                                                    <div className="flex items-center justify-end space-x-1">
-                                                        <span>Total</span>
-                                                        {sortField === 'amount' ? (
-                                                            sortDirection === 'asc' ? 
-                                                                <ChevronUpIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" /> : 
-                                                                <ChevronDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                                                        ) : (
-                                                            <ChevronUpDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                                                        )}
-                                                    </div>
-                                                </th>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="relative overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
+                                        <tr>
+                                            <th className="px-6 py-3 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort('date')}>Date</th>
+                                            <th className="px-6 py-3 font-medium">Order #</th>
+                                            <th className="px-6 py-3 font-medium">Customer</th>
+                                            <th className="px-6 py-3 font-medium cursor-pointer hover:text-foreground" onClick={() => handleSort('status')}>Status</th>
+                                            <th className="px-6 py-3 font-medium text-right cursor-pointer hover:text-foreground" onClick={() => handleSort('amount')}>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {filteredAndSortedHistory.map((order) => (
+                                            <tr key={order.id} className="hover:bg-muted/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="font-medium">{new Date(order.createdAt).toLocaleDateString()}</div>
+                                                    <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString()}</div>
+                                                </td>
+                                                <td className="px-6 py-4 font-mono">#{order.id.slice(0, 8).toUpperCase()}</td>
+                                                <td className="px-6 py-4">{order.userName || 'Guest'}</td>
+                                                <td className="px-6 py-4">
+                                                    <Badge variant={order.status === OrderStatus.DELIVERED ? 'success' : 'destructive'} className="uppercase text-[10px]">
+                                                        {order.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 text-right font-medium">₹{Number(order.totalAmount).toFixed(2)}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {filteredAndSortedHistory.map((order) => (
-                                                <tr key={order.id} className="hover:bg-gray-50">
-                                                    <td className="px-2 sm:px-3 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                                        <div className="text-xs sm:text-sm font-medium text-gray-900">
-                                                            #{order.id.slice(0, 8).toUpperCase()}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-2 sm:px-3 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                                        <div className="text-xs sm:text-sm text-gray-900">{order.userName || 'Guest'}</div>
-                                                    </td>
-                                                    <td className="px-2 sm:px-3 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                                        <span className={`px-2 sm:px-3 py-1 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
-                                                            order.status === OrderStatus.DELIVERED 
-                                                                ? 'bg-green-100 text-green-800' 
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}>
-                                                            {order.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-2 sm:px-3 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                                        <div className="text-xs sm:text-sm text-gray-900">
-                                                            {new Date(order.createdAt).toLocaleDateString()}
-                                                        </div>
-                                                        <div className="text-[10px] sm:text-xs text-gray-500">
-                                                            {new Date(order.createdAt).toLocaleTimeString()}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-2 sm:px-3 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                                                        <div className="text-xs sm:text-sm font-bold text-green-600">
-                                                            ₹{Number(order.totalAmount).toFixed(2)}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {filteredAndSortedHistory.length === 0 && (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    No history found
                                 </div>
                             )}
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </div>
