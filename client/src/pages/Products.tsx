@@ -3,7 +3,6 @@ import { productService } from '../services/productService'
 import { useCartStore } from '../store/cartStore'
 import { useAuthStore } from '../store/authStore'
 import { Product } from '../types'
-import LoadingSpinner from '../components/LoadingSpinner'
 import LoadingSkeleton from '../components/LoadingSkeleton'
 import ErrorAlert from '../components/ErrorAlert'
 
@@ -51,6 +50,9 @@ const Products = () => {
             quantity: 1,
             price: product.price,
             imageUrl: product.imageUrl,
+            vendorId: product.vendorId || '',
+            canteenId: product.canteenId || '',
+            canteenName: product.canteenName || ''
         })
     }
 

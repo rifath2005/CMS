@@ -18,7 +18,8 @@
     "migrate": "ts-node src/database/migrations/migrate.ts",
     "migrate:up": "ts-node src/database/migrations/migrate.ts up",
     "migrate:down": "ts-node src/database/migrations/migrate.ts down",
-    "migrate:status": "ts-node src/database/migrations/migrate.ts status"
+    "migrate:status": "ts-node src/database/migrations/migrate.ts status",
+    "fix-user-institution": "ts-node scripts/fix-user-institution.ts"
   },
   "keywords": [
     "canteen",

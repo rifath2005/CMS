@@ -3,7 +3,10 @@ import { useAuthStore } from '../store/authStore'
 import { useCartStore } from '../store/cartStore'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { ShoppingCart, Home, Package, User, LogOut, History } from 'lucide-react'
+import { SparklesIcon } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
+import { useState } from 'react'
+import { AIAssistant } from './AIAssistant'
 
 const Layout = () => {
     const navigate = useNavigate()
@@ -12,6 +15,7 @@ const Layout = () => {
     const { getTotalItems } = useCartStore()
     const { isConnected } = useWebSocket()
     const cartItemCount = getTotalItems()
+    const [isAIOpen, setIsAIOpen] = useState(false)
 
     const handleLogout = () => {
         logout()
@@ -69,6 +73,18 @@ const Layout = () => {
 
                         {/* Right side */}
                         <div className="flex items-center space-x-4">
+                            {/* AI Assistant Button */}
+                            <button
+                                onClick={() => setIsAIOpen(true)}
+                                className="relative p-2 text-purple-600 hover:bg-purple-50 rounded-full transition-colors group"
+                                title="AI Assistant"
+                            >
+                                <SparklesIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                <span className="absolute -bottom-1 -right-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                                    AI
+                                </span>
+                            </button>
+
                             {/* Cart */}
                             <Link
                                 to="/cart"
@@ -137,6 +153,9 @@ const Layout = () => {
                     </p>
                 </div>
             </footer>
+
+            {/* AI Assistant Modal */}
+            <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
         </div>
     )
 }

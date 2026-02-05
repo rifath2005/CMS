@@ -26,8 +26,8 @@ const poolConfig: PoolConfig = {
   password: process.env.DB_PASSWORD,
   ssl: getSSLConfig(),
   max: 10, // Reduced for free tier
-  min: 0, // Allow pool to scale down to 0
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  min: 2, // Keep at least 2 connections alive for background tasks
+  idleTimeoutMillis: 120000, // Increased to 2 minutes to prevent premature closure
   connectionTimeoutMillis: 120000, // 2 minutes for free tier wake-up
   // Additional settings for better reliability
   keepAlive: true,

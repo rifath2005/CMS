@@ -305,7 +305,7 @@ const DigitalBill = () => {
                             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 flex items-center justify-center min-h-[220px] sm:min-h-[280px] md:min-h-[320px]">
                                 <div className="w-full flex justify-center">
                                     <div className="w-48 sm:w-56 md:w-64">
-                                        <QRCode value={bill.qrCode} size={256} />
+                                        <QRCode value={bill.validationToken} size={256} />
                                     </div>
                                 </div>
                             </div>
