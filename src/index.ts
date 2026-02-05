@@ -22,6 +22,10 @@ import { apiRateLimiter } from './middleware/rateLimiter';
 import { OrderExpirationService } from './services/order/OrderExpirationService';
 import { setWebSocketServer } from './services/order/WalletOrderService';
 
+import { configurePassport } from './config/passport';
+import passport from 'passport';
+import session from 'express-session';
+
 const app: Application = express();
 const httpServer = createServer(app);
 
@@ -30,6 +34,9 @@ let wsServer: WebSocketServer;
 
 // Initialize Order Expiration Service
 let orderExpirationService: OrderExpirationService;
+
+// Initialize Passport with database pool
+configurePassport(pool);
 
 // Middleware
 app.use(helmet({
@@ -57,6 +64,19 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session middleware for Passport OAuth
+app.use(session({
+  secret: config.session.secret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: config.nodeEnv === 'production',
+    maxAge: config.session.timeout * 1000,
+  }
+}));
+
+app.use(passport.initialize());
 
 // Apply rate limiting to all API routes
 app.use('/api', apiRateLimiter);

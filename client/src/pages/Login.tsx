@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Clock, Coffee } from 'lucide-react';
 import { AuthMode } from '../types/auth';
+import { useAuthStore } from '../store/authStore';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
 import ForgotPasswordForm from '../components/auth/ForgotPasswordForm';
@@ -11,6 +13,29 @@ const Login = () => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [resetEmail, setResetEmail] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const userData = searchParams.get('user');
+
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData);
+        setAuth({ token, user });
+        
+        // Redirect based on role
+        if (user.role === 'MAIN_ADMIN') navigate('/admin/dashboard');
+        else if (user.role === 'INSTITUTION_ADMIN') navigate('/org-admin/dashboard');
+        else if (user.role === 'VENDOR') navigate('/vendor/dashboard');
+        else navigate('/user/dashboard');
+      } catch (error) {
+        console.error('Failed to parse user data from URL', error);
+      }
+    }
+  }, [searchParams, setAuth, navigate]);
 
   const handleModeSwitch = (newMode: AuthMode) => setMode(newMode);
   

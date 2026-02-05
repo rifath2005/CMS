@@ -78,6 +78,13 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
   },
+
+  // Google OAuth
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/v1/auth/google/callback`,
+  },
 };
 
 // Validate required environment variables
