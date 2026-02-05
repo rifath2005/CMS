@@ -169,11 +169,7 @@ const VendorAnalytics = () => {
                     <div className="flex items-center justify-between mb-2">
                         <ShoppingBagIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
-                        <ShoppingBagIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
-                        <span className="text-xs sm:text-sm opacity-80">Today</span>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold mb-1">{analytics.todayStats.totalOrders}</p>
-                    <p className="text-xs sm:text-sm opacity-90">Total Orders</p>
                     <p className="text-2xl sm:text-3xl font-bold mb-1">{analytics.todayStats.totalOrders}</p>
                     <p className="text-xs sm:text-sm opacity-90">Total Orders</p>
                 </div>
@@ -182,11 +178,7 @@ const VendorAnalytics = () => {
                     <div className="flex items-center justify-between mb-2">
                         <CurrencyRupeeIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
-                        <CurrencyRupeeIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
-                        <span className="text-xs sm:text-sm opacity-80">Today</span>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold mb-1">₹{analytics.todayStats.totalRevenue.toFixed(2)}</p>
-                    <p className="text-xs sm:text-sm opacity-90">Total Revenue</p>
                     <p className="text-2xl sm:text-3xl font-bold mb-1">₹{analytics.todayStats.totalRevenue.toFixed(2)}</p>
                     <p className="text-xs sm:text-sm opacity-90">Total Revenue</p>
                 </div>
@@ -195,11 +187,7 @@ const VendorAnalytics = () => {
                     <div className="flex items-center justify-between mb-2">
                         <ArrowTrendingUpIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
-                        <ArrowTrendingUpIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
-                        <span className="text-xs sm:text-sm opacity-80">Today</span>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold mb-1">₹{analytics.todayStats.averageOrderValue.toFixed(2)}</p>
-                    <p className="text-xs sm:text-sm opacity-90">Avg Order Value</p>
                     <p className="text-2xl sm:text-3xl font-bold mb-1">₹{analytics.todayStats.averageOrderValue.toFixed(2)}</p>
                     <p className="text-xs sm:text-sm opacity-90">Avg Order Value</p>
                 </div>
@@ -208,11 +196,7 @@ const VendorAnalytics = () => {
                     <div className="flex items-center justify-between mb-2">
                         <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
-                        <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
-                        <span className="text-xs sm:text-sm opacity-80">Today</span>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold mb-1">{analytics.todayStats.completedOrders}</p>
-                    <p className="text-xs sm:text-sm opacity-90">Completed Orders</p>
                     <p className="text-2xl sm:text-3xl font-bold mb-1">{analytics.todayStats.completedOrders}</p>
                     <p className="text-xs sm:text-sm opacity-90">Completed Orders</p>
                 </div>
@@ -225,12 +209,8 @@ const VendorAnalytics = () => {
                     <div>
                         <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Orders</p>
                         <p className="text-xl sm:text-2xl font-bold text-blue-600">{analytics.weekStats.totalOrders}</p>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Orders</p>
-                        <p className="text-xl sm:text-2xl font-bold text-blue-600">{analytics.weekStats.totalOrders}</p>
                     </div>
                     <div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Revenue</p>
-                        <p className="text-xl sm:text-2xl font-bold text-green-600">₹{analytics.weekStats.totalRevenue.toFixed(2)}</p>
                         <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Revenue</p>
                         <p className="text-xl sm:text-2xl font-bold text-green-600">₹{analytics.weekStats.totalRevenue.toFixed(2)}</p>
                     </div>
@@ -257,9 +237,6 @@ const VendorAnalytics = () => {
                             <p className="text-gray-500 text-center py-6 sm:py-8 text-sm sm:text-base">No data available</p>
                         ) : (
                             analytics.topProducts.map((product, index) => (
-                                <div key={product.productId} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded">
-                                    <div className="flex items-center space-x-2 sm:space-x-3">
-                                        <span className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-full font-bold text-xs sm:text-sm">
                                 <div key={product.productId} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded">
                                     <div className="flex items-center space-x-2 sm:space-x-3">
                                         <span className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-full font-bold text-xs sm:text-sm">
@@ -290,7 +267,6 @@ const VendorAnalytics = () => {
                                         <span className="font-medium text-xs sm:text-sm">{category.category}</span>
                                         <span className="font-bold text-green-600 text-xs sm:text-sm">₹{category.revenue.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-600">
                                     <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-600">
                                         <span>{category.orderCount} orders</span>
                                         <span>Avg: ₹{(category.revenue / category.orderCount).toFixed(2)}</span>
