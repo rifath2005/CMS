@@ -68,19 +68,19 @@ const UserLayout = () => {
                 {/* Brand Identity */}
                 <div className="h-20 flex items-center px-8 mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-1.5">
-                             <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
-                             <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div>
-                             <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
-                        </div>
+                        {/* <div className="flex -space-x-1.5">
+                             <div className="w-3 h-3 rounded-full bg-orange-500 border border-white"></div>
+                             <div className="w-3 h-3 rounded-full bg-blue-500 border border-white"></div>
+                             <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
+                        </div> */}
                         <h1 className="text-xl font-black tracking-tight text-[#1E293B]">
-                             <span className="text-purple-700">CMS</span> <span className="text-[#1E293B]">Student</span>
+                             <span className="text-black-500">Notin</span><span className="text-[#ff7a00]">Q</span> <span className="text-[#1E293B]">Student</span>
                         </h1>
                     </div>
                 </div>
 
                 {/* Primary Navigation */}
-                <nav className="flex-1 px-4 space-y-1.5">
+                <nav className="flex-1 px-2 space-y-0">
                     {navigation.map((item) => {
                         const Icon = item.icon
                         const active = isActive(item.href)
@@ -88,20 +88,20 @@ const UserLayout = () => {
                             <Link
                                 key={item.name}
                                 to={item.href}
-                                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                                     active
-                                        ? 'bg-[#F1F5FD] text-[#0061FF]'
+                                        ? 'bg-[#fce2d2] text-[#ff7b00]'
                                         : 'text-[#64748B] hover:bg-gray-50/80 hover:text-[#1E293B]'
                                 }`}
                             >
                                 {active && (
-                                    <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-[#0061FF] rounded-r-full shadow-[2px_0_10px_rgba(0,97,255,0.3)] animate-in slide-in-from-left-2" />
+                                    <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#ff7b00] rounded-r-full shadow-[2px_0_10px_rgba(0,97,255,0.3)]" />
                                 )}
-                                <Icon className={`w-5 h-5 transition-all duration-300 ${active ? 'text-[#0061FF] scale-110' : 'text-[#94A3B8] group-hover:text-[#475569]'}`} />
-                                <span className={`font-bold text-[15px] transition-colors ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
+                                <Icon className={`w-4 h-4 transition-all duration-300 ${active ? 'text-[#0061FF]' : 'text-[#94A3B8] group-hover:text-[#475569]'}`} />
+                                <span className={`font-bold text-[14px] transition-colors ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
                                 
                                 {item.name === 'Cart' && cartItemCount > 0 && (
-                                    <span className="ml-auto bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-blue-200">
+                                    <span className="ml-auto bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                                         {cartItemCount}
                                     </span>
                                 )}
@@ -111,39 +111,32 @@ const UserLayout = () => {
                 </nav>
 
                 {/* Wallet & Account Section */}
-                <div className="p-6 border-t border-gray-100 bg-gray-50/30 m-4 rounded-3xl">
+                <div className="p-4 border-t border-gray-100 bg-gray-50/30 m-2 rounded-2xl">
                      {/* Wallet Status */}
-                     <div className="mb-6 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Active Balance</span>
-                            <Wallet className="w-3.5 h-3.5 text-blue-500" />
+                     <div className="mb-4 p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest">Active Balance</span>
+                            <Wallet className="w-3 h-3 text-blue-500" />
                         </div>
-                        <p className="text-xl font-black text-[#1E293B]">₹{walletBalance.toFixed(2)}</p>
+                        <p className="text-lg font-black text-[#1E293B]">₹{walletBalance.toFixed(2)}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-4 px-2">
-                        <div className="w-10 h-10 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border-2 border-white shadow-sm overflow-hidden text-sm ring-4 ring-gray-100/50">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                        <div className="w-8 h-8 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border border-white shadow-sm overflow-hidden text-xs">
                             {user?.name?.[0] || 'S'}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-[#1E293B] truncate">{user?.name || 'Student'}</p>
-                            <p className="text-[10px] font-semibold text-[#94A3B8] truncate uppercase tracking-tighter">{user?.email}</p>
+                            <p className="text-xs font-bold text-[#1E293B] truncate">{user?.name || 'Student'}</p>
+                            <p className="text-[9px] font-semibold text-[#94A3B8] truncate uppercase tracking-tighter">{user?.email}</p>
                         </div>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-300 font-bold text-sm group"
-                    >
-                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span>Sign Out</span>
-                    </button>
                 </div>
             </aside>
 
             {/* Content Hub */}
             <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
                 {/* Visual Header */}
-                <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100/80 flex items-center justify-between px-8 sticky top-0 z-10">
+                <header className="h-8 bg-white backdrop-blur-md border-b border-gray-100/80 flex items-center justify-between px-8 sticky top-0 z-10">
                     <div className="md:hidden flex items-center gap-3">
                          <div className="flex -space-x-1">
                              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
@@ -153,20 +146,20 @@ const UserLayout = () => {
                     </div>
 
                     <div className="hidden md:block">
-                         <p className="text-sm font-semibold text-gray-400">Welcome, <span className="text-[#1E293B] font-black">{user?.name?.split(' ')[0]}</span> 👋</p>
+                         <p className="text-xl font-semibold text-gray-400">Welcome, <span className="text-[#1E293B] font-black">{user?.name?.split(' ')[0]}</span> 👋</p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                         <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm relative">
-                             <Bell className="w-5 h-5" />
-                             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm">
-                             <Sun className="w-5 h-5" />
+                        <button
+                            onClick={handleLogout}
+                            className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-sm text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-bold text-sm group"
+                        >
+                            <LogOut className="w-2 h-2 group-hover:-translate-x-1 transition-transform" />
+                            <span>Sign Out</span>
                         </button>
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden p-2.5 rounded-2xl bg-[#1E293B] text-white shadow-lg"
+                            className="md:hidden p-1 rounded-xl bg-gray-100 text-[#1E293B]"
                         >
                             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </button>
@@ -250,13 +243,13 @@ const UserLayout = () => {
                 onClick={() => setIsAIOpen(true)}
                 className="fixed bottom-10 right-10 z-50 
                          bg-gradient-to-tr from-purple-600 to-blue-600 text-white 
-                         w-16 h-16 rounded-2xl shadow-2xl shadow-purple-500/30
+                         w-8 h-8 rounded-2xl shadow-2xl shadow-purple-500/30
                          hover:shadow-3xl hover:scale-110 active:scale-90
                          transition-all duration-300 
                          flex items-center justify-center group"
                 title="Queal AI"
             >
-                <SparklesIcon className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+                <SparklesIcon className="w-4 h-4 group-hover:rotate-12 transition-transform" />
             </button>
 
             <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />

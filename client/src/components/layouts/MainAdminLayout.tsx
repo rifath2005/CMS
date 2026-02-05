@@ -47,19 +47,19 @@ const MainAdminLayout = () => {
                 {/* Brand Logo Area */}
                 <div className="h-20 flex items-center px-8 mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
+                        {/* <div className="flex -space-x-2">
                              <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white"></div>
                              <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></div>
                              <div className="w-4 h-4 rounded-full bg-yellow-400 border-2 border-white"></div>
-                        </div>
-                        <h1 className="text-xl font-bold tracking-tight text-[#1E293B]">
-                             <span className="text-purple-700">CMS</span> <span className="text-[#1E293B]">Admin</span>
+                        </div> */}
+                        <h1 className="text-xl font-black tracking-tight text-[#1E293B]">
+                             <span className="text-black-500">Notin</span><span className="text-[#ff7a00]">Q</span> <span className="text-[#1E293B]">Admin</span>
                         </h1>
                     </div>
                 </div>
 
                 {/* Navigation Menu */}
-                <nav className="flex-1 px-4 space-y-1">
+                <nav className="flex-1 px-2 space-y-0">
                     {navigation.map((item) => {
                         const Icon = item.icon
                         const active = isActive(item.href)
@@ -67,47 +67,40 @@ const MainAdminLayout = () => {
                             <Link
                                 key={item.name}
                                 to={item.href}
-                                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all duration-300 group relative ${
                                     active
-                                        ? 'bg-[#F1F5FD] text-[#0061FF]'
-                                        : 'text-[#64748B] hover:bg-gray-50 hover:text-gray-900'
+                                        ? 'bg-[#fce2d2] text-[#ff7b00]'
+                                        : 'text-[#64748B] hover:bg-gray-50/80 hover:text-[#1E293B]'
                                 }`}
                             >
                                 {active && (
-                                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#0061FF] rounded-r-full shadow-[2px_0_8px_rgba(0,97,255,0.4)]" />
+                                    <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#ff7b00] rounded-r-full shadow-[2px_0_10px_rgba(0,97,255,0.3)]" />
                                 )}
-                                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-[#0061FF]' : 'text-[#94A3B8] group-hover:text-gray-600'}`} />
-                                <span className={`font-semibold text-[15px] ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
+                                <Icon className={`w-4 h-4 transition-all duration-300 ${active ? 'text-[#ff7b00]' : 'text-[#94A3B8] group-hover:text-[#475569]'}`} />
+                                <span className={`font-bold text-[14px] ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
                             </Link>
                         )
                     })}
                 </nav>
 
                 {/* User Info & Footer Section */}
-                <div className="p-6 border-t border-gray-100 bg-gray-50/30">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border-2 border-white shadow-sm overflow-hidden text-sm">
+                <div className="p-4 border-t border-gray-100 bg-gray-50/30 m-2 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                        <div className="w-8 h-8 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border border-white shadow-sm overflow-hidden text-xs">
                             {user?.name?.[0] || 'A'}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-[#1E293B] truncate">{user?.name || 'Admin'}</p>
-                            <p className="text-[11px] font-medium text-[#94A3B8] truncate">{user?.email}</p>
+                            <p className="text-xs font-bold text-[#1E293B] truncate">{user?.name || 'Admin'}</p>
+                            <p className="text-[10px] font-semibold text-[#94A3B8] truncate uppercase tracking-tighter">{user?.email}</p>
                         </div>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-semibold text-sm group"
-                    >
-                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span>Sign Out</span>
-                    </button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
                 {/* Unified Header */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10">
+                <header className="h-8 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10">
                     <div className="md:hidden flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md">C</div>
                          <span className="font-bold text-[#1E293B]">CMS Admin</span>
@@ -115,22 +108,22 @@ const MainAdminLayout = () => {
 
                     <div className="hidden md:block">
                         {/* Dynamic breadcrumb or page title could go here */}
-                         <p className="text-sm font-medium text-gray-400">Welcome back, <span className="text-[#1E293B] font-bold">{user?.name?.split(' ')[0]}</span></p>
+                         <p className="text-xl font-semibold text-gray-400">Welcome back, <span className="text-[#1E293B] font-black">{user?.name?.split(' ')[0]}</span></p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                         <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm relative">
-                             <Bell className="w-5 h-5" />
-                             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm">
-                             <Sun className="w-5 h-5" />
+                        <button
+                            onClick={handleLogout}
+                            className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-sm text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-bold text-sm group"
+                        >
+                            <LogOut className="w-2 h-2 group-hover:-translate-x-1 transition-transform" />
+                            <span>Sign Out</span>
                         </button>
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden p-2 rounded-xl bg-gray-100 text-[#1E293B]"
+                            className="md:hidden p-1 rounded-xl bg-gray-100 text-[#1E293B]"
                         >
-                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </button>
                     </div>
                 </header>
