@@ -41,25 +41,53 @@ export class OrderExpirationService {
    * Check and expire orders that have passed their expiration time
    */
   async checkAndExpireOrders(): Promise<void> {
-    try {
-      const result = await this.pool.query(
-        `UPDATE orders 
-         SET status = 'EXPIRED'
-         WHERE status NOT IN ('DELIVERED', 'EXPIRED', 'CANCELLED')
-           AND bill_expires_at < CURRENT_TIMESTAMP
-         RETURNING id, user_id, vendor_id, bill_expires_at`
-      );
+    let retries = 3;
+    let lastError: any = null;
 
-      if (result.rows.length > 0) {
-        console.log(`✓ Expired ${result.rows.length} order(s) automatically`);
+    while (retries > 0) {
+      try {
+        const result = await this.pool.query(
+          `UPDATE orders 
+           SET status = 'EXPIRED'
+           WHERE status NOT IN ('DELIVERED', 'EXPIRED', 'CANCELLED')
+             AND bill_expires_at < CURRENT_TIMESTAMP
+           RETURNING id, user_id, vendor_id, bill_expires_at`
+        );
+
+        if (result.rows.length > 0) {
+          console.log(`✓ Expired ${result.rows.length} order(s) automatically`);
+          
+          // Log each expired order
+          result.rows.forEach(order => {
+            console.log(`  - Order ${order.id} expired (was due at ${order.bill_expires_at})`);
+          });
+        }
         
-        // Log each expired order
-        result.rows.forEach(order => {
-          console.log(`  - Order ${order.id} expired (was due at ${order.bill_expires_at})`);
-        });
+        // Success - exit retry loop
+        return;
+      } catch (error: any) {
+        lastError = error;
+        retries--;
+        
+        // Check if it's a connection error
+        const isConnectionError = 
+          error.message?.includes('Connection terminated') ||
+          error.message?.includes('connection') ||
+          error.code === 'ECONNREFUSED' ||
+          error.code === 'ENOTFOUND';
+        
+        if (isConnectionError && retries > 0) {
+          console.warn(`⚠ Database connection issue, retrying... (${retries} attempts left)`);
+          // Wait a bit before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+        } else if (retries === 0) {
+          console.error('Error checking for expired orders after retries:', error.message || error);
+        } else {
+          // Non-connection error, don't retry
+          console.error('Error checking for expired orders:', error.message || error);
+          return;
+        }
       }
-    } catch (error) {
-      console.error('Error checking for expired orders:', error);
     }
   }
 

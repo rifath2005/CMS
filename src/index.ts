@@ -116,6 +116,10 @@ app.use('/api/v1/profile', createProfileRoutes(pool));
 import { createWalletRouter } from './routes/wallet.routes';
 app.use('/api/v1/wallet', createWalletRouter(pool));
 
+// AI Assistant routes
+import aiRoutes from './routes/ai.routes';
+app.use('/api/v1/ai', aiRoutes);
+
 // Super Admin routes
 import { createSuperAdminRouter } from './routes/superAdmin.routes';
 import { createInstitutionConfigRoutes } from './routes/institutionConfig';

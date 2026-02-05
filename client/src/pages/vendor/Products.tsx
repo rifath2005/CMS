@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { Product } from '../../types'
 import api from '../../services/api'
-import { PencilIcon, TrashIcon, PlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, TrashIcon, PlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import * as XLSX from 'xlsx'
+import { generateProductSuggestions } from '../../utils/productTemplates'
 import { cache } from '../../utils/cache'
 
 interface ProductFormData {
@@ -20,6 +21,8 @@ const VendorProducts = () => {
     const [products, setProducts] = useState<Product[]>([])
     const [totalProducts, setTotalProducts] = useState(0)
     const [loading, setLoading] = useState(true)
+    const [initialLoad, setInitialLoad] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
     const [importing, setImporting] = useState(false)
@@ -34,9 +37,11 @@ const VendorProducts = () => {
         imageUrl: ''
     })
     const [vendorId, setVendorId] = useState<string | null>(null)
-    const [displayCount, setDisplayCount] = useState(20) // Increased from 10 to 20
-    const [initialLoad, setInitialLoad] = useState(true) // Track first load
-    const [error, setError] = useState<string | null>(null) // Track errors
+    const [displayCount, setDisplayCount] = useState(10)
+    const [suggestions, setSuggestions] = useState<{ descriptions: string[], images: string[] } | null>(null)
+    const [showSuggestions, setShowSuggestions] = useState(false)
+    const [allFetchedImages, setAllFetchedImages] = useState<string[]>([])
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
     useEffect(() => {
         if (user?.id) {
@@ -216,6 +221,88 @@ const VendorProducts = () => {
             stockQuantity: 0,
             imageUrl: ''
         })
+        setSuggestions(null)
+        setShowSuggestions(false)
+        setAllFetchedImages([])
+        setCurrentImageIndex(0)
+    }
+
+    const handleNameChange = async (name: string) => {
+        setFormData({ ...formData, name })
+        setCurrentImageIndex(0)
+        
+        // Generate suggestions when both name and category are available
+        if (name.trim().length > 2 && formData.category) {
+            const newSuggestions = await generateProductSuggestions(name, formData.category, [])
+            setAllFetchedImages(newSuggestions.images)
+            setSuggestions({
+                descriptions: newSuggestions.descriptions,
+                images: newSuggestions.images.slice(0, 4)
+            })
+            setShowSuggestions(true)
+        } else {
+            setSuggestions(null)
+            setShowSuggestions(false)
+        }
+    }
+
+    const handleCategoryChange = async (category: string) => {
+        setFormData({ ...formData, category })
+        setCurrentImageIndex(0)
+        
+        // Generate suggestions when both name and category are available
+        if (formData.name.trim().length > 2 && category) {
+            const newSuggestions = await generateProductSuggestions(formData.name, category, [])
+            setAllFetchedImages(newSuggestions.images)
+            setSuggestions({
+                descriptions: newSuggestions.descriptions,
+                images: newSuggestions.images.slice(0, 4)
+            })
+            setShowSuggestions(true)
+        } else {
+            setSuggestions(null)
+            setShowSuggestions(false)
+        }
+    }
+
+    const regenerateImages = async () => {
+        if (formData.name.trim().length > 2 && formData.category) {
+            const nextIndex = currentImageIndex + 4
+            
+            // If we have more images in the current batch, show them
+            if (nextIndex < allFetchedImages.length) {
+                console.log('📄 Showing next 4 from current batch');
+                setSuggestions(prev => prev ? {
+                    ...prev,
+                    images: allFetchedImages.slice(nextIndex, nextIndex + 4)
+                } : null)
+                setCurrentImageIndex(nextIndex)
+            } else {
+                // Fetch new batch excluding already shown images
+                console.log('🔄 Fetching new batch, excluding', allFetchedImages.length, 'images');
+                const newSuggestions = await generateProductSuggestions(
+                    formData.name, 
+                    formData.category, 
+                    allFetchedImages
+                )
+                
+                const combinedImages = [...allFetchedImages, ...newSuggestions.images]
+                setAllFetchedImages(combinedImages)
+                setSuggestions({
+                    descriptions: newSuggestions.descriptions,
+                    images: newSuggestions.images.slice(0, 4)
+                })
+                setCurrentImageIndex(allFetchedImages.length)
+            }
+        }
+    }
+
+    const applyDescription = (description: string) => {
+        setFormData({ ...formData, description })
+    }
+
+    const applyImage = (imageUrl: string) => {
+        setFormData({ ...formData, imageUrl })
     }
 
     const updateStock = async (productId: string, quantity: number) => {
@@ -374,99 +461,110 @@ const VendorProducts = () => {
     }
 
     return (
-        <div className="p-3 sm:p-4 lg:p-6">
-            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Product Management</h1>
-                    <p className="text-xs sm:text-sm text-gray-600">Manage your menu items</p>
+                    <p className="text-sm sm:text-base text-gray-600">Manage your menu items</p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => setShowImportModal(true)}
-                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium min-h-[44px] text-sm sm:text-base"
+                        className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-xs sm:text-sm flex-1 sm:flex-initial"
                     >
                         <ArrowUpTrayIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>Import Products</span>
+                        <span className="hidden sm:inline">Import Products</span>
+                        <span className="sm:hidden">Import</span>
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium min-h-[44px] text-sm sm:text-base"
+                        className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-xs sm:text-sm flex-1 sm:flex-initial"
                     >
                         <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>Add Product</span>
+                        <span className="hidden sm:inline">Add Product</span>
+                        <span className="sm:hidden">Add</span>
                     </button>
                 </div>
             </div>
 
-            {/* Products Grid - 4 cards per row optimized for all devices */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Products Grid - Responsive */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {products.length === 0 ? (
-                    <div className="col-span-full bg-white rounded-lg shadow-md p-12 text-center">
-                        <PlusIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">No Products Yet</h3>
-                        <p className="text-gray-600 mb-4">Add your first product to get started</p>
+                    <div className="col-span-full bg-white rounded-lg shadow-md p-8 sm:p-12 text-center">
+                        <PlusIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                        <h3 className="text-lg sm:text-xl font-bold mb-2">No Products Yet</h3>
+                        <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Add your first product to get started</p>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
                         >
                             Add Product
                         </button>
                     </div>
                 ) : (
                     products.slice(0, displayCount).map((product) => (
-                        <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                        <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
                             <img
                                 src={product.imageUrl || 'https://via.placeholder.com/300x200'}
                                 alt={product.name}
-                                className="w-full h-40 sm:h-48 object-cover"
-                                loading="lazy"
+                                className="w-full h-32 sm:h-36 object-cover"
                             />
-                            <div className="p-3 sm:p-4">
-                                <div className="flex items-start justify-between mb-1">
-                                    <h3 className="font-bold text-xs sm:text-sm line-clamp-1">{product.name}</h3>
-                                    <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${
-                                        product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {product.isAvailable ? 'Available' : 'Unavailable'}
-                                    </span>
-                                </div>
-                                <p className="text-[10px] sm:text-xs text-gray-600 mb-1 line-clamp-2">{product.description}</p>
-                                <p className="text-[10px] sm:text-xs text-gray-500 mb-2">Category: {product.category}</p>
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-base sm:text-lg font-bold text-green-600">₹{product.price}</span>
-                                    <span className="text-[10px] sm:text-xs text-gray-600">Stock: {product.stockQuantity}</span>
-                                </div>
-
-                                <div className="flex items-center space-x-1 sm:space-x-2 mb-3">
-                                    <button
-                                        onClick={() => updateStock(product.id, Math.max(0, product.stockQuantity - 10))}
-                                        className="flex-1 px-2 py-2 sm:py-2.5 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs sm:text-sm min-h-[40px]"
-                                    >
-                                        -10
-                                    </button>
-                                    <button
-                                        onClick={() => updateStock(product.id, product.stockQuantity + 10)}
-                                        className="flex-1 px-2 py-2 sm:py-2.5 bg-green-100 text-green-600 rounded hover:bg-green-200 text-xs sm:text-sm min-h-[40px]"
-                                    >
-                                        +10
-                                    </button>
+                            <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+                                {/* Fixed height header section */}
+                                <div className="mb-2">
+                                    <div className="flex items-start justify-between gap-1.5 sm:gap-2 mb-1">
+                                        <h3 className="font-bold text-xs sm:text-sm line-clamp-1 flex-1">{product.name}</h3>
+                                        <span className={`px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded whitespace-nowrap flex-shrink-0 ${
+                                            product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {product.isAvailable ? 'Available' : 'Unavailable'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] sm:text-xs text-gray-600 line-clamp-2 h-7 sm:h-8">{product.description}</p>
+                                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Category: {product.category}</p>
                                 </div>
 
-                                <div className="flex space-x-1 sm:space-x-2">
-                                    <button
-                                        onClick={() => handleEdit(product)}
-                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 sm:py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs sm:text-sm min-h-[44px]"
-                                    >
-                                        <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        <span>Edit</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(product.id)}
-                                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 sm:py-2.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs sm:text-sm min-h-[44px]"
-                                    >
-                                        <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        <span>Delete</span>
-                                    </button>
+                                {/* Spacer to push content to bottom */}
+                                <div className="flex-1"></div>
+
+                                {/* Fixed position bottom section */}
+                                <div className="space-y-1.5 sm:space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-base sm:text-lg font-bold text-green-600">₹{product.price}</span>
+                                        <span className="text-[10px] sm:text-xs text-gray-600">Stock: {product.stockQuantity}</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <button
+                                            onClick={() => updateStock(product.id, Math.max(0, product.stockQuantity - 10))}
+                                            className="flex-1 px-1.5 sm:px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-[10px] sm:text-xs font-medium"
+                                        >
+                                            -10
+                                        </button>
+                                        <button
+                                            onClick={() => updateStock(product.id, product.stockQuantity + 10)}
+                                            className="flex-1 px-1.5 sm:px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-200 text-[10px] sm:text-xs font-medium"
+                                        >
+                                            +10
+                                        </button>
+                                    </div>
+
+                                    <div className="flex gap-1.5 sm:gap-2">
+                                        <button
+                                            onClick={() => handleEdit(product)}
+                                            className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-[10px] sm:text-xs font-medium"
+                                        >
+                                            <PencilIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(product.id)}
+                                            className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-[10px] sm:text-xs font-medium"
+                                        >
+                                            <TrashIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -476,10 +574,10 @@ const VendorProducts = () => {
 
             {/* Load More Button */}
             {products.length > displayCount && (
-                <div className="mt-6 text-center">
+                <div className="mt-4 sm:mt-6 text-center">
                     <button
-                        onClick={() => setDisplayCount(prev => prev + 20)}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                        onClick={() => setDisplayCount(prev => prev + 10)}
+                        className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-xs sm:text-sm"
                     >
                         Load More Products
                     </button>
@@ -488,93 +586,193 @@ const VendorProducts = () => {
 
             {/* Showing count */}
             {products.length > 0 && (
-                <div className="mt-4 text-center text-sm text-gray-600">
-                    Showing {Math.min(displayCount, products.length)} of {totalProducts} products
+                <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-gray-600">
+                    Showing {Math.min(displayCount, products.length)} of {products.length} products
                 </div>
             )}
 
-            {/* Add/Edit Modal - Responsive for all devices */}
+            {/* Add/Edit Modal - Responsive */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-                    <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3">
                             {editingProduct ? 'Edit Product' : 'Add New Product'}
                         </h2>
                         <form onSubmit={handleSubmit}>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">Name *</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2 sm:gap-y-3">
+                                <div className="sm:col-span-1">
+                                    <label className="block text-[10px] sm:text-xs font-medium mb-1">Name *</label>
                                     <input
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        onChange={(e) => handleNameChange(e.target.value)}
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         required
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">Category *</label>
-                                    <input
-                                        type="text"
+                                <div className="sm:col-span-1">
+                                    <label className="block text-[10px] sm:text-xs font-medium mb-1">Category *</label>
+                                    <select
                                         value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        onChange={(e) => handleCategoryChange(e.target.value)}
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select Category</option>
+                                        <option value="BREAKFAST">Breakfast</option>
+                                        <option value="MAIN_COURSE">Main Course</option>
+                                        <option value="SNACKS">Snacks</option>
+                                        <option value="BEVERAGES">Beverages</option>
+                                        <option value="DESSERTS">Desserts</option>
+                                    </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">Price (₹) *</label>
+                                <div className="sm:col-span-1">
+                                    <label className="block text-[10px] sm:text-xs font-medium mb-1">Price (₹) *</label>
                                     <input
                                         type="number"
                                         value={formData.price}
                                         onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         required
                                         min="0"
                                         step="0.01"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">Stock Quantity *</label>
+                                <div className="sm:col-span-1">
+                                    <label className="block text-[10px] sm:text-xs font-medium mb-1">Stock Quantity *</label>
                                     <input
                                         type="number"
                                         value={formData.stockQuantity}
                                         onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         required
                                         min="0"
                                     />
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-medium mb-1">Description</label>
+                                
+                                {/* Description with AI suggestions */}
+                                <div className="col-span-1 sm:col-span-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-[10px] sm:text-xs font-medium">Description</label>
+                                        {suggestions && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowSuggestions(!showSuggestions)}
+                                                className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-green-600 hover:text-green-700"
+                                            >
+                                                <SparklesIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                                {showSuggestions ? 'Hide' : 'Show'} Suggestions
+                                            </button>
+                                        )}
+                                    </div>
                                     <textarea
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         rows={2}
+                                        placeholder="Enter description or use suggestions below"
                                     />
+                                    
+                                    {/* Description Suggestions */}
+                                    {showSuggestions && suggestions && suggestions.descriptions.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                            <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Suggested Descriptions:</p>
+                                            {suggestions.descriptions.map((desc, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => applyDescription(desc)}
+                                                    className="block w-full text-left px-2 py-1.5 text-[10px] sm:text-xs bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors"
+                                                >
+                                                    {desc}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-medium mb-1">Image URL</label>
+                                
+                                {/* Image URL with suggestions */}
+                                <div className="col-span-1 sm:col-span-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-[10px] sm:text-xs font-medium">Image URL</label>
+                                        {suggestions && (
+                                            <span className="text-[10px] sm:text-xs text-gray-500">Click image below to use</span>
+                                        )}
+                                    </div>
                                     <input
                                         type="url"
                                         value={formData.imageUrl}
                                         onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        className="w-full px-2 py-1.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="Enter image URL or select from suggestions below"
                                     />
+                                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                                        💡 Tip: Search <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">Unsplash.com</a> for better images, right-click → Copy image address
+                                    </p>
+                                    
+                                    {/* Image Preview */}
+                                    {formData.imageUrl && (
+                                        <div className="mt-2">
+                                            <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Current Image:</p>
+                                            <img 
+                                                src={formData.imageUrl} 
+                                                alt="Preview" 
+                                                className="w-24 h-18 sm:w-32 sm:h-24 object-cover rounded border"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Invalid+URL'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    {/* Image Suggestions */}
+                                    {showSuggestions && suggestions && suggestions.images.length > 0 && (
+                                        <div className="mt-2">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Suggested Images:</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={regenerateImages}
+                                                    className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-green-600 hover:text-green-700 font-medium"
+                                                >
+                                                    <ArrowPathIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                                    More Images
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                {suggestions.images.map((img, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => applyImage(img)}
+                                                        className="relative group"
+                                                    >
+                                                        <img 
+                                                            src={img} 
+                                                            alt={`Option ${idx + 1}`}
+                                                            className="w-full h-20 sm:h-24 object-cover rounded border-2 border-transparent hover:border-green-500 transition-all cursor-pointer"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded transition-all flex items-center justify-center">
+                                                            <span className="text-white text-[10px] sm:text-xs font-medium opacity-0 group-hover:opacity-100">Use</span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
+                            <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium min-h-[44px]"
+                                    className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium min-h-[44px]"
+                                    className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                                 >
                                     {editingProduct ? 'Update' : 'Create'}
                                 </button>

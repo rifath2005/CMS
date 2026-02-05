@@ -14,7 +14,9 @@ import {
     Wallet,
     ChevronRight
 } from 'lucide-react'
+import { SparklesIcon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
+import { AIAssistant } from '../AIAssistant'
 
 const UserLayout = () => {
     const location = useLocation()
@@ -23,6 +25,7 @@ const UserLayout = () => {
     const { balance: walletBalance, setBalance } = useWalletStore()
     const { items } = useCartStore()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isAIOpen, setIsAIOpen] = useState(false)
 
     // Calculate total cart items
     const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)
@@ -197,6 +200,24 @@ const UserLayout = () => {
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
             )}
+
+            {/* Floating Queal Button - Bottom Right */}
+            <button
+                onClick={() => setIsAIOpen(true)}
+                className="fixed bottom-6 right-6 z-50 
+                         bg-gradient-to-r from-purple-600 to-blue-600 text-white 
+                         px-4 py-2.5 rounded-full shadow-lg 
+                         hover:shadow-xl hover:scale-105 
+                         transition-all duration-300 
+                         flex items-center gap-2 group"
+                title="Queal - AI Assistant"
+            >
+                <SparklesIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                <span className="font-semibold text-sm">Queal</span>
+            </button>
+
+            {/* AI Assistant Modal */}
+            <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
         </div>
     )
 }

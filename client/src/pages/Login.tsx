@@ -91,11 +91,11 @@ const Login = () => {
         </a>
         
         <div className={`w-full max-w-[500px] glass-card rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] p-4 md:p-6 transition-all duration-700 transform my-auto ${mode === 'signup' ? 'md:max-w-[760px]' : ''}`}>
-          {mode === 'login' && <LoginForm onSwitchMode={handleModeSwitch} />}
-          {mode === 'signup' && <SignupForm onSwitchMode={handleModeSwitch} />}
-          {mode === 'forgot-password' && <ForgotPasswordForm onSwitchMode={handleModeSwitch} onEmailSubmit={handleEmailSubmit} />}
-          {mode === 'verify-otp' && <VerifyOtpForm email={resetEmail} onSwitchMode={handleModeSwitch} onTokenReceived={handleTokenReceived} />}
-          {mode === 'reset-password' && <ResetPasswordForm email={resetEmail} resetToken={resetToken} onSwitchMode={handleModeSwitch} />}
+          {mode === 'login' && <LoginForm key="login-form" onSwitchMode={handleModeSwitch} />}
+          {mode === 'signup' && <SignupForm key="signup-form" onSwitchMode={handleModeSwitch} />}
+          {mode === 'forgot-password' && <ForgotPasswordForm key="forgot-form" onSwitchMode={handleModeSwitch} onEmailSubmit={handleEmailSubmit} />}
+          {mode === 'verify-otp' && <VerifyOtpForm key="verify-form" email={resetEmail} onSwitchMode={handleModeSwitch} onTokenReceived={handleTokenReceived} />}
+          {mode === 'reset-password' && <ResetPasswordForm key="reset-form" email={resetEmail} resetToken={resetToken} onSwitchMode={handleModeSwitch} />}
         </div>
       </main>
 

@@ -157,15 +157,15 @@ const VendorAnalytics = () => {
     }
 
     return (
-        <div className="p-3 sm:p-4 lg:p-6">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
             <div className="mb-4 sm:mb-6">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Analytics Dashboard</h1>
-                <p className="text-xs sm:text-sm text-gray-600">Track your sales performance and insights</p>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Analytics Dashboard</h1>
+                <p className="text-sm sm:text-base text-gray-600">Track your sales performance and insights</p>
             </div>
 
             {/* Today's Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
                         <ShoppingBagIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
@@ -174,7 +174,7 @@ const VendorAnalytics = () => {
                     <p className="text-xs sm:text-sm opacity-90">Total Orders</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
+                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
                         <CurrencyRupeeIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
@@ -183,7 +183,7 @@ const VendorAnalytics = () => {
                     <p className="text-xs sm:text-sm opacity-90">Total Revenue</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
                         <ArrowTrendingUpIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
@@ -192,7 +192,7 @@ const VendorAnalytics = () => {
                     <p className="text-xs sm:text-sm opacity-90">Avg Order Value</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg shadow-lg p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
                         <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 opacity-80" />
                         <span className="text-xs sm:text-sm opacity-80">Today</span>
@@ -203,9 +203,9 @@ const VendorAnalytics = () => {
             </div>
 
             {/* Week Stats */}
-            <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4">Last 7 Days Performance</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Last 7 Days Performance</h2>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div>
                         <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Orders</p>
                         <p className="text-xl sm:text-2xl font-bold text-blue-600">{analytics.weekStats.totalOrders}</p>
@@ -217,24 +217,24 @@ const VendorAnalytics = () => {
                 </div>
                 <div className="space-y-2">
                     {analytics.weekStats.dailyBreakdown.map((day) => (
-                        <div key={day.date} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 bg-gray-50 rounded gap-2">
-                            <span className="text-sm sm:text-base font-medium">{new Date(day.date).toLocaleDateString()}</span>
-                            <div className="flex items-center space-x-3 sm:space-x-4">
+                        <div key={day.date} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded">
+                            <span className="font-medium text-xs sm:text-sm">{new Date(day.date).toLocaleDateString()}</span>
+                            <div className="flex items-center gap-2 sm:gap-4">
                                 <span className="text-xs sm:text-sm text-gray-600">{day.orders} orders</span>
-                                <span className="text-sm sm:text-base font-bold text-green-600">₹{day.revenue.toFixed(2)}</span>
+                                <span className="font-bold text-green-600 text-xs sm:text-sm">₹{day.revenue.toFixed(2)}</span>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Top Products */}
-                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4">Top Selling Products (Last 30 Days)</h2>
-                    <div className="space-y-2 sm:space-y-3">
+                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Top Selling Products (Last 30 Days)</h2>
+                    <div className="space-y-3">
                         {analytics.topProducts.length === 0 ? (
-                            <p className="text-xs sm:text-sm text-gray-500 text-center py-6 sm:py-8">No data available</p>
+                            <p className="text-gray-500 text-center py-6 sm:py-8 text-sm sm:text-base">No data available</p>
                         ) : (
                             analytics.topProducts.map((product, index) => (
                                 <div key={product.productId} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded">
@@ -243,11 +243,11 @@ const VendorAnalytics = () => {
                                             {index + 1}
                                         </span>
                                         <div>
-                                            <p className="text-xs sm:text-sm font-medium">{product.productName}</p>
+                                            <p className="font-medium text-xs sm:text-sm">{product.productName}</p>
                                             <p className="text-[10px] sm:text-xs text-gray-600">{product.totalSold} sold</p>
                                         </div>
                                     </div>
-                                    <span className="text-sm sm:text-base font-bold text-green-600">₹{product.revenue.toFixed(2)}</span>
+                                    <span className="font-bold text-green-600 text-xs sm:text-sm">₹{product.revenue.toFixed(2)}</span>
                                 </div>
                             ))
                         )}
@@ -255,17 +255,17 @@ const VendorAnalytics = () => {
                 </div>
 
                 {/* Revenue by Category */}
-                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4">Revenue by Category (Last 30 Days)</h2>
-                    <div className="space-y-2 sm:space-y-3">
+                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Revenue by Category (Last 30 Days)</h2>
+                    <div className="space-y-3">
                         {analytics.revenueByCategory.length === 0 ? (
-                            <p className="text-xs sm:text-sm text-gray-500 text-center py-6 sm:py-8">No data available</p>
+                            <p className="text-gray-500 text-center py-6 sm:py-8 text-sm sm:text-base">No data available</p>
                         ) : (
                             analytics.revenueByCategory.map((category) => (
                                 <div key={category.category} className="p-2 sm:p-3 bg-gray-50 rounded">
-                                    <div className="flex items-center justify-between mb-1 sm:mb-2">
-                                        <span className="text-xs sm:text-sm font-medium">{category.category}</span>
-                                        <span className="text-sm sm:text-base font-bold text-green-600">₹{category.revenue.toFixed(2)}</span>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-medium text-xs sm:text-sm">{category.category}</span>
+                                        <span className="font-bold text-green-600 text-xs sm:text-sm">₹{category.revenue.toFixed(2)}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-600">
                                         <span>{category.orderCount} orders</span>

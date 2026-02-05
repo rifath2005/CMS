@@ -31,6 +31,8 @@ export interface Product {
   isAvailable: boolean
   createdAt: string
   updatedAt: string
+  canteenId?: string
+  canteenName?: string
 }
 
 export interface CartItem {
