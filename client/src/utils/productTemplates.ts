@@ -272,11 +272,11 @@ export async function generateProductSuggestions(
   }
 }
 
-export function getDefaultSuggestion(productName: string, category: string): {
+export async function getDefaultSuggestion(productName: string, category: string): Promise<{
   description: string
   image: string
-} {
-  const suggestions = generateProductSuggestions(productName, category)
+}> {
+  const suggestions = await generateProductSuggestions(productName, category)
   return {
     description: suggestions.descriptions[0],
     image: suggestions.images[0]
