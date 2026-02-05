@@ -6,6 +6,10 @@ import { PencilIcon, TrashIcon, PlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Sp
 import * as XLSX from 'xlsx'
 import { generateProductSuggestions } from '../../utils/productTemplates'
 import { cache } from '../../utils/cache'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 interface ProductFormData {
     name: string
@@ -468,22 +472,26 @@ const VendorProducts = () => {
                     <p className="text-sm sm:text-base text-gray-600">Manage your menu items</p>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                    <button
+                    <Button
                         onClick={() => setShowImportModal(true)}
-                        className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-xs sm:text-sm flex-1 sm:flex-initial"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 sm:flex-initial"
                     >
                         <ArrowUpTrayIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="hidden sm:inline">Import Products</span>
                         <span className="sm:hidden">Import</span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-xs sm:text-sm flex-1 sm:flex-initial"
+                        variant="default"
+                        size="sm"
+                        className="flex-1 sm:flex-initial"
                     >
                         <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="hidden sm:inline">Add Product</span>
                         <span className="sm:hidden">Add</span>
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -494,34 +502,33 @@ const VendorProducts = () => {
                         <PlusIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
                         <h3 className="text-lg sm:text-xl font-bold mb-2">No Products Yet</h3>
                         <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Add your first product to get started</p>
-                        <button
+                        <Button
                             onClick={() => setShowModal(true)}
-                            className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
+                            variant="default"
+                            size="default"
                         >
                             Add Product
-                        </button>
+                        </Button>
                     </div>
                 ) : (
                     products.slice(0, displayCount).map((product) => (
-                        <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
+                        <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
                             <img
                                 src={product.imageUrl || 'https://via.placeholder.com/300x200'}
                                 alt={product.name}
                                 className="w-full h-32 sm:h-36 object-cover"
                             />
-                            <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+                            <CardContent className="p-2.5 sm:p-3 flex flex-col flex-1">
                                 {/* Fixed height header section */}
                                 <div className="mb-2">
                                     <div className="flex items-start justify-between gap-1.5 sm:gap-2 mb-1">
                                         <h3 className="font-bold text-xs sm:text-sm line-clamp-1 flex-1">{product.name}</h3>
-                                        <span className={`px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded whitespace-nowrap flex-shrink-0 ${
-                                            product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                        }`}>
+                                        <Badge variant={product.isAvailable ? 'success' : 'destructive'} className="text-[10px] sm:text-xs">
                                             {product.isAvailable ? 'Available' : 'Unavailable'}
-                                        </span>
+                                        </Badge>
                                     </div>
-                                    <p className="text-[10px] sm:text-xs text-gray-600 line-clamp-2 h-7 sm:h-8">{product.description}</p>
-                                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Category: {product.category}</p>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 h-7 sm:h-8">{product.description}</p>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Category: {product.category}</p>
                                 </div>
 
                                 {/* Spacer to push content to bottom */}
@@ -530,44 +537,52 @@ const VendorProducts = () => {
                                 {/* Fixed position bottom section */}
                                 <div className="space-y-1.5 sm:space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-base sm:text-lg font-bold text-green-600">₹{product.price}</span>
-                                        <span className="text-[10px] sm:text-xs text-gray-600">Stock: {product.stockQuantity}</span>
+                                        <span className="text-base sm:text-lg font-bold text-semantic-success">₹{product.price}</span>
+                                        <span className="text-[10px] sm:text-xs text-muted-foreground">Stock: {product.stockQuantity}</span>
                                     </div>
 
                                     <div className="flex items-center gap-1.5 sm:gap-2">
-                                        <button
+                                        <Button
                                             onClick={() => updateStock(product.id, Math.max(0, product.stockQuantity - 10))}
-                                            className="flex-1 px-1.5 sm:px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-[10px] sm:text-xs font-medium"
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 text-semantic-error hover:bg-red-50 text-[10px] sm:text-xs"
                                         >
                                             -10
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => updateStock(product.id, product.stockQuantity + 10)}
-                                            className="flex-1 px-1.5 sm:px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-200 text-[10px] sm:text-xs font-medium"
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 text-semantic-success hover:bg-green-50 text-[10px] sm:text-xs"
                                         >
                                             +10
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div className="flex gap-1.5 sm:gap-2">
-                                        <button
+                                        <Button
                                             onClick={() => handleEdit(product)}
-                                            className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-[10px] sm:text-xs font-medium"
+                                            variant="default"
+                                            size="sm"
+                                            className="flex-1 text-[10px] sm:text-xs"
                                         >
                                             <PencilIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                             <span>Edit</span>
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => handleDelete(product.id)}
-                                            className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-[10px] sm:text-xs font-medium"
+                                            variant="destructive"
+                                            size="sm"
+                                            className="flex-1 text-[10px] sm:text-xs"
                                         >
                                             <TrashIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                             <span>Delete</span>
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     ))
                 )}
             </div>
@@ -575,12 +590,13 @@ const VendorProducts = () => {
             {/* Load More Button */}
             {products.length > displayCount && (
                 <div className="mt-4 sm:mt-6 text-center">
-                    <button
+                    <Button
                         onClick={() => setDisplayCount(prev => prev + 10)}
-                        className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-xs sm:text-sm"
+                        variant="outline"
+                        size="default"
                     >
                         Load More Products
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -763,19 +779,23 @@ const VendorProducts = () => {
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4">
-                                <button
+                                <Button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+                                    variant="ghost"
+                                    size="default"
+                                    className="flex-1"
                                 >
                                     Cancel
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
-                                    className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                                    variant="default"
+                                    size="default"
+                                    className="flex-1"
                                 >
                                     {editingProduct ? 'Update' : 'Create'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>
@@ -866,22 +886,26 @@ const VendorProducts = () => {
                             )}
 
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                <button
+                                <Button
                                     onClick={() => {
                                         setShowImportModal(false)
                                         setImportResult(null)
                                     }}
-                                    className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium min-h-[44px] text-sm sm:text-base"
+                                    variant="ghost"
+                                    size="default"
+                                    className="flex-1"
                                 >
                                     Close
-                                </button>
+                                </Button>
                                 {importResult && (
-                                    <button
+                                    <Button
                                         onClick={() => setImportResult(null)}
-                                        className="flex-1 px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium min-h-[44px] text-sm sm:text-base"
+                                        variant="default"
+                                        size="default"
+                                        className="flex-1"
                                     >
                                         Import More
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         </div>

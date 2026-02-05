@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Building2, Users, Store, TrendingUp, ShoppingCart, Wallet, CheckCircle, Activity, ArrowUpRight, ArrowRight } from 'lucide-react'
+import { Building2, Users, Store, TrendingUp, ShoppingCart, Wallet, CheckCircle, Activity, ArrowUpRight, ArrowRight, RefreshCw } from 'lucide-react'
 import { api } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { KPICard } from '../../components/shared/KPICard'
+import { cn } from '../../lib/utils'
 
 interface PlatformStats {
     totalInstitutions: number
@@ -53,157 +58,160 @@ const MainAdminDashboard = () => {
 
     if (error) {
         return (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                <p className="text-red-600 font-medium mb-4">{error}</p>
-                <button 
-                    onClick={fetchPlatformStats}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                    Retry
-                </button>
-            </div>
+            <Card className="border-semantic-error bg-semantic-error/5">
+                <CardContent className="p-12 text-center">
+                    <p className="text-semantic-error font-bold mb-6 text-lg">{error}</p>
+                    <Button 
+                        onClick={fetchPlatformStats}
+                        variant="destructive"
+                        size="lg"
+                        className="gap-2"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                        Retry Loading
+                    </Button>
+                </CardContent>
+            </Card>
         )
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
-                    <p className="text-gray-500 mt-2">Welcome back. Here's what's happening across the platform today.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Platform Overview</h1>
+                    <p className="text-muted-foreground mt-1">Cross-platform metrics and institution management.</p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white border border-green-200 rounded-full shadow-sm text-sm font-medium text-green-700">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <Badge variant="success" className="px-4 py-1.5 gap-2 text-sm font-semibold border-none bg-semantic-success/20 text-semantic-success animate-pulse">
+                    <div className="w-2 h-2 rounded-full bg-semantic-success" />
                     System Operational
-                </div>
+                </Badge>
             </div>
 
-            {/* Primary Stats Grid - Key Performance Indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                 {/* Revenue Card */}
-                 <div className="group relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp className="w-24 h-24" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md">
-                                <Wallet className="w-6 h-6 text-emerald-400" />
-                            </div>
-                            <span className="flex items-center text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg">
-                                +12.5% <ArrowUpRight className="w-3 h-3 ml-0.5" />
-                            </span>
-                        </div>
-                        <p className="text-gray-400 text-sm font-medium">Total Revenue</p>
-                        <h3 className="text-3xl font-bold mt-1 tracking-tight">₹{(stats?.totalRevenue || 0).toLocaleString()}</h3>
-                    </div>
-                </div>
+            {/* Primary Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard
+                    title="Total Revenue"
+                    value={`₹${(stats?.totalRevenue || 0).toLocaleString()}`}
+                    subtitle="Platform wide total"
+                    icon={<TrendingUp className="w-6 h-6" />}
+                    iconColor="text-white"
+                    iconBgColor="bg-primary shadow-lg shadow-primary/25"
+                    bgColor="bg-gradient-to-br from-gray-900 via-gray-800 to-primary/20 border-gray-800 shadow-xl"
+                    trend={{ value: 12.5, direction: 'up', label: 'vs last month' }}
+                />
 
-                {/* Institutions Card */}
-                <div className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
-                            <Building2 className="w-6 h-6" />
-                        </div>
-                    </div>
-                    <p className="text-gray-500 text-sm font-medium">Institutions</p>
-                    <div className="flex items-baseline gap-2 mt-1">
-                        <h3 className="text-3xl font-bold text-gray-900">{stats?.totalInstitutions || 0}</h3>
-                        <span className="text-sm text-gray-500">
-                            ({stats?.activeInstitutions || 0} active)
-                        </span>
-                    </div>
-                </div>
+                <KPICard
+                    title="Institutions"
+                    value={stats?.totalInstitutions || 0}
+                    subtitle={`${stats?.activeInstitutions || 0} active organizations`}
+                    icon={<Building2 className="w-6 h-6" />}
+                    iconColor="text-blue-600"
+                    iconBgColor="bg-blue-100"
+                />
 
-                {/* Vendors Card */}
-                <div className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-purple-50 rounded-xl text-purple-600">
-                            <Store className="w-6 h-6" />
-                        </div>
-                    </div>
-                    <p className="text-gray-500 text-sm font-medium">Total Vendors</p>
-                    <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats?.totalVendors || 0}</h3>
-                </div>
+                <KPICard
+                    title="Total Vendors"
+                    value={stats?.totalVendors || 0}
+                    subtitle="Canteens & Stores"
+                    icon={<Store className="w-6 h-6" />}
+                    iconColor="text-purple-600"
+                    iconBgColor="bg-purple-100"
+                />
 
-                 {/* Payment Volume Card */}
-                 <div className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
-                            <Activity className="w-6 h-6" />
-                        </div>
-                    </div>
-                    <p className="text-gray-500 text-sm font-medium">Volume (Today)</p>
-                    <h3 className="text-3xl font-bold text-gray-900 mt-1">₹{(stats?.paymentVolume || 0).toLocaleString()}</h3>
-                </div>
+                <KPICard
+                    title="Daily Volume"
+                    value={`₹${(stats?.paymentVolume || 0).toLocaleString()}`}
+                    subtitle="Revenue today"
+                    icon={<Activity className="w-6 h-6" />}
+                    iconColor="text-indigo-600"
+                    iconBgColor="bg-indigo-100"
+                />
             </div>
 
-            {/* Secondary Stats Grid */}
+            {/* Operational Metrics Section */}
             <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Operational Metrics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Orders Today */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-500 text-sm font-medium">Orders Today</p>
-                            <h4 className="text-2xl font-bold text-gray-900 mt-1">{stats?.ordersToday || 0}</h4>
-                            <p className="text-sm text-green-600 mt-1 font-medium">{stats?.activeOrders || 0} active now</p>
-                        </div>
-                        <div className="p-4 bg-orange-50 rounded-full text-orange-600">
-                            <ShoppingCart className="w-6 h-6" />
-                        </div>
-                    </div>
+                <h3 className="text-lg font-bold text-foreground mb-4">Operational Insights</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-6 flex items-center justify-between">
+                            <div>
+                                <p className="text-muted-foreground text-sm font-medium">Orders Today</p>
+                                <h4 className="text-2xl font-bold mt-1">{stats?.ordersToday || 0}</h4>
+                                <div className="flex items-center gap-1.5 mt-2 text-semantic-success text-xs font-semibold">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse" />
+                                    {stats?.activeOrders || 0} currently active
+                                </div>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-2xl text-orange-600 shadow-sm border border-orange-100">
+                                <ShoppingCart className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                    {/* Total Users */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-500 text-sm font-medium">Total Users</p>
-                            <h4 className="text-2xl font-bold text-gray-900 mt-1">{stats?.totalUsers || 0}</h4>
-                            <p className="text-sm text-blue-600 mt-1 font-medium">+12 this week</p>
-                        </div>
-                        <div className="p-4 bg-blue-50 rounded-full text-blue-600">
-                            <Users className="w-6 h-6" />
-                        </div>
-                    </div>
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-6 flex items-center justify-between">
+                            <div>
+                                <p className="text-muted-foreground text-sm font-medium">Total Users</p>
+                                <h4 className="text-2xl font-bold mt-1">{stats?.totalUsers || 0}</h4>
+                                <p className="text-xs text-primary font-semibold mt-2 bg-primary/10 px-2 py-0.5 rounded-full inline-block">
+                                    Growing trend
+                                </p>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 shadow-sm border border-blue-100">
+                                <Users className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                    {/* System Health */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-500 text-sm font-medium">System Health</p>
-                            <h4 className="text-2xl font-bold text-gray-900 mt-1">99.9%</h4>
-                            <p className="text-sm text-gray-500 mt-1">All systems normal</p>
-                        </div>
-                        <div className="p-4 bg-green-50 rounded-full text-green-600">
-                            <CheckCircle className="w-6 h-6" />
-                        </div>
-                    </div>
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-6 flex items-center justify-between">
+                            <div>
+                                <p className="text-muted-foreground text-sm font-medium">System Health</p>
+                                <h4 className="text-2xl font-bold mt-1 text-semantic-success">99.9%</h4>
+                                <p className="text-xs text-muted-foreground mt-2">All nodes responding</p>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-2xl text-green-600 shadow-sm border border-green-100">
+                                <CheckCircle className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-gray-900 rounded-2xl p-8 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                        <h3 className="text-xl font-bold">Ready to scale?</h3>
-                        <p className="text-gray-400 mt-2 max-w-lg">Add new institutions, manage configurations, or review audit logs directly from here.</p>
+            {/* Growth & Actions Section */}
+            <Card className="border-none bg-gradient-to-r from-gray-900 to-indigo-950 text-white relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
+                
+                <CardContent className="p-10 sm:p-12 relative z-10">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                        <div className="max-w-xl text-center lg:text-left">
+                            <h3 className="text-2xl sm:text-3xl font-bold mb-3">Scale the Network</h3>
+                            <p className="text-gray-400 text-lg leading-relaxed">
+                                Seamlessly onboard new institutions, configure platform-wide settings, or analyze detailed system logs.
+                            </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                            <Button 
+                                size="lg"
+                                onClick={() => navigate('/main-admin/organizations')}
+                                className="bg-white text-gray-900 hover:bg-white/90 font-bold px-8"
+                            >
+                                Manage Organizations
+                            </Button>
+                            <Button 
+                                size="lg"
+                                variant="outline"
+                                onClick={() => navigate('/main-admin/audit-logs')}
+                                className="border-white/20 hover:bg-white/10 text-white font-semibold backdrop-blur-sm px-8"
+                            >
+                                View System Logs
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button 
-                            onClick={() => navigate('/main-admin/organizations')}
-                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium transition-colors shadow-lg shadow-indigo-900/20"
-                        >
-                            Manage Organizations
-                        </button>
-                        <button 
-                            onClick={() => navigate('/main-admin/audit-logs')}
-                            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-medium transition-colors"
-                        >
-                            View Logs
-                        </button>
-                    </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     )
 }

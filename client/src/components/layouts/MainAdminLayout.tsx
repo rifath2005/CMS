@@ -9,8 +9,9 @@ import {
     LogOut,
     Menu,
     X,
-    Store,
-    ShieldCheck
+    ShieldCheck,
+    Sun,
+    Bell
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -28,49 +29,37 @@ const MainAdminLayout = () => {
     const navigation = [
         { name: 'Dashboard', href: '/main-admin/dashboard', icon: LayoutDashboard },
         { name: 'Organizations', href: '/main-admin/organizations', icon: Building2 },
-        { name: 'Org Admins', href: '/main-admin/org-admins', icon: ShieldCheck },
-        { name: 'Vendors', href: '/main-admin/vendors', icon: Store },
-        { name: 'Users', href: '/main-admin/users', icon: Users },
+        { name: 'Permissions', href: '/main-admin/organisation-permissions', icon: ShieldCheck },
         { name: 'Audit Logs', href: '/main-admin/audit-logs', icon: FileText },
         { name: 'System Settings', href: '/main-admin/system-settings', icon: Settings },
     ]
 
     const isActive = (path: string) => {
         if (location.pathname === path) return true
-        // Active for sub-routes (e.g. org configuration)
         if (path !== '/main-admin/dashboard' && location.pathname.startsWith(path)) return true
         return false
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
             {/* Sidebar - Desktop */}
-            <aside className="hidden md:flex flex-col w-72 bg-gray-900 text-white shadow-2xl z-20 transition-all duration-300">
-                {/* Brand */}
-                <div className="h-16 flex items-center px-6 bg-gray-900 border-b border-gray-800">
-                    <div className="bg-gradient-to-tr from-blue-500 to-purple-600 w-8 h-8 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-purple-500/30">
-                        <span className="font-bold text-white text-lg">C</span>
-                    </div>
-                    <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                        CMS Admin
-                    </span>
-                </div>
-
-                {/* User Info */}
-                <div className="p-4 border-b border-gray-800 bg-gray-800/50">
+            <aside className="hidden md:flex flex-col w-72 bg-white border-r border-gray-200 z-20 transition-all duration-300">
+                {/* Brand Logo Area */}
+                <div className="h-20 flex items-center px-8 mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-md">
-                            {user?.name?.[0] || 'A'}
+                        <div className="flex -space-x-2">
+                             <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white"></div>
+                             <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></div>
+                             <div className="w-4 h-4 rounded-full bg-yellow-400 border-2 border-white"></div>
                         </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin'}</p>
-                            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                        </div>
+                        <h1 className="text-xl font-bold tracking-tight text-[#1E293B]">
+                             <span className="text-purple-700">CMS</span> <span className="text-[#1E293B]">Admin</span>
+                        </h1>
                     </div>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+                {/* Navigation Menu */}
+                <nav className="flex-1 px-4 space-y-1">
                     {navigation.map((item) => {
                         const Icon = item.icon
                         const active = isActive(item.href)
@@ -78,51 +67,78 @@ const MainAdminLayout = () => {
                             <Link
                                 key={item.name}
                                 to={item.href}
-                                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative ${
+                                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
                                     active
-                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-900/20'
-                                        : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-100'
+                                        ? 'bg-[#F1F5FD] text-[#0061FF]'
+                                        : 'text-[#64748B] hover:bg-gray-50 hover:text-gray-900'
                                 }`}
                             >
-                                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`} />
-                                <span className="font-medium">{item.name}</span>
                                 {active && (
-                                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-glow animate-pulse" />
+                                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#0061FF] rounded-r-full shadow-[2px_0_8px_rgba(0,97,255,0.4)]" />
                                 )}
+                                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-[#0061FF]' : 'text-[#94A3B8] group-hover:text-gray-600'}`} />
+                                <span className={`font-semibold text-[15px] ${active ? 'text-[#1E293B]' : 'text-[#475569]'}`}>{item.name}</span>
                             </Link>
                         )
                     })}
                 </nav>
 
-                {/* Logout */}
-                <div className="p-4 border-t border-gray-800">
+                {/* User Info & Footer Section */}
+                <div className="p-6 border-t border-gray-100 bg-gray-50/30">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[#64748B] font-bold border-2 border-white shadow-sm overflow-hidden text-sm">
+                            {user?.name?.[0] || 'A'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#1E293B] truncate">{user?.name || 'Admin'}</p>
+                            <p className="text-[11px] font-medium text-[#94A3B8] truncate">{user?.email}</p>
+                        </div>
+                    </div>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[#64748B] hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-semibold text-sm group"
                     >
-                        <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Sign Out</span>
+                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span>Sign Out</span>
                     </button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-h-screen overflow-hidden bg-gray-50/50">
-                {/* Mobile Header */}
-                <header className="md:hidden bg-gray-900 text-white h-16 flex items-center justify-between px-4 shadow-md z-30">
-                    <span className="font-bold text-lg">CMS Admin</span>
-                    <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="p-2 rounded-lg hover:bg-gray-800"
-                    >
-                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
+            <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                {/* Unified Header */}
+                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10">
+                    <div className="md:hidden flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md">C</div>
+                         <span className="font-bold text-[#1E293B]">CMS Admin</span>
+                    </div>
+
+                    <div className="hidden md:block">
+                        {/* Dynamic breadcrumb or page title could go here */}
+                         <p className="text-sm font-medium text-gray-400">Welcome back, <span className="text-[#1E293B] font-bold">{user?.name?.split(' ')[0]}</span></p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                         <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm relative">
+                             <Bell className="w-5 h-5" />
+                             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <button className="p-2.5 rounded-2xl hover:bg-gray-50 text-[#64748B] transition-all bg-white border border-gray-100 shadow-sm">
+                             <Sun className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="md:hidden p-2 rounded-xl bg-gray-100 text-[#1E293B]"
+                        >
+                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
+                    </div>
                 </header>
 
                 {/* Mobile Navigation Dropdown */}
                 {isMobileMenuOpen && (
-                    <div className="md:hidden absolute top-16 left-0 right-0 bg-gray-900 text-white shadow-2xl z-40 border-t border-gray-800">
-                        <nav className="p-4 space-y-2">
+                    <div className="md:hidden fixed inset-0 top-20 bg-white z-40 animate-in slide-in-from-top duration-300">
+                        <nav className="p-6 space-y-2">
                              {navigation.map((item) => {
                                 const Icon = item.icon
                                 const active = isActive(item.href)
@@ -131,29 +147,31 @@ const MainAdminLayout = () => {
                                         key={item.name}
                                         to={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
-                                            active ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-800'
+                                        className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${
+                                            active ? 'bg-[#F1F5FD] text-[#0061FF] font-bold shadow-sm' : 'text-[#64748B]'
                                         }`}
                                     >
-                                        <Icon className="w-5 h-5" />
-                                        <span>{item.name}</span>
+                                        <Icon className="w-6 h-6" />
+                                        <span className="text-lg">{item.name}</span>
                                     </Link>
                                 )
                             })}
-                             <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-red-400 hover:bg-gray-800"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                <span>Sign Out</span>
-                            </button>
+                             <div className="pt-6 mt-6 border-t border-gray-100">
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl text-red-500 font-bold bg-red-50/50"
+                                >
+                                    <LogOut className="w-6 h-6" />
+                                    <span className="text-lg">Sign Out</span>
+                                </button>
+                             </div>
                         </nav>
                     </div>
                 )}
 
                 {/* Content */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
-                    <div className="max-w-7xl mx-auto animate-fade-in">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-10">
+                    <div className="max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <Outlet />
                     </div>
                 </main>

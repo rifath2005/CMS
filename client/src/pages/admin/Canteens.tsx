@@ -8,6 +8,8 @@ import AddVendorModal, { VendorFormData } from '../../components/AddVendorModal'
 import EditVendorModal, { VendorData, VendorEditData } from '../../components/EditVendorModal'
 import DashboardSkeleton from '../../components/DashboardSkeleton'
 import { cache } from '../../utils/cache'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
 
 const Canteens = () => {
     const { user } = useAuthStore()
@@ -154,13 +156,15 @@ const Canteens = () => {
                             Manage canteens in your institution
                         </p>
                     </div>
-                    <button 
+                    <Button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px] text-sm font-medium whitespace-nowrap"
+                        variant="default"
+                        size="default"
+                        className="min-h-[44px]"
                     >
                         <Plus className="h-4 w-4" />
                         <span>Add Canteen</span>
-                    </button>
+                    </Button>
                 </div>
 
                 {error && <ErrorAlert message={error} onClose={() => setError('')} />}
@@ -169,91 +173,101 @@ const Canteens = () => {
                 {canteens.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         {canteens.map((canteen) => (
-                            <div
+                            <Card
                                 key={canteen.id}
-                                className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-lg transition-shadow"
+                                className="p-3 hover:shadow-lg transition-shadow"
                             >
-                                {/* Canteen Header - Compact Mobile */}
-                                <div className="flex items-center gap-2 mb-2.5">
-                                    <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
-                                        <Building2 className="h-4 w-4 text-blue-600" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="font-semibold text-sm text-gray-900 truncate">
-                                            {canteen.name}
-                                        </h3>
-                                        <p className="text-[10px] text-gray-500 truncate">
-                                            ID: {canteen.vendorId}
-                                        </p>
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                        <StatusChip
-                                            status={canteen.isApproved ? (canteen.isActive ? 'active' : 'inactive') : 'pending'}
-                                            size="sm"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Canteen Details - Compact */}
-                                <div className="space-y-1.5 mb-2.5 text-xs">
-                                    {/* Location */}
-                                    <div className="flex items-start gap-1.5">
-                                        <MapPin className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
-                                        <p className="text-gray-600 break-words line-clamp-1">{canteen.location}</p>
-                                    </div>
-
-                                    {/* Operating Hours */}
-                                    {canteen.operatingHours && (
-                                        <div className="flex items-start gap-1.5">
-                                            <Clock className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
-                                            <p className="text-gray-600">
-                                                {canteen.operatingHours.open} - {canteen.operatingHours.close}
+                                <CardContent className="p-0">
+                                    {/* Canteen Header - Compact Mobile */}
+                                    <div className="flex items-center gap-2 mb-2.5">
+                                        <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
+                                            <Building2 className="h-4 w-4 text-blue-600" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-semibold text-sm text-gray-900 truncate">
+                                                {canteen.name}
+                                            </h3>
+                                            <p className="text-[10px] text-gray-500 truncate">
+                                                ID: {canteen.vendorId}
                                             </p>
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="flex-shrink-0">
+                                            <StatusChip
+                                                status={canteen.isApproved ? (canteen.isActive ? 'active' : 'inactive') : 'pending'}
+                                                size="sm"
+                                            />
+                                        </div>
+                                    </div>
 
-                                {/* Actions - Compact */}
-                                <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-gray-200">
-                                    {!canteen.isApproved ? (
-                                        <button
-                                            onClick={() => handleApprove(canteen.vendorId)}
-                                            disabled={actionLoading === canteen.vendorId}
-                                            className="flex-1 min-w-[90px] flex items-center justify-center gap-1 px-2 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            <CheckCircle className="h-3 w-3" />
-                                            Approve
-                                        </button>
-                                    ) : canteen.isActive ? (
-                                        <>
-                                            <button 
-                                                onClick={() => openEditModal(canteen)}
-                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1 px-2 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50 transition-colors"
-                                            >
-                                                <Edit className="h-3 w-3" />
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeactivate(canteen.vendorId)}
+                                    {/* Canteen Details - Compact */}
+                                    <div className="space-y-1.5 mb-2.5 text-xs">
+                                        {/* Location */}
+                                        <div className="flex items-start gap-1.5">
+                                            <MapPin className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                                            <p className="text-gray-600 break-words line-clamp-1">{canteen.location}</p>
+                                        </div>
+
+                                        {/* Operating Hours */}
+                                        {canteen.operatingHours && (
+                                            <div className="flex items-start gap-1.5">
+                                                <Clock className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                <p className="text-gray-600">
+                                                    {canteen.operatingHours.open} - {canteen.operatingHours.close}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Actions - Compact */}
+                                    <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-gray-200">
+                                        {!canteen.isApproved ? (
+                                            <Button
+                                                onClick={() => handleApprove(canteen.vendorId)}
                                                 disabled={actionLoading === canteen.vendorId}
-                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 text-xs font-medium rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                                variant="default"
+                                                size="sm"
+                                                className="flex-1 min-w-[90px] bg-green-600 hover:bg-green-700"
                                             >
-                                                <XCircle className="h-3 w-3" />
-                                                Deactivate
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleActivate(canteen.vendorId)}
-                                            disabled={actionLoading === canteen.vendorId}
-                                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            <CheckCircle className="h-3 w-3" />
-                                            Activate
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                                                <CheckCircle className="h-3 w-3" />
+                                                Approve
+                                            </Button>
+                                        ) : canteen.isActive ? (
+                                            <>
+                                                <Button
+                                                    onClick={() => openEditModal(canteen)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 min-w-[70px]"
+                                                >
+                                                    <Edit className="h-3 w-3" />
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleDeactivate(canteen.vendorId)}
+                                                    disabled={actionLoading === canteen.vendorId}
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="flex-1 min-w-[70px]"
+                                                >
+                                                    <XCircle className="h-3 w-3" />
+                                                    Deactivate
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                onClick={() => handleActivate(canteen.vendorId)}
+                                                disabled={actionLoading === canteen.vendorId}
+                                                variant="default"
+                                                size="sm"
+                                                className="flex-1"
+                                            >
+                                                <CheckCircle className="h-3 w-3" />
+                                                Activate
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         ))}
                     </div>
                 ) : (
@@ -263,13 +277,15 @@ const Canteens = () => {
                         <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                             Get started by adding your first canteen
                         </p>
-                        <button 
+                        <Button
                             onClick={() => setIsAddModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm min-h-[44px]"
+                            variant="default"
+                            size="lg"
+                            className="min-h-[44px]"
                         >
                             <Plus className="h-4 w-4" />
                             Add Canteen
-                        </button>
+                        </Button>
                     </div>
                 )}
 

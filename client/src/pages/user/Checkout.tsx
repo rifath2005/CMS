@@ -6,6 +6,9 @@ import { useWalletStore } from '../../store/walletStore'
 import { walletService } from '../../services/walletService'
 import ErrorAlert from '../../components/ErrorAlert'
 import { Wallet, AlertCircle } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { cn } from '../../lib/utils'
 
 const Checkout = () => {
     const navigate = useNavigate()
@@ -122,129 +125,141 @@ const Checkout = () => {
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* User Details */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-xl font-bold mb-4">Delivery Details</h2>
-                            <div className="space-y-2 text-gray-700">
-                                <p><span className="font-medium">Name:</span> {user?.name}</p>
-                                <p><span className="font-medium">Email:</span> {user?.email}</p>
-                            </div>
-                        </div>
+                        <Card>
+                            <CardContent className="p-6">
+                                <h2 className="text-xl font-bold mb-4">Delivery Details</h2>
+                                <div className="space-y-2 text-muted-foreground">
+                                    <p><span className="font-medium text-foreground">Name:</span> {user?.name}</p>
+                                    <p><span className="font-medium text-foreground">Email:</span> {user?.email}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* Order Items */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-xl font-bold mb-4">Order Items</h2>
-                            <div className="space-y-3">
-                                {items.map((item) => (
-                                    <div key={item.productId} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                                        <div className="flex items-center space-x-3">
-                                            <img
-                                                src={item.imageUrl || '/placeholder-product.png'}
-                                                alt={item.productName}
-                                                className="w-12 h-12 object-cover rounded"
-                                                loading="lazy"
-                                                onError={(e) => {
-                                                    e.currentTarget.src = '/placeholder-product.png'
-                                                }}
-                                            />
-                                            <div>
-                                                <p className="font-medium text-gray-900">{item.productName}</p>
-                                                <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        <Card>
+                            <CardContent className="p-6">
+                                <h2 className="text-xl font-bold mb-4">Order Items</h2>
+                                <div className="space-y-3">
+                                    {items.map((item) => (
+                                        <div key={item.productId} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                                            <div className="flex items-center space-x-3">
+                                                <img
+                                                    src={item.imageUrl || '/placeholder-product.png'}
+                                                    alt={item.productName}
+                                                    className="w-12 h-12 object-cover rounded"
+                                                    loading="lazy"
+                                                    onError={(e) => {
+                                                        e.currentTarget.src = '/placeholder-product.png'
+                                                    }}
+                                                />
+                                                <div>
+                                                    <p className="font-medium">{item.productName}</p>
+                                                    <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                                                </div>
                                             </div>
+                                            <span className="font-semibold">
+                                                ₹{(item.price * item.quantity).toFixed(2)}
+                                            </span>
                                         </div>
-                                        <span className="font-semibold text-gray-900">
-                                            ₹{(item.price * item.quantity).toFixed(2)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* Wallet Payment Section */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-xl font-bold mb-4">Payment Method</h2>
+                        <Card>
+                            <CardContent className="p-6">
+                                <h2 className="text-xl font-bold mb-4">Payment Method</h2>
 
-                            {/* Wallet Balance Display */}
-                            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 sm:p-6 text-white mb-4">
-                                <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
-                                    <Wallet className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-                                    <span className="font-semibold text-sm sm:text-base">Wallet Balance</span>
-                                    <span className="text-xl sm:text-2xl font-bold">₹{walletBalance.toFixed(2)}</span>
-                                </div>
-                                <p className="text-xs sm:text-sm opacity-90 text-center">
-                                    Instant payment from your wallet
-                                </p>
-                            </div>
-
-                            {/* Insufficient Balance Warning */}
-                            {!hasSufficientBalance && (
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-start">
-                                    <AlertCircle className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-red-900">Insufficient Balance</p>
-                                        <p className="text-sm text-red-700 mt-1">
-                                            You need ₹{(totalAmount - walletBalance).toFixed(2)} more to complete this order.
-                                        </p>
+                                {/* Wallet Balance Display */}
+                                <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 sm:p-6 text-white mb-4">
+                                    <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                                        <Wallet className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                                        <span className="font-semibold text-sm sm:text-base">Wallet Balance</span>
+                                        <span className="text-xl sm:text-2xl font-bold">₹{walletBalance.toFixed(2)}</span>
                                     </div>
+                                    <p className="text-xs sm:text-sm opacity-90 text-center">
+                                        Instant payment from your wallet
+                                    </p>
                                 </div>
-                            )}
 
-                            <button
-                                onClick={handleWalletPayment}
-                                disabled={isProcessing || !hasSufficientBalance}
-                                className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[44px]"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Wallet className="w-5 h-5 mr-2" />
-                                        Pay ₹{totalAmount.toFixed(2)} from Wallet
-                                    </>
+                                {/* Insufficient Balance Warning */}
+                                {!hasSufficientBalance && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-start">
+                                        <AlertCircle className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm font-medium text-red-900">Insufficient Balance</p>
+                                            <p className="text-sm text-red-700 mt-1">
+                                                You need ₹{(totalAmount - walletBalance).toFixed(2)} more to complete this order.
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
-                            </button>
 
-                            <button
-                                onClick={() => navigate('/cart')}
-                                disabled={isProcessing}
-                                className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-                            >
-                                Back to Cart
-                            </button>
-                        </div>
+                                <Button
+                                    onClick={handleWalletPayment}
+                                    disabled={isProcessing || !hasSufficientBalance}
+                                    variant="default"
+                                    size="lg"
+                                    className="w-full"
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Wallet className="w-5 h-5 mr-2" />
+                                            Pay ₹{totalAmount.toFixed(2)} from Wallet
+                                        </>
+                                    )}
+                                </Button>
+
+                                <Button
+                                    onClick={() => navigate('/cart')}
+                                    disabled={isProcessing}
+                                    variant="outline"
+                                    size="lg"
+                                    className="w-full mt-3"
+                                >
+                                    Back to Cart
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Sticky Order Summary */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-lg shadow-sm p-6 sticky top-20">
-                            <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+                        <Card className="sticky top-20">
+                            <CardContent className="p-6">
+                                <h2 className="text-xl font-bold mb-4">Order Summary</h2>
 
-                            <div className="space-y-3 mb-6">
-                                <div className="flex justify-between text-gray-600">
-                                    <span>Subtotal</span>
-                                    <span>₹{subtotal.toFixed(2)}</span>
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Subtotal</span>
+                                        <span>₹{subtotal.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Taxes (5%)</span>
+                                        <span>₹{taxes.toFixed(2)}</span>
+                                    </div>
+                                    <div className="border-t pt-3 flex justify-between text-lg font-bold">
+                                        <span>Total</span>
+                                        <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-gray-600">
-                                    <span>Taxes (5%)</span>
-                                    <span>₹{taxes.toFixed(2)}</span>
-                                </div>
-                                <div className="border-t pt-3 flex justify-between text-lg font-bold">
-                                    <span>Total</span>
-                                    <span className="text-primary-600">₹{totalAmount.toFixed(2)}</span>
-                                </div>
-                            </div>
 
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <p className="text-sm text-gray-600 mb-2">Payment Details:</p>
-                                <ul className="text-sm text-gray-700 space-y-1">
-                                    <li>• Instant wallet payment</li>
-                                    <li>• Secure transaction</li>
-                                    <li>• Digital bill generation</li>
-                                </ul>
-                            </div>
-                        </div>
+                                <div className="bg-muted rounded-lg p-4">
+                                    <p className="text-sm text-muted-foreground mb-2">Payment Details:</p>
+                                    <ul className="text-sm space-y-1">
+                                        <li>• Instant wallet payment</li>
+                                        <li>• Secure transaction</li>
+                                        <li>• Digital bill generation</li>
+                                    </ul>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>

@@ -114,45 +114,5 @@ export const createSuperAdminRouter = (pool: Pool): Router => {
       });
     }
   });
-  /**
-   * GET /api/v1/super-admin/users
-   * Get all users across the platform
-   */
-  router.get('/users', authenticate, requireMainAdmin, async (req: Request, res: Response) => {
-    try {
-      const queryStr = `
-        SELECT 
-          u.id, 
-          u.name, 
-          u.email, 
-          u.role, 
-          u.status, 
-          u.institution_id as "institutionId",
-          i.name as "institutionName",
-          u.wallet_balance as "walletBalance",
-          u.last_login as "lastActive",
-          u.created_at as "createdAt"
-        FROM users u
-        LEFT JOIN institutions i ON u.institution_id = i.id
-        WHERE u.role != 'MAIN_ADMIN'
-        ORDER BY u.created_at DESC
-        LIMIT 100
-      `;
-      const result = await pool.query(queryStr);
-      res.json({
-        success: true,
-        data: result.rows,
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: error.message,
-        },
-      });
-    }
-  });
-
   return router;
 };

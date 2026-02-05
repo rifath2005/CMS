@@ -6,6 +6,10 @@ import { useAuthStore } from '../../store/authStore'
 import { Product } from '../../types'
 import ErrorAlert from '../../components/ErrorAlert'
 import { ArrowLeft, Store } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Card, CardContent } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../lib/utils'
 
 const Canteens = () => {
     const [canteens, setCanteens] = useState<Canteen[]>([])
@@ -154,13 +158,15 @@ const Canteens = () => {
                 <div className="pb-8">
                     {/* Header with Back Button */}
                     <div className="mb-6">
-                    <button
+                    <Button
                         onClick={handleBackToCanteens}
-                        className="flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors duration-base"
+                        variant="ghost"
+                        size="sm"
+                        className="mb-4"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
                         Back to Canteens
-                    </button>
+                    </Button>
                     <h1 className="text-3xl font-bold mb-2">{selectedCanteen.name}</h1>
                     <p className="text-gray-600">{selectedCanteen.location}</p>
                 </div>
@@ -181,18 +187,22 @@ const Canteens = () => {
                                 Adding items from <span className="font-semibold">{selectedCanteen?.name}</span> will clear your current cart.
                             </p>
                             <div className="flex space-x-3">
-                                <button
+                                <Button
                                     onClick={handleCancelCanteenChange}
-                                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                    variant="outline"
+                                    size="default"
+                                    className="flex-1"
                                 >
                                     Cancel
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleConfirmCanteenChange}
-                                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                                    variant="destructive"
+                                    size="default"
+                                    className="flex-1"
                                 >
                                     Clear Cart & Continue
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -274,16 +284,14 @@ const Canteens = () => {
                                         )}
 
                                         {!outOfStock && product.stockQuantity < 10 && (
-                                            <div className="absolute top-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                            <Badge variant="warning" className="absolute top-2 right-2">
                                                 Low Stock
-                                            </div>
+                                            </Badge>
                                         )}
 
-                                        <div className="absolute top-2 left-2">
-                                            <span className="bg-white bg-opacity-90 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
-                                                {product.category}
-                                            </span>
-                                        </div>
+                                        <Badge variant="secondary" className="absolute top-2 left-2 bg-white/90">
+                                            {product.category}
+                                        </Badge>
                                     </div>
 
                                     <div className="p-4 flex flex-col flex-1">
@@ -303,15 +311,16 @@ const Canteens = () => {
                                             </span>
                                         </div>
 
-                                        <button
+                                        <Button
                                             onClick={() => handleAddToCart(product)}
                                             disabled={outOfStock}
-                                            className={`w-full h-11 px-4 rounded-lg font-semibold mt-auto ${outOfStock
-                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                : isInCart(product.id)
-                                                    ? 'bg-green-500 text-white hover:bg-green-600'
-                                                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                                                }`}
+                                            variant={outOfStock ? 'secondary' : isInCart(product.id) ? 'default' : 'default'}
+                                            size="default"
+                                            className={cn(
+                                                "w-full mt-auto",
+                                                outOfStock && "opacity-50 cursor-not-allowed",
+                                                isInCart(product.id) && !outOfStock && "bg-semantic-success hover:bg-semantic-success/90"
+                                            )}
                                             aria-label={outOfStock ? 'Product out of stock' : isInCart(product.id) ? `${product.name} in cart` : `Add ${product.name} to cart`}
                                         >
                                             {outOfStock
@@ -319,7 +328,7 @@ const Canteens = () => {
                                                 : isInCart(product.id)
                                                     ? `In Cart (${getCartQuantity(product.id)})`
                                                     : 'Add to Cart'}
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )
@@ -412,12 +421,14 @@ const Canteens = () => {
                                         </div>
                                     )}
 
-                                    <button
-                                        className="w-full h-11 px-4 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600 mt-auto"
+                                    <Button
+                                        variant="default"
+                                        size="default"
+                                        className="w-full mt-auto"
                                         aria-label={`View products from ${canteen.name}`}
                                     >
                                         View Products
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         ))}
