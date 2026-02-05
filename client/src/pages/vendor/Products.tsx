@@ -5,6 +5,7 @@ import api from '../../services/api'
 import { PencilIcon, TrashIcon, PlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import * as XLSX from 'xlsx'
 import { generateProductSuggestions } from '../../utils/productTemplates'
+import { cache } from '../../utils/cache'
 
 interface ProductFormData {
     name: string
@@ -20,6 +21,8 @@ const VendorProducts = () => {
     const [products, setProducts] = useState<Product[]>([])
     const [totalProducts, setTotalProducts] = useState(0)
     const [loading, setLoading] = useState(true)
+    const [initialLoad, setInitialLoad] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
     const [importing, setImporting] = useState(false)

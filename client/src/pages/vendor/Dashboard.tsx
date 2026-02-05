@@ -308,8 +308,6 @@ const VendorDashboard = () => {
                             <div className="flex items-baseline space-x-2">
                                 <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
                                 <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
-                                <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
-                                <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
                             </div>
                         </div>
 
@@ -323,15 +321,11 @@ const VendorDashboard = () => {
                             <div className="flex items-baseline space-x-2">
                                 <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
                                 <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
-                                <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
-                                <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
                             </div>
                         </div>
 
                         <div className="bg-blue-600 rounded-lg shadow p-3 sm:p-4 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition min-w-0" onClick={() => navigate('/vendor/qr-scanner')}>
                             <div className="text-center text-white">
-                                <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
-                                <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
                                 <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
                                 <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
                             </div>
@@ -463,8 +457,6 @@ const VendorDashboard = () => {
                             <div className="flex items-center space-x-2">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
                                     <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                                    <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="font-bold text-sm sm:text-base truncate">Batch View</h2>
@@ -473,7 +465,6 @@ const VendorDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
                         <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
                             {Object.entries(groupedItems).map(([category, items]) => (
                                 <div key={category} className="mb-4 sm:mb-6">
@@ -513,10 +504,7 @@ const VendorDashboard = () => {
                                 <div>
                                     <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
                                     <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
-                                    <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
-                                    <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
                                 </div>
-                                <div className="w-full sm:w-64">
                                 <div className="w-full sm:w-64">
                                     <input
                                         type="text"
