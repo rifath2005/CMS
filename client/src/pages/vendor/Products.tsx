@@ -18,6 +18,7 @@ interface ProductFormData {
 const VendorProducts = () => {
     const { user } = useAuthStore()
     const [products, setProducts] = useState<Product[]>([])
+    const [totalProducts, setTotalProducts] = useState(0)
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
@@ -53,28 +54,93 @@ const VendorProducts = () => {
 
     const fetchVendorId = async () => {
         try {
+            console.log('Fetching vendor ID for user:', user?.id)
             // Get the canteen for this vendor user to find their vendor_id
             const response = await api.get(`/canteens/user/${user?.id}`)
+            console.log('Vendor ID response:', response.data)
             if (response.data.data) {
+                console.log('Setting vendor ID:', response.data.data.vendorId)
                 setVendorId(response.data.data.vendorId)
+                setError(null)
+            } else {
+                console.error('No vendor data found in response')
+                setError('No vendor found for this user. Please contact admin.')
+                setLoading(false)
+                setInitialLoad(false)
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch vendor ID:', error)
+            setError(error.response?.data?.error?.message || 'Failed to load vendor information')
+            setLoading(false)
+            setInitialLoad(false)
         }
     }
 
     const fetchProducts = async () => {
-        if (!vendorId) return
+        if (!vendorId) {
+            console.log('No vendor ID, skipping product fetch')
+            return
+        }
 
         try {
-            setLoading(true)
-            const response = await api.get(`/products/vendor/${vendorId}`)
-            setProducts(response.data.data || [])
+            console.log('Fetching products for vendor:', vendorId)
+            // Check cache first for INSTANT loading
+            const cacheKey = `vendor-products-${vendorId}`
+            const cachedData = cache.get<{ products: Product[], total: number }>(cacheKey)
+
+            if (cachedData) {
+                console.log('Using cached products:', cachedData.products.length)
+                // INSTANT: Show cached data immediately
+                setProducts(cachedData.products)
+                setTotalProducts(cachedData.total)
+                setLoading(false)
+                setInitialLoad(false)
+                // Load fresh data in background silently
+                loadFreshProducts(cacheKey, true)
+                return
+            }
+
+            // First load - show loading
+            if (initialLoad) {
+                console.log('First load, showing skeleton')
+                setLoading(true)
+            }
+            await loadFreshProducts(cacheKey, false)
         } catch (error) {
             console.error('Failed to fetch products:', error)
             setProducts([])
-        } finally {
+            setTotalProducts(0)
             setLoading(false)
+            setInitialLoad(false)
+        }
+    }
+
+    const loadFreshProducts = async (cacheKey: string, silent: boolean = false) => {
+        if (!vendorId) return
+
+        try {
+            console.log('Loading fresh products from API...')
+            // Fetch with limit for faster initial load
+            const response = await api.get(`/products/vendor/${vendorId}?limit=100`)
+            console.log('Products API response:', response.data)
+            const productsData = response.data.data || []
+            const total = response.data.total || productsData.length
+            
+            console.log(`Loaded ${productsData.length} products`)
+            setProducts(productsData)
+            setTotalProducts(total)
+            setError(null)
+            
+            // Cache for 2 minutes (products don't change frequently)
+            cache.set(cacheKey, { products: productsData, total }, 120000)
+        } catch (error: any) {
+            console.error('Error loading fresh products:', error)
+            setError(error.response?.data?.error?.message || 'Failed to load products')
+        } finally {
+            if (!silent) {
+                setLoading(false)
+                setInitialLoad(false)
+            }
         }
     }
 
@@ -83,20 +149,30 @@ const VendorProducts = () => {
 
         try {
             if (editingProduct) {
+                // Optimistic update
+                setProducts(prev => prev.map(p => 
+                    p.id === editingProduct.id ? { ...p, ...formData } : p
+                ))
+                
                 await api.put(`/products/${editingProduct.id}`, formData)
                 alert('Product updated!')
             } else {
-                // Don't send vendorId - it will come from JWT token
                 await api.post('/products', formData)
                 alert('Product created!')
             }
             
+            // Invalidate cache and refresh
+            cache.invalidatePattern('vendor-products')
             fetchProducts()
             handleCloseModal()
         } catch (error: any) {
             const errorMsg = error.response?.data?.error?.message || error.message
             alert(`Error: ${errorMsg}`)
             console.error('Error:', error.response?.data || error)
+            // Revert optimistic update on error
+            if (editingProduct) {
+                fetchProducts()
+            }
         }
     }
 
@@ -104,10 +180,17 @@ const VendorProducts = () => {
         if (!confirm('Delete this product?')) return
 
         try {
+            // Optimistic update
+            setProducts(prev => prev.filter(p => p.id !== productId))
+            
             await api.delete(`/products/${productId}`)
-            fetchProducts()
+            
+            // Invalidate cache
+            cache.invalidatePattern('vendor-products')
         } catch (error) {
             alert('Failed to delete product')
+            // Revert on error
+            fetchProducts()
         }
     }
 
@@ -221,10 +304,19 @@ const VendorProducts = () => {
 
     const updateStock = async (productId: string, quantity: number) => {
         try {
+            // Optimistic update
+            setProducts(prev => prev.map(p => 
+                p.id === productId ? { ...p, stockQuantity: quantity } : p
+            ))
+            
             await api.patch(`/products/${productId}/stock`, { quantity })
-            fetchProducts()
+            
+            // Invalidate cache
+            cache.invalidatePattern('vendor-products')
         } catch (error) {
             alert('Failed to update stock')
+            // Revert on error
+            fetchProducts()
         }
     }
 
@@ -292,10 +384,75 @@ const VendorProducts = () => {
         }
     }
 
-    if (loading) {
+    if (loading && initialLoad) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="p-3 sm:p-4 lg:p-6">
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="w-full sm:w-auto">
+                        <div className="h-8 sm:h-10 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="h-11 bg-gray-200 rounded flex-1 sm:w-40 animate-pulse"></div>
+                        <div className="h-11 bg-gray-200 rounded flex-1 sm:w-32 animate-pulse"></div>
+                    </div>
+                </div>
+
+                {/* Skeleton Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                            <div className="w-full h-40 sm:h-48 bg-gray-200"></div>
+                            <div className="p-3 sm:p-4">
+                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+                                <div className="flex justify-between mb-3">
+                                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                                </div>
+                                <div className="flex gap-2 mb-3">
+                                    <div className="h-10 bg-gray-200 rounded flex-1"></div>
+                                    <div className="h-10 bg-gray-200 rounded flex-1"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-11 bg-gray-200 rounded flex-1"></div>
+                                    <div className="h-11 bg-gray-200 rounded flex-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    // Show error if products failed to load
+    if (error) {
+        return (
+            <div className="p-3 sm:p-4 lg:p-6">
+                <div className="mb-4 sm:mb-6">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Product Management</h1>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage your menu items</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <div className="text-red-600 text-4xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-bold text-red-900 mb-2">Failed to Load Products</h3>
+                    <p className="text-red-700 mb-4">{error}</p>
+                    <button
+                        onClick={() => {
+                            setError(null)
+                            setLoading(true)
+                            setInitialLoad(true)
+                            if (user?.id) {
+                                fetchVendorId()
+                            }
+                        }}
+                        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium min-h-[44px]"
+                    >
+                        Retry
+                    </button>
+                </div>
             </div>
         )
     }
@@ -705,20 +862,20 @@ const VendorProducts = () => {
                                 </div>
                             )}
 
-                            <div className="flex space-x-3">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                 <button
                                     onClick={() => {
                                         setShowImportModal(false)
                                         setImportResult(null)
                                     }}
-                                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+                                    className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium min-h-[44px] text-sm sm:text-base"
                                 >
                                     Close
                                 </button>
                                 {importResult && (
                                     <button
                                         onClick={() => setImportResult(null)}
-                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                        className="flex-1 px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium min-h-[44px] text-sm sm:text-base"
                                     >
                                         Import More
                                     </button>

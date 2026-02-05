@@ -158,6 +158,7 @@ export class VendorOrderService {
 
   /**
    * Get order statistics for vendor
+   * OPTIMIZED: Single query instead of multiple queries
    */
   async getVendorStats(vendorId: string): Promise<{
     activeOrdersCount: number;
@@ -166,44 +167,61 @@ export class VendorOrderService {
     completedToday: number;
     avgWaitTime: number;
   }> {
-    const activeOrders = await this.getActiveOrders(vendorId);
-    const combinedItems = await this.getCombinedItemList(vendorId);
-
-    const totalItemsToPrep = combinedItems.reduce((sum, item) => sum + item.totalQuantity, 0);
-
-    const oldestOrderTime = activeOrders.length > 0 
-      ? activeOrders[0].createdAt 
-      : undefined;
-
-    // Get completed orders today
-    const completedTodayQuery = `
-      SELECT COUNT(*) as count
-      FROM orders
-      WHERE vendor_id = $1
-        AND status = 'DELIVERED'
-        AND DATE(created_at) = CURRENT_DATE
+    // Single optimized query to get all stats at once
+    const query = `
+      WITH active_orders AS (
+        SELECT 
+          COUNT(*) as active_count,
+          MIN(created_at) as oldest_order
+        FROM orders
+        WHERE vendor_id = $1 
+          AND status NOT IN ('DELIVERED', 'EXPIRED')
+      ),
+      items_to_prep AS (
+        SELECT 
+          COALESCE(SUM(oi.quantity), 0) as total_items
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.vendor_id = $1 
+          AND o.status NOT IN ('DELIVERED', 'EXPIRED')
+      ),
+      today_stats AS (
+        SELECT 
+          COUNT(*) as completed_today,
+          COALESCE(AVG(EXTRACT(EPOCH FROM (delivered_at - created_at)) / 60), 0) as avg_wait_minutes
+        FROM orders
+        WHERE vendor_id = $1
+          AND status = 'DELIVERED'
+          AND delivered_at IS NOT NULL
+          AND DATE(created_at) = CURRENT_DATE
+      )
+      SELECT 
+        COALESCE(ao.active_count, 0) as active_orders_count,
+        COALESCE(itp.total_items, 0) as total_items_to_prep,
+        ao.oldest_order as oldest_order_time,
+        COALESCE(ts.completed_today, 0) as completed_today,
+        COALESCE(ROUND(ts.avg_wait_minutes), 0) as avg_wait_time
+      FROM active_orders ao, items_to_prep itp, today_stats ts
     `;
-    const completedResult = await this.pool.query(completedTodayQuery, [vendorId]);
-    const completedToday = parseInt(completedResult.rows[0]?.count || '0');
 
-    // Calculate average wait time (time from order creation to delivery) for today
-    const avgWaitTimeQuery = `
-      SELECT AVG(EXTRACT(EPOCH FROM (delivered_at - created_at)) / 60) as avg_minutes
-      FROM orders
-      WHERE vendor_id = $1
-        AND status = 'DELIVERED'
-        AND delivered_at IS NOT NULL
-        AND DATE(created_at) = CURRENT_DATE
-    `;
-    const avgWaitResult = await this.pool.query(avgWaitTimeQuery, [vendorId]);
-    const avgWaitTime = Math.round(parseFloat(avgWaitResult.rows[0]?.avg_minutes || '0'));
+    const result = await this.pool.query(query, [vendorId]);
+    
+    if (result.rows.length === 0) {
+      return {
+        activeOrdersCount: 0,
+        totalItemsToPrep: 0,
+        completedToday: 0,
+        avgWaitTime: 0
+      };
+    }
 
+    const row = result.rows[0];
     return {
-      activeOrdersCount: activeOrders.length,
-      totalItemsToPrep,
-      oldestOrderTime,
-      completedToday,
-      avgWaitTime
+      activeOrdersCount: parseInt(row.active_orders_count) || 0,
+      totalItemsToPrep: parseInt(row.total_items_to_prep) || 0,
+      oldestOrderTime: row.oldest_order_time || undefined,
+      completedToday: parseInt(row.completed_today) || 0,
+      avgWaitTime: parseInt(row.avg_wait_time) || 0
     };
   }
 }

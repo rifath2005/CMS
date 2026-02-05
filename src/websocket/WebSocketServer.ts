@@ -9,6 +9,7 @@ export interface AuthenticatedSocket extends Socket {
   role?: UserRole;
   institutionId?: string;
   canteenId?: string;
+  vendorId?: string;
 }
 
 export class WebSocketServer {

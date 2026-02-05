@@ -194,13 +194,25 @@ export const createProductRouter = (pool: Pool): Router => {
     try {
       const vendorId = req.params.vendorId;
       const availableOnly = req.query.availableOnly === 'true';
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
 
-      const products = await productService.getProductsByVendor(vendorId, availableOnly);
+      // Get products and total count in parallel for faster response
+      const [products, totalCount] = await Promise.all([
+        productService.getProductsByVendor(vendorId, availableOnly, limit, offset),
+        productService.getProductsCount(vendorId, availableOnly)
+      ]);
 
       res.json({
         success: true,
         data: products,
         count: products.length,
+        total: totalCount,
+        pagination: limit ? {
+          limit,
+          offset: offset || 0,
+          hasMore: (offset || 0) + products.length < totalCount
+        } : undefined
       });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({

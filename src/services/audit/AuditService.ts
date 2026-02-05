@@ -27,12 +27,12 @@ export enum AuditEventType {
 export interface AuditLog {
   id: number;
   event_type: AuditEventType;
-  user_id?: number;
+  user_id?: string;
   user_email?: string;
   ip_address?: string;
   user_agent?: string;
   resource_type?: string;
-  resource_id?: number;
+  resource_id?: string;
   details?: any;
   success: boolean;
   created_at: Date;
@@ -46,12 +46,12 @@ export class AuditService {
    */
   async logEvent(data: {
     eventType: AuditEventType;
-    userId?: number;
+    userId?: string;
     userEmail?: string;
     ipAddress?: string;
     userAgent?: string;
     resourceType?: string;
-    resourceId?: number;
+    resourceId?: string;
     details?: any;
     success?: boolean;
   }): Promise<void> {
@@ -103,7 +103,7 @@ export class AuditService {
     ipAddress?: string;
     userAgent?: string;
     success: boolean;
-    userId?: number;
+    userId?: string;
     reason?: string;
   }): Promise<void> {
     await this.logEvent({
@@ -121,7 +121,7 @@ export class AuditService {
    * Log user registration
    */
   async logRegistration(data: {
-    userId: number;
+    userId: string;
     email: string;
     role: string;
     ipAddress?: string;
@@ -142,7 +142,7 @@ export class AuditService {
    * Log logout
    */
   async logLogout(data: {
-    userId: number;
+    userId: string;
     email: string;
     ipAddress?: string;
     userAgent?: string;
@@ -168,7 +168,7 @@ export class AuditService {
   }): Promise<void> {
     await this.logEvent({
       eventType: AuditEventType.PASSWORD_RESET,
-      userId: parseInt(data.userId),
+      userId: data.userId,
       userEmail: data.email,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
@@ -180,7 +180,7 @@ export class AuditService {
    * Log unauthorized access attempt
    */
   async logUnauthorizedAccess(data: {
-    userId?: number;
+    userId?: string;
     email?: string;
     ipAddress?: string;
     userAgent?: string;
@@ -204,7 +204,7 @@ export class AuditService {
   /**
    * Get audit logs for a user
    */
-  async getUserAuditLogs(userId: number, limit: number = 50): Promise<AuditLog[]> {
+  async getUserAuditLogs(userId: string, limit: number = 50): Promise<AuditLog[]> {
     const query = `
       SELECT * FROM audit_logs
       WHERE user_id = $1
@@ -280,7 +280,7 @@ export class AuditService {
   /**
    * Get security summary for a user
    */
-  async getUserSecuritySummary(userId: number): Promise<{
+  async getUserSecuritySummary(userId: string): Promise<{
     totalLogins: number;
     failedLogins: number;
     lastLogin?: Date;

@@ -7,6 +7,7 @@ import { QrCodeIcon, BellIcon, ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon
 import { useNavigate } from 'react-router-dom'
 import VendorDashboardSkeleton from '../../components/VendorDashboardSkeleton'
 import { LiveCountdown } from '../../components/LiveCountdown'
+import { cache } from '../../utils/cache'
 
 interface VendorStats {
     activeOrdersCount: number
@@ -80,26 +81,60 @@ const VendorDashboard = () => {
         if (!vendorId) return
 
         try {
+            // Check cache first for instant loading
+            const cacheKey = `vendor-dashboard-${vendorId}`
+            const cachedData = cache.get<{
+                orders: Order[]
+                stats: VendorStats
+                items: CombinedItem[]
+            }>(cacheKey)
+
+            if (cachedData) {
+                setActiveOrders(cachedData.orders)
+                setStats(cachedData.stats)
+                setCombinedItems(cachedData.items)
+                setLoading(false)
+                // Load fresh data in background
+                loadFreshDashboardData(cacheKey)
+                return
+            }
+
             setLoading(true)
+            await loadFreshDashboardData(cacheKey)
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error)
+            setLoading(false)
+        }
+    }
+
+    const loadFreshDashboardData = async (cacheKey: string) => {
+        if (!vendorId) return
+
+        try {
+            // Parallel fetching for faster response
             const [ordersRes, statsRes, itemsRes] = await Promise.all([
                 api.get(`/vendor/${vendorId}/active-orders`),
                 api.get(`/vendor/${vendorId}/stats`),
                 api.get(`/vendor/${vendorId}/combined-items`)
             ])
 
-            setActiveOrders(ordersRes.data.data)
-            setCombinedItems(itemsRes.data.data)
-            
-            // Use real stats from backend
+            const orders = ordersRes.data.data
+            const items = itemsRes.data.data
             const realStats = statsRes.data.data
-            setStats({
+
+            const stats = {
                 activeOrdersCount: realStats.activeOrdersCount,
                 completedToday: realStats.completedToday,
                 avgWaitTime: realStats.avgWaitTime,
-                waitTimeTrend: 0 // Can be calculated later if needed
-            })
-        } catch (error) {
-            console.error('Failed to fetch dashboard data:', error)
+                waitTimeTrend: 0
+            }
+
+            setActiveOrders(orders)
+            setCombinedItems(items)
+            setStats(stats)
+
+            // Cache for 15 seconds (vendor data changes frequently)
+            cache.set(cacheKey, { orders, stats, items }, 15000)
         } finally {
             setLoading(false)
         }
@@ -109,8 +144,21 @@ const VendorDashboard = () => {
         if (!vendorId) return
 
         try {
+            // Check cache first
+            const cacheKey = `vendor-history-${vendorId}`
+            const cachedHistory = cache.get<Order[]>(cacheKey)
+
+            if (cachedHistory) {
+                setOrderHistory(cachedHistory)
+                return
+            }
+
             const response = await api.get(`/vendor/${vendorId}/order-history`)
-            setOrderHistory(response.data.data)
+            const history = response.data.data
+            setOrderHistory(history)
+            
+            // Cache for 60 seconds (history doesn't change as frequently)
+            cache.set(cacheKey, history, 60000)
         } catch (error) {
             console.error('Failed to fetch order history:', error)
         }
@@ -154,10 +202,20 @@ const VendorDashboard = () => {
 
     const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
         try {
+            // Optimistic update for instant UI feedback
+            setActiveOrders(prev => prev.map(order =>
+                order.id === orderId ? { ...order, status } : order
+            ))
+
             await api.patch(`/orders/${orderId}/status`, { status })
+            
+            // Invalidate cache and refresh
+            cache.invalidatePattern('vendor-dashboard')
             fetchDashboardData()
         } catch (error) {
             console.error('Failed to update order status:', error)
+            // Revert on error
+            fetchDashboardData()
         }
     }
 
@@ -250,6 +308,8 @@ const VendorDashboard = () => {
                             <div className="flex items-baseline space-x-2">
                                 <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
                                 <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
+                                <p className="text-2xl sm:text-3xl font-bold">{stats.activeOrdersCount}</p>
+                                <span className="text-xs sm:text-sm text-green-600 font-medium">+5</span>
                             </div>
                         </div>
 
@@ -263,6 +323,8 @@ const VendorDashboard = () => {
                             <div className="flex items-baseline space-x-2">
                                 <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
                                 <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
+                                <p className="text-2xl sm:text-3xl font-bold">{stats.avgWaitTime}m</p>
+                                <span className="text-xs sm:text-sm text-green-600 font-medium">{stats.waitTimeTrend}m</span>
                             </div>
                         </div>
 
@@ -270,12 +332,14 @@ const VendorDashboard = () => {
                             <div className="text-center text-white">
                                 <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
                                 <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
+                                <QrCodeIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
+                                <p className="text-xs sm:text-sm font-medium">Open QR Scanner</p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Live Orders View */}
+                {/* Live Orders View - Fully Responsive */}
                 {currentView === 'live' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-full">
                         {/* Live Orders Feed */}
@@ -399,6 +463,8 @@ const VendorDashboard = () => {
                             <div className="flex items-center space-x-2">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
                                     <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
+                                <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                                    <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="font-bold text-sm sm:text-base truncate">Batch View</h2>
@@ -407,6 +473,7 @@ const VendorDashboard = () => {
                             </div>
                         </div>
 
+                        <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
                         <div className="p-3 sm:p-4 lg:p-6 max-h-[600px] overflow-y-auto">
                             {Object.entries(groupedItems).map(([category, items]) => (
                                 <div key={category} className="mb-4 sm:mb-6">
@@ -438,7 +505,7 @@ const VendorDashboard = () => {
                 </div>
                 )}
 
-                {/* Order History View */}
+                {/* Order History View - Fully Responsive */}
                 {currentView === 'history' && (
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                         <div className="border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
@@ -446,7 +513,10 @@ const VendorDashboard = () => {
                                 <div>
                                     <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
                                     <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
+                                    <h2 className="text-lg sm:text-xl font-bold">Order History</h2>
+                                    <p className="text-xs sm:text-sm text-gray-600">Completed and delivered orders</p>
                                 </div>
+                                <div className="w-full sm:w-64">
                                 <div className="w-full sm:w-64">
                                     <input
                                         type="text"

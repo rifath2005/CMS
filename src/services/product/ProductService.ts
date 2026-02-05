@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { ProductModel } from '../../models/Product';
-import { Product, ProductCategory } from '../../types';
+import { Product } from '../../types';
 import { ValidationError } from '../../utils/errors';
 
 export class ProductService {
@@ -46,13 +46,26 @@ export class ProductService {
   }
 
   /**
-   * Get all products for a vendor
+   * Get count of products for a vendor
    */
-  async getProductsByVendor(vendorId: string, availableOnly: boolean = false): Promise<Product[]> {
+  async getProductsCount(vendorId: string, availableOnly: boolean = false): Promise<number> {
+    return await this.productModel.countByVendor(vendorId, availableOnly);
+  }
+
+  /**
+   * Get all products for a vendor
+   * OPTIMIZED: Added pagination support
+   */
+  async getProductsByVendor(
+    vendorId: string, 
+    availableOnly: boolean = false,
+    limit?: number,
+    offset?: number
+  ): Promise<Product[]> {
     if (availableOnly) {
-      return await this.productModel.findAvailableByVendor(vendorId);
+      return await this.productModel.findAvailableByVendor(vendorId, limit, offset);
     }
-    return await this.productModel.findByVendor(vendorId);
+    return await this.productModel.findByVendor(vendorId, limit, offset);
   }
 
   /**
