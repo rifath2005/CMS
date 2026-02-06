@@ -66,7 +66,7 @@ export class AuthService {
     }
 
     // Create user with hashed password and institution ID from validated domain
-    return this.userModel.create(email, password, name, role, institution.id);
+    return this.userModel.create(email, name, role, institution.id, password);
   }
 
   /**
@@ -117,7 +117,7 @@ export class AuthService {
     }
 
     // Create user with hashed password and institution ID from organization name
-    return this.userModel.create(email, password, name, role, institution.id);
+    return this.userModel.create(email, name, role, institution.id, password);
   }
 
   /**

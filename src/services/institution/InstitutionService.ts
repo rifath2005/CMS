@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Institution, Canteen, InstitutionStats } from '../../types';
+import { Institution, Canteen, InstitutionStats, UserRole } from '../../types';
 import { InstitutionModel } from '../../models/Institution';
 import { CanteenModel } from '../../models/Canteen';
 import { UserModel } from '../../models/User';
@@ -181,10 +181,10 @@ export class InstitutionService {
     // Create vendor user first
     const vendorUser = await this.userModel.create(
       vendorEmail,
-      vendorPassword,
       vendorName,
-      'VENDOR' as any,
-      institutionId
+      UserRole.VENDOR,
+      institutionId,
+      vendorPassword
     );
 
     // Create canteen linked to the vendor user

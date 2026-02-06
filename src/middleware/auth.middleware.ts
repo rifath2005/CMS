@@ -8,12 +8,12 @@ import { AuthenticationError, AuthorizationError } from '../utils/errors';
  * Validates: Requirements 1.3, 1.4 (Authentication and Authorization)
  */
 
-// Extend Express Request type to include user
+// Extend Express User type to include our custom property
+import { User as AppUser } from '../types';
+
 declare global {
   namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
+    interface User extends Partial<AppUser>, Partial<JWTPayload> {}
   }
 }
 
